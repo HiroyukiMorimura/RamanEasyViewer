@@ -1,5 +1,4 @@
 scipy
-scipy.signal
 numpy
 matplotlib
 scikit-learn
