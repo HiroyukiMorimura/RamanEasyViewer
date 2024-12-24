@@ -363,7 +363,8 @@ def main():
         # Trim the data according to the start_index and end_index
         wavenum = np.array(pre_wavenum[start_index:end_index+1])
         spectra = np.array(pre_spectra[start_index:end_index+1])
-               
+        spectra = spectra.astype(float)
+
         fig, ax = plt.subplots(figsize=(10, 5))
         ax.plot(wavenum, spectra, marker='o', linestyle='-', color='b')
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
