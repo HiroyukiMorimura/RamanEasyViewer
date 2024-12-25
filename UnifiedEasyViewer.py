@@ -389,8 +389,8 @@ def main():
         num_firstDev = st.number_input(
             f"1次微分の平滑化の数値を入力してください:",
             min_value=1,
-            max_value=35,
-            value=13,
+            max_value=100,
+            value=29,
             step=2,
             key='unique_number_firstDev_key'
         )
@@ -398,8 +398,8 @@ def main():
         num_secondDev = st.number_input(
             f"1次微分の平滑化の数値を入力してください:",
             min_value=1 ,
-            max_value=35,
-            value=5,
+            max_value=100,
+            value=25,
             step=2,
             key='unique_number_secondDev_key'
         )
@@ -408,7 +408,7 @@ def main():
             f"閾値を入力してください:",
             min_value=1 ,
             max_value=1000,
-            value=10,
+            value=100,
             step=10,
             key='unique_number_threshold_key'
         )
