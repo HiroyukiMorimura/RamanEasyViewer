@@ -343,7 +343,7 @@ def main():
         # ユーザーからの入力を受け取る（start_wavenumの入力）
         start_wavenum = st.number_input(f"波数（開始）を入力してください:", 
                                       min_value = 100,
-                                      max_value = 3600, 
+                                      max_value = 4200, 
                                       value = pre_start_wavenum, 
                                       step = 100,
                                       key='unique_number_start_wavenum_key')  # key引数を追加
@@ -351,7 +351,7 @@ def main():
         # ユーザーからの入力を受け取る（start_wavenumの入力）
         end_wavenum = st.number_input(f"波数（終了）を入力してください:", 
                                       min_value = start_wavenum + 100,
-                                      max_value = 3600, 
+                                      max_value = 4200, 
                                       value = pre_end_wavenum, 
                                       step = 100,
                                       key='unique_number_end_wavenum_key')  # key引数を追加
