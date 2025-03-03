@@ -258,7 +258,7 @@ def main():
     savgol_wsize         = 5    # Number windows size of Savitzky-Golay filter
     savgol_order         = 3    # Order for Savitzky-Golay filter (Basically 2 or 3)
     pre_start_wavenum    = 200  # Start of the wavenumber
-    pre_end_wavenum      = 3600 # End of the wavenumber
+    pre_end_wavenum      = 4200 # End of the wavenumber
     wavenum_calibration  = -0   # set calibration offset
     Designated_peak_wn   = 1700 # Note: This should be designated by user. This value is just an example. 
     PCA_components       = 2 
@@ -366,7 +366,8 @@ def main():
         spectra = spectra.astype(float)
 
         fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(wavenum, spectra, marker='o', linestyle='-', color='b')
+        #ax.plot(wavenum, spectra, marker='o', linestyle='-', color='b')
+        ax.plot(wavenum, spectra, linestyle='-', color='b')
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
         ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
         ax.set_title('Raw Spectrum', fontsize=Fsize)
