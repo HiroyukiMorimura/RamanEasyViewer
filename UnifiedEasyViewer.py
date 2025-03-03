@@ -379,7 +379,8 @@ def main():
         BSremoval_specta_pos = BSremoval_specta + abs(np.minimum(BSremoval_specta, 0))
     
         fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(wavenum, BSremoval_specta_pos, marker='o', linestyle='-', color='b')
+        # ax.plot(wavenum, BSremoval_specta_pos, marker='o', linestyle='-', color='b')
+        ax.plot(wavenum, BSremoval_specta_pos, linestyle='-', color='b')
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
         ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
         ax.set_title('Baseline removal', fontsize=Fsize)
@@ -422,7 +423,8 @@ def main():
         peaks = wavenum[peak_indices]
 
         fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(wavenum, BSremoval_specta_pos, marker='o', linestyle='-', color='b')
+        # ax.plot(wavenum, BSremoval_specta_pos, marker='o', linestyle='-', color='b')
+        ax.plot(wavenum, BSremoval_specta_pos, linestyle='-', color='b')
         for peak in peaks:
             ax.axvline(x=peak, color='r', linestyle='--', label=f'Peak at {peak}')
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
