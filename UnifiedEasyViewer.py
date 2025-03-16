@@ -361,12 +361,40 @@ def main():
         ax.legend(title="Spectra")
         st.pyplot(fig)
 
-        # ピーク位置の検出
-        firstDev_spectra = savitzky_golay(BSremoval_specta_pos, 13, savgol_order, 1)
-        secondDev_spectra = savitzky_golay(BSremoval_specta_pos, 5, savgol_order, 2)
+        # ユーザーからの入力を受け取る（微分の平滑用の値を入力）
+        num_firstDev = st.number_input(
+            f"1次微分の平滑化の数値を入力してください:",
+            min_value=1,
+            max_value=35,
+            value=13,
+            step=2,
+            key='unique_number_firstDev_key'
+        )
     
+        num_secondDev = st.number_input(
+            f"1次微分の平滑化の数値を入力してください:",
+            min_value=1 ,
+            max_value=35,
+            value=5,
+            step=2,
+            key='unique_number_secondDev_key'
+        )
+        
+        num_threshold = st.number_input(
+            f"閾値を入力してください:",
+            min_value=1 ,
+            max_value=1000,
+            value=10,
+            step=10,
+            key='unique_number_threshold_key'
+        )
+        
+        # Peak detection
+        firstDev_spectra = savitzky_golay(BSremoval_specta_pos, num_firstDev, savgol_order, 1)
+        secondDev_spectra = savitzky_golay(BSremoval_specta_pos, num_secondDev, savgol_order, 2)
         peak_indices = np.where((firstDev_spectra[:-1] > 0) & (firstDev_spectra[1:] < 0) & 
                                   ((secondDev_spectra[:-1] / abs(np.min(secondDev_spectra[:-1]))) < -10/1000))[0]
+        
         peaks = wavenum[peak_indices]
 
         # ピークの位置をプロット
