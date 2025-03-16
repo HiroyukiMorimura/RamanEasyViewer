@@ -255,184 +255,129 @@ def read_csv_file(uploaded_file, file_extension):
         return pd.read_csv(uploaded_file, sep='\t', header=0, index_col=None, on_bad_lines='skip')
 
 def main():
-    savgol_wsize         = 5    # Number windows size of Savitzky-Golay filter
-    savgol_order         = 3    # Order for Savitzky-Golay filter (Basically 2 or 3)
-    pre_start_wavenum    = 200  # Start of the wavenumber
-    pre_end_wavenum      = 4200 # End of the wavenumber
-    wavenum_calibration  = -0   # set calibration offset
-    Designated_peak_wn   = 1700 # Note: This should be designated by user. This value is just an example. 
-    PCA_components       = 2 
-    number_line          = 5
-    Fsize                = 14   # Fontsize
+    # パラメータ設定
+    savgol_wsize         = 5    # Savitzky-Golayフィルタのウィンドウサイズ
+    savgol_order         = 3    # Savitzky-Golayフィルタの次数
+    pre_start_wavenum    = 200  # 波数の開始
+    pre_end_wavenum      = 3600 # 波数の終了
+    wavenum_calibration  = -0   # 校正オフセット
+    Designated_peak_wn   = 1700 # ピーク指定波数
+    Fsize                = 14   # フォントサイズ
     
     st.title("Raman Spectrum Viewer")
 
-    uploaded_file = st.file_uploader("ファイルを選択してください", type='')
+    # 複数ファイルのアップロード
+    uploaded_files = st.file_uploader("ファイルを選択してください", accept_multiple_files=True)
 
-    if uploaded_file is not None:
-        file_name = uploaded_file.name
-        file_extension = file_name.split('.')[-1] if '.' in file_name else ''
-        # print(f"file_extension:{file_extension}")
-        try:
-            data = read_csv_file(uploaded_file, file_extension)
-            # print(f"data:{data}")
-            # print(f"data.columns:{data.columns}")
-            # print(f"data.columns[0]:{data.columns[0]}")
-            file_type = detect_file_type(data)
-            
-        except Exception as e:
-            st.error(f"ファイルの読み込み中にエラーが発生しました: {e}")
-            return
-
-        if file_type == "unknown":
-            st.error("ファイルタイプを判別できません。アップロードされたファイルを確認してください。")
-            return
+    all_spectra = []  # すべてのスペクトルを格納するリスト
+    all_bsremoval_spectra = []  # ベースライン補正後のスペクトルを格納するリスト
+    file_labels = []  # 各ファイル名のリスト
+    
+    if uploaded_files:
+        colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
         
-        if file_type == "wasatch":
-            st.write("ファイルタイプ: Wasatch ENLIGHTEN")
-            lambda_ex = 785.0
-            uploaded_file.seek(0)
-            # print(uploaded_file)
-            data = pd.read_csv(uploaded_file, skiprows=45) 
-            # print(f"data:{data}")
-            # print(f"data.columns:{data.columns}")
-            # print(f"data.columns[0]:{data.columns[0]}")
-            pre_wavelength = np.array(data["Wavelength"].values)
-            pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
-            pre_spectra = np.array(data["Processed"].values)
-            # st.write("pre_wavenum:", pre_wavenum)
-            # st.write("pre_spectra:", pre_spectra)    
-            
-        if file_type == "ramaneye":
-            st.write("ファイルタイプ: RamanEye Data")
-            
-            # DataFrameの行数を取得
-            number_of_rows = len(data)
-            
-            # ユーザーからの入力を受け取る（行番号の入力）
-            number_line = st.number_input(f"行番号を入力してください（1から{number_of_rows-2}までのインデックス）:", 
-                                          min_value = 1,
-                                          max_value=number_of_rows - 2, 
-                                          value = number_of_rows - 2, 
-                                          step = 1,
-                                          key='unique_number_line_key')  # key引数を追加
-            
-            pre_wavenum = np.array(data.iloc[1,:].name[1:])
-            pre_spectra = np.array(data.iloc[number_line + 1,:].name[1:])
-            # st.write("pre_wavenum:", pre_wavenum)
-            # st.write("pre_spectra:", pre_spectra)
-            
-        elif file_type == "eagle":
-            st.write("ファイルタイプ: Eagle Data")
-            
-            # データを縦横変換
-            data_transposed = data.transpose()
-            # st.write("データプレビュー:", data_transposed)
-            
-            # 最初の3行を保持し、それ以降の行を反転
-            if len(data_transposed) > 3:
-                header = data_transposed.iloc[:3]  # 最初の3行
-                reversed_data = data_transposed.iloc[3:].iloc[::-1]  # 4行目以降を逆順に
-                data_transposed = pd.concat([header, reversed_data], ignore_index=True)
-            
-            pre_wavenum = np.array(data_transposed.iloc[3:,0])
-            pre_spectra = np.array(data_transposed.iloc[3:,1])
-            # st.write("pre_wavenum:", pre_wavenum)
-            # st.write("pre_spectra:", pre_spectra)
+        # 波数範囲の設定
+        start_wavenum = st.number_input("波数（開始）を入力してください:", min_value=100, max_value=3600, value=pre_start_wavenum, step=100)
+        end_wavenum = st.number_input("波数（終了）を入力してください:", min_value=start_wavenum+100, max_value=3600, value=pre_end_wavenum, step=100)
+
+        # すべてのファイルに対して処理
+        for uploaded_file in uploaded_files:
+            file_name = uploaded_file.name
+            file_extension = file_name.split('.')[-1] if '.' in file_name else ''
+
+            try:
+                data = read_csv_file(uploaded_file, file_extension)
+                file_type = detect_file_type(data)
+
+                if file_type == "unknown":
+                    st.error(f"{file_name}のファイルタイプを判別できません。")
+                    continue
+
+                # 各ファイルタイプに対する処理
+                if file_type == "wasatch":
+                    st.write(f"ファイルタイプ: Wasatch ENLIGHTEN - {file_name}")
+                    lambda_ex = 1064
+                    data = pd.read_csv(uploaded_file, skiprows=45)
+                    pre_wavelength = np.array(data["Wavelength"].values)
+                    pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
+                    pre_spectra = np.array(data["Processed"].values)
+
+                elif file_type == "ramaneye":
+                    st.write(f"ファイルタイプ: RamanEye Data - {file_name}")
+                    pre_wavenum = data["WaveNumber"]
+                    pre_spectra = np.array(data.iloc[:, -1])  # ユーザーの指定に基づく列を取得
+
+                elif file_type == "eagle":
+                    st.write(f"ファイルタイプ: Eagle Data - {file_name}")
+                    data_transposed = data.transpose()
+                    header = data_transposed.iloc[:3]  # 最初の3行
+                    reversed_data = data_transposed.iloc[3:].iloc[::-1]
+                    data_transposed = pd.concat([header, reversed_data], ignore_index=True)
+                    pre_wavenum = np.array(data_transposed.iloc[3:, 0])
+                    pre_spectra = np.array(data_transposed.iloc[3:, 1])
                 
-        # ユーザーからの入力を受け取る（start_wavenumの入力）
-        start_wavenum = st.number_input(f"波数（開始）を入力してください:", 
-                                      min_value = 100,
-                                      max_value = 4200, 
-                                      value = pre_start_wavenum, 
-                                      step = 100,
-                                      key='unique_number_start_wavenum_key')  # key引数を追加
-        
-        # ユーザーからの入力を受け取る（start_wavenumの入力）
-        end_wavenum = st.number_input(f"波数（終了）を入力してください:", 
-                                      min_value = start_wavenum + 100,
-                                      max_value = 4200, 
-                                      value = pre_end_wavenum, 
-                                      step = 100,
-                                      key='unique_number_end_wavenum_key')  # key引数を追加
-        
-        # Find index based on the start_wavenum and end_wavenum
-        start_index = find_index(pre_wavenum, start_wavenum)
-        end_index = find_index(pre_wavenum, end_wavenum)
-    
-        # Trim the data according to the start_index and end_index
-        wavenum = np.array(pre_wavenum[start_index:end_index+1])
-        spectra = np.array(pre_spectra[start_index:end_index+1])
-        spectra = spectra.astype(float)
+                start_index = find_index(pre_wavenum, start_wavenum)
+                end_index = find_index(pre_wavenum, end_wavenum)
 
+                wavenum = np.array(pre_wavenum[start_index:end_index+1])
+                spectra = np.array(pre_spectra[start_index:end_index+1])
+
+                # Baseline removal
+                mveAve_spectra = signal.medfilt(spectra, savgol_wsize)
+                baseline = airPLS(mveAve_spectra, 0.00001, 10e1, 2)
+                BSremoval_specta = spectra - baseline
+                BSremoval_specta_pos = BSremoval_specta + abs(np.minimum(BSremoval_specta, 0))  # 負値を補正
+                
+                # 各スペクトルを格納
+                file_labels.append(file_name)  # ファイル名を追加
+                all_spectra.append(spectra)
+                all_bsremoval_spectra.append(BSremoval_specta_pos)
+
+            except Exception as e:
+                st.error(f"{file_name}の処理中にエラーが発生しました: {e}")
+    
+        # すべてのファイルが処理された後に重ねてプロット
         fig, ax = plt.subplots(figsize=(10, 5))
-        #ax.plot(wavenum, spectra, marker='o', linestyle='-', color='b')
-        ax.plot(wavenum, spectra, linestyle='-', color='b')
+
+        # 元のスペクトルを重ねてプロット
+        for i, spectrum in enumerate(all_spectra):
+            ax.plot(wavenum, spectrum, linestyle='-', color=colors[i % len(colors)], label=f"{file_labels[i]}")
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
         ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
-        ax.set_title('Raw Spectrum', fontsize=Fsize)
+        ax.set_title('Raw Spectra', fontsize=Fsize)
+        ax.legend(title="Spectra")
         st.pyplot(fig)
-    
-        # Baseline removal
-        mveAve_spectra = signal.medfilt(spectra, savgol_wsize)
-        baseline = airPLS(mveAve_spectra, 0.00001, 10e1, 2)
-        BSremoval_specta = spectra - baseline
-        BSremoval_specta_pos = BSremoval_specta + abs(np.minimum(BSremoval_specta, 0))
-    
-        fig, ax = plt.subplots(figsize=(10, 5))
-        # ax.plot(wavenum, BSremoval_specta_pos, marker='o', linestyle='-', color='b')
-        ax.plot(wavenum, BSremoval_specta_pos, linestyle='-', color='b')
+
+        # ベースライン補正後のスペクトルを重ねてプロット
+        fig, ax = plt.subplots(figsize=(10, 5))        
+        for i, spectrum in enumerate(all_bsremoval_spectra):
+            ax.plot(wavenum, spectrum, linestyle='-', color=colors[i % len(colors)], label=f"{file_labels[i]}")
+        
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
         ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
-        ax.set_title('Baseline removal', fontsize=Fsize)
+        ax.set_title('Baseline Removed', fontsize=Fsize)
+        ax.legend(title="Spectra")
         st.pyplot(fig)
+
+        # ピーク位置の検出
+        firstDev_spectra = savitzky_golay(BSremoval_specta_pos, 13, savgol_order, 1)
+        secondDev_spectra = savitzky_golay(BSremoval_specta_pos, 5, savgol_order, 2)
     
-        # ユーザーからの入力を受け取る（微分の平滑用の値を入力）
-        num_firstDev = st.number_input(
-            f"1次微分の平滑化の数値を入力してください:",
-            min_value=1,
-            max_value=100,
-            value=29,
-            step=2,
-            key='unique_number_firstDev_key'
-        )
-    
-        num_secondDev = st.number_input(
-            f"1次微分の平滑化の数値を入力してください:",
-            min_value=1 ,
-            max_value=100,
-            value=25,
-            step=2,
-            key='unique_number_secondDev_key'
-        )
-        
-        num_threshold = st.number_input(
-            f"閾値を入力してください:",
-            min_value=1 ,
-            max_value=1000,
-            value=100,
-            step=10,
-            key='unique_number_threshold_key'
-        )
-        
-        # Peak detection
-        firstDev_spectra = savitzky_golay(BSremoval_specta_pos, num_firstDev, savgol_order, 1)
-        secondDev_spectra = savitzky_golay(BSremoval_specta_pos, num_secondDev, savgol_order, 2)
-    
-        peak_indices = np.where((firstDev_spectra[:-1] > 0) & (firstDev_spectra[1:] < 0) &
-                                  ((secondDev_spectra[:-1] / abs(np.min(secondDev_spectra[:-1]))) < -num_threshold/1000))[0]
+        peak_indices = np.where((firstDev_spectra[:-1] > 0) & (firstDev_spectra[1:] < 0) & 
+                                  ((secondDev_spectra[:-1] / abs(np.min(secondDev_spectra[:-1]))) < -10/1000))[0]
         peaks = wavenum[peak_indices]
 
+        # ピークの位置をプロット
         fig, ax = plt.subplots(figsize=(10, 5))
-        # ax.plot(wavenum, BSremoval_specta_pos, marker='o', linestyle='-', color='b')
         ax.plot(wavenum, BSremoval_specta_pos, linestyle='-', color='b')
         for peak in peaks:
             ax.axvline(x=peak, color='r', linestyle='--', label=f'Peak at {peak}')
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
         ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
-        ax.set_title('Baseline Removal', fontsize=Fsize)
+        ax.set_title('Peak Detection', fontsize=Fsize)
         st.pyplot(fig)
 
+        # ピーク位置を表示
         st.write("ピーク位置:")
         st.table(peaks)
         
