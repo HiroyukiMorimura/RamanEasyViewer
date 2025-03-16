@@ -237,6 +237,8 @@ def detect_file_type(data):
     try:
         if data.columns[0] == "Timestamp":
             return "ramaneye"
+        elif data.columns[0] == "WaveNumber":
+            return "ramaneye"
         elif data.columns[0] == "Pixels":
             return "eagle"
         elif data.columns[0] == "ENLIGHTEN Version":
