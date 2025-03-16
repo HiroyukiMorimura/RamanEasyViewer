@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+    # -*- coding: utf-8 -*-
 """
 Created on Sun Dec 22 19:03:55 2024
 
@@ -308,7 +308,20 @@ def main():
                     st.write(f"ファイルタイプ: RamanEye Data - {file_name}")
                     pre_wavenum = data["WaveNumber"]
                     pre_spectra = np.array(data.iloc[:, -1])  # ユーザーの指定に基づく列を取得
-
+                    # ファイル数が1つ、RamanEyeの場合にのみ行番号の入力を受ける
+                    if len(uploaded_files) == 1:
+                        number_of_rows = data.shape[1]
+                        number_line = st.number_input(
+                            f"行番号を入力してください（1から{number_of_rows-2}までのインデックス）:", 
+                            min_value=1,
+                            max_value=number_of_rows - 2, 
+                            value=number_of_rows - 2, 
+                            step=1,
+                            key='unique_number_line_key'
+                        )
+                        pre_spectra = np.array(data.iloc[:, number_line + 1])  # ユーザーの指定に基づく列を取得
+                    
+                        
                 elif file_type == "eagle":
                     st.write(f"ファイルタイプ: Eagle Data - {file_name}")
                     data_transposed = data.transpose()
