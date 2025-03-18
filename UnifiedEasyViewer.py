@@ -261,7 +261,7 @@ def main():
     savgol_wsize         = 5    # Savitzky-Golayフィルタのウィンドウサイズ
     savgol_order         = 3    # Savitzky-Golayフィルタの次数
     pre_start_wavenum    = 200  # 波数の開始
-    pre_end_wavenum      = 4200 # 波数の終了
+    pre_end_wavenum      = 3600 # 波数の終了
     wavenum_calibration  = -0   # 校正オフセット
     Designated_peak_wn   = 1700 # ピーク指定波数
     Fsize                = 14   # フォントサイズ
@@ -279,8 +279,8 @@ def main():
         colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
         
         # 波数範囲の設定
-        start_wavenum = st.number_input("波数（開始）を入力してください:", min_value=100, max_value=4200, value=pre_start_wavenum, step=100)
-        end_wavenum = st.number_input("波数（終了）を入力してください:", min_value=start_wavenum+100, max_value=4200, value=pre_end_wavenum, step=100)
+        start_wavenum = st.number_input("波数（開始）を入力してください:", min_value=100, max_value=5400, value=pre_start_wavenum, step=100)
+        end_wavenum = st.number_input("波数（終了）を入力してください:", min_value=start_wavenum+100, max_value=5400, value=pre_end_wavenum, step=100)
 
         # すべてのファイルに対して処理
         for uploaded_file in uploaded_files:
