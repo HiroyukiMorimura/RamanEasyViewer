@@ -320,7 +320,10 @@ def main():
                             key='unique_number_line_key'
                         )
                         pre_spectra = np.array(data.iloc[:, number_line + 1])  # ユーザーの指定に基づく列を取得
-                    
+                    if pre_wavenum[0] > pre_wavenum[1]:
+                        # pre_wavenum と pre_spectra を反転
+                        pre_wavenum = pre_wavenum[::-1]
+                        pre_spectra = pre_spectra[::-1]
                         
                 elif file_type == "eagle":
                     st.write(f"ファイルタイプ: Eagle Data - {file_name}")
