@@ -345,6 +345,7 @@ def main():
                 spectra = np.array(pre_spectra[start_index:end_index+1])
 
                 # Baseline removal
+                st.write("spectra:", spectra)
                 mveAve_spectra = signal.medfilt(spectra, savgol_wsize)
                 st.write("mveAve_spectra:", mveAve_spectra)
                 baseline = airPLS(mveAve_spectra, 0.00001, 10e1, 2)
