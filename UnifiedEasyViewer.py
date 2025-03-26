@@ -334,19 +334,21 @@ def main():
                     pre_wavenum = np.array(data_transposed.iloc[3:, 0])
                     pre_spectra = np.array(data_transposed.iloc[3:, 1])
                 
-                st.write("pre_wavenum:", pre_wavenum)
-                st.write("pre_spectra:", pre_spectra)
+                # st.write("pre_wavenum:", pre_wavenum)
+                # st.write("pre_spectra:", pre_spectra)
                 start_index = find_index(pre_wavenum, start_wavenum)
                 end_index = find_index(pre_wavenum, end_wavenum)
-                st.write("start_index:", start_index)
-                st.write("end_index:", end_index)
+                # st.write("start_index:", start_index)
+                # st.write("end_index:", end_index)
 
                 wavenum = np.array(pre_wavenum[start_index:end_index+1])
                 spectra = np.array(pre_spectra[start_index:end_index+1])
 
                 # Baseline removal
                 mveAve_spectra = signal.medfilt(spectra, savgol_wsize)
+                st.write("mveAve_spectra:", mveAve_spectra)
                 baseline = airPLS(mveAve_spectra, 0.00001, 10e1, 2)
+                st.write("baseline:", baseline)
                 BSremoval_specta = spectra - baseline
                 BSremoval_specta_pos = BSremoval_specta + abs(np.minimum(BSremoval_specta, 0))  # 負値を補正
                 
