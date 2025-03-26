@@ -345,11 +345,11 @@ def main():
                 spectra = np.array(pre_spectra[start_index:end_index+1])
 
                 # Baseline removal
-                st.write("spectra:", spectra)
+                # st.write("spectra:", spectra)
                 mveAve_spectra = signal.medfilt(spectra, savgol_wsize)
-                st.write("mveAve_spectra:", mveAve_spectra)
+                # st.write("mveAve_spectra:", mveAve_spectra)
                 baseline = airPLS(mveAve_spectra, 0.00001, 10e1, 2)
-                st.write("baseline:", baseline)
+                # st.write("baseline:", baseline)
                 BSremoval_specta = spectra - baseline
                 BSremoval_specta_pos = BSremoval_specta + abs(np.minimum(BSremoval_specta, 0))  # 負値を補正
                 
