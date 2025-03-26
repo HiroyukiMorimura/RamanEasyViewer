@@ -300,14 +300,14 @@ def main():
                     st.write(f"ファイルタイプ: Wasatch ENLIGHTEN - {file_name}")
                     lambda_ex = 1064
                     data = pd.read_csv(uploaded_file, skiprows=45)
-                    pre_wavelength = np.array(data["Wavelength"].values)
+                    pre_wavelength = np.array(data["Wavelength"].values, dtype=float)
                     pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
-                    pre_spectra = np.array(data["Processed"].values)
+                    pre_spectra = np.array(data["Processed"].value, dtype=float)
 
                 elif file_type == "ramaneye":
                     st.write(f"ファイルタイプ: RamanEye Data - {file_name}")
-                    pre_wavenum = data["WaveNumber"]
-                    pre_spectra = np.array(data.iloc[:, -1])  # ユーザーの指定に基づく列を取得
+                    pre_wavenum = np.array(data["WaveNumber"] , dtype=float)
+                    pre_spectra = np.array(data.iloc[:, -1], dtype=float)  # ユーザーの指定に基づく列を取得
                     # ファイル数が1つ、RamanEyeの場合にのみ行番号の入力を受ける
                     if len(uploaded_files) == 1:
                         number_of_rows = data.shape[1]
@@ -331,8 +331,8 @@ def main():
                     header = data_transposed.iloc[:3]  # 最初の3行
                     reversed_data = data_transposed.iloc[3:].iloc[::-1]
                     data_transposed = pd.concat([header, reversed_data], ignore_index=True)
-                    pre_wavenum = np.array(data_transposed.iloc[3:, 0])
-                    pre_spectra = np.array(data_transposed.iloc[3:, 1])
+                    pre_wavenum = np.array(data_transposed.iloc[3:, 0], dtype=float)
+                    pre_spectra = np.array(data_transposed.iloc[3:, 1], dtype=float)
                 
                 # st.write("pre_wavenum:", pre_wavenum)
                 # st.write("pre_spectra:", pre_spectra)
