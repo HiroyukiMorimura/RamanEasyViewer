@@ -313,6 +313,7 @@ def main():
 
     all_spectra = []  # すべてのスペクトルを格納するリスト
     all_bsremoval_spectra = []  # ベースライン補正後のスペクトルを格納するリスト
+    all_averemoval_spectra = []  # ベースライン補正後移動平均を行ったスペクトルを格納するリスト
     file_labels = []  # 各ファイル名のリスト
     
     if uploaded_files:
@@ -384,22 +385,23 @@ def main():
                 wavenum = np.array(pre_wavenum[start_index:end_index+1])
                 spectra = np.array(pre_spectra[start_index:end_index+1])
 
-                # Baseline removal
-                # st.write("spectra:", spectra)
+                # Baseline and spike removal 
                 spectra_spikerm = remove_outliers_and_interpolate(spectra)
-                mveAve_spectra = signal.medfilt(spectra, savgol_wsize)
-                # st.write("mveAve_spectra:", mveAve_spectra)
+                mveAve_spectra = signal.medfilt(spectra_spikerm, savgol_wsize)
                 baseline = airPLS(mveAve_spectra, 0.00001, 10e1, 2)
-                # st.write("baseline:", baseline)
-                BSremoval_specta = mveAve_spectra - baseline
-                BSremoval_specta_pos = BSremoval_specta + abs(np.minimum(mveAve_spectra, 0))  # 負値を補正
-                
-                
+                BSremoval_specta = spectra_spikerm - baseline
+                BSremoval_specta_pos = BSremoval_specta + abs(np.minimum(spectra_spikerm, 0))  # 負値を補正
+
+                # 移動平均後のスペクトル
+                Averemoval_specta = mveAve_spectra  - baseline
+                Averemoval_specta_pos = Averemoval_specta + abs(np.minimum(mveAve_spectra, 0))  # 負値を補正
+
                 # 各スペクトルを格納
                 file_labels.append(file_name)  # ファイル名を追加
                 all_spectra.append(spectra)
                 all_bsremoval_spectra.append(BSremoval_specta_pos)
-
+                all_averemoval_spectra.append(Averemoval_specta_pos)
+                
             except Exception as e:
                 st.error(f"{file_name}の処理中にエラーが発生しました: {e}")
     
@@ -415,7 +417,7 @@ def main():
         ax.legend(title="Spectra")
         st.pyplot(fig)
 
-        # ベースライン補正後のスペクトルを重ねてプロット
+        # ベースライン補正後+スパイク修正後のスペクトルを重ねてプロット
         fig, ax = plt.subplots(figsize=(10, 5))        
         for i, spectrum in enumerate(all_bsremoval_spectra):
             ax.plot(wavenum, spectrum, linestyle='-', color=colors[i % len(colors)], label=f"{file_labels[i]}")
@@ -426,6 +428,17 @@ def main():
         ax.legend(title="Spectra")
         st.pyplot(fig)
 
+        # ベースライン補正後+スパイク修正後+移動平均のスペクトルを重ねてプロット
+        fig, ax = plt.subplots(figsize=(10, 5))        
+        for i, spectrum in enumerate(all_averemoval_spectra):
+            ax.plot(wavenum, spectrum, linestyle='-', color=colors[i % len(colors)], label=f"{file_labels[i]}")
+        
+        ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
+        ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
+        ax.set_title('Baseline Removed + Moving Average', fontsize=Fsize)
+        ax.legend(title="Spectra")
+        st.pyplot(fig)
+        
         # ユーザーからの入力を受け取る（微分の平滑用の値を入力）
         num_firstDev = st.number_input(
             f"1次微分の平滑化の数値を入力してください:",
