@@ -428,7 +428,7 @@ def main():
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
         ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
         ax.set_title('Baseline Removed', fontsize=Fsize)
-        ax.legend(title="Spectra")
+        # ax.legend(title="Spectra")
         st.pyplot(fig)
 
         # ベースライン補正後+スパイク修正後+移動平均のスペクトルを重ねてプロット
@@ -439,7 +439,7 @@ def main():
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
         ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
         ax.set_title('Baseline Removed + Moving Average', fontsize=Fsize)
-        ax.legend(title="Spectra")
+        # ax.legend(title="Spectra")
         st.pyplot(fig)
 
         # ユーザーからの入力を受け取る（微分の平滑用の値を入力）
