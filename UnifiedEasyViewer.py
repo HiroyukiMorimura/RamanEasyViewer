@@ -288,8 +288,7 @@ def remove_outliers_and_interpolate(spectrum, window_size=10, threshold_factor=3
         if abs(spectrum[i] - window_median) > threshold_factor * window_std:
             # スパイクが見つかった場合、その値を両隣の中央値で補完
             if i > 0 and i < spectrum_len - 1:  # 両隣の値が存在する場合
-                # cleaned_spectrum[i] = (spectrum[i - 1] + spectrum[i + 1]) / 2
-                cleaned_spectrum[i] = 0 
+                cleaned_spectrum[i] = (spectrum[i - 1] + spectrum[i + 1]) / 2
             elif i == 0:  # 左端の場合
                 cleaned_spectrum[i] = spectrum[i + 1]
             elif i == spectrum_len - 1:  # 右端の場合
@@ -438,9 +437,6 @@ def main():
         ax.set_title('Baseline Removed + Moving Average', fontsize=Fsize)
         ax.legend(title="Spectra")
         st.pyplot(fig)
-
-        # for debug
-        st.title("Raman debug Viewer")
 
         # ユーザーからの入力を受け取る（微分の平滑用の値を入力）
         num_firstDev = st.number_input(
