@@ -74,7 +74,8 @@ def WhittakerSmooth(x,w,lambda_,differences=1):
     background=spsolve(A,B)
     return np.array(background)
 
-def airPLS(x, dssn_th=0.00001, lambda_=100, porder=1, itermax=30):
+# def airPLS(x, dssn_th=0.00001, lambda_=100, porder=1, itermax=30):
+def airPLS(x, dssn_th, lambda_, porder, itermax):
     '''
     Adaptive iteratively reweighted penalized least squares for baseline fitting
     
@@ -321,7 +322,9 @@ def main():
         # 波数範囲の設定
         start_wavenum = st.number_input("波数（開始）を入力してください:", min_value=100, max_value=5400, value=pre_start_wavenum, step=100)
         end_wavenum = st.number_input("波数（終了）を入力してください:", min_value=start_wavenum+100, max_value=5400, value=pre_end_wavenum, step=100)
-
+        dssn_th = st.number_input("ベースラインパラメーターを入力してください:", min_value=1, max_value=1000, value=100, step=1)
+        dssn_th = dssn_th/10000000
+        
         # すべてのファイルに対して処理
         for uploaded_file in uploaded_files:
             file_name = uploaded_file.name
@@ -338,7 +341,7 @@ def main():
                 # 各ファイルタイプに対する処理
                 if file_type == "wasatch":
                     st.write(f"ファイルタイプ: Wasatch ENLIGHTEN - {file_name}")
-                    lambda_ex = 1064
+                    lambda_ex = 785
                     data = pd.read_csv(uploaded_file, skiprows=45)
                     pre_wavelength = np.array(data["Wavelength"].values, dtype=float)
                     pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
@@ -387,7 +390,8 @@ def main():
                 # Baseline and spike removal 
                 spectra_spikerm = remove_outliers_and_interpolate(spectra)
                 mveAve_spectra = signal.medfilt(spectra_spikerm, savgol_wsize)
-                baseline = airPLS(mveAve_spectra, 0.00001, 10e1, 2)
+                lambda_ = 10e2
+                baseline = airPLS(mveAve_spectra, dssn_th, lambda_, 2, 30)
                 BSremoval_specta = spectra_spikerm - baseline
                 BSremoval_specta_pos = BSremoval_specta + abs(np.minimum(spectra_spikerm, 0))  # 負値を補正
 
