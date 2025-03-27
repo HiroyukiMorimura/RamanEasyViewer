@@ -256,6 +256,46 @@ def read_csv_file(uploaded_file, file_extension):
     else:
         return pd.read_csv(uploaded_file, sep='\t', header=0, index_col=None, on_bad_lines='skip')
 
+def remove_outliers_and_interpolate(spectrum, window_size=10, threshold_factor=3):
+    """
+    スペクトルからスパイク（外れ値）を検出し、補完する関数
+    スパイクは、ウィンドウ内の標準偏差が一定の閾値を超える場合に検出される
+    
+    input:
+        spectrum: numpy array, ラマンスペクトル
+        window_size: ウィンドウのサイズ（デフォルトは20）
+        threshold_factor: 標準偏差の閾値（デフォルトは5倍）
+    
+    output:
+        cleaned_spectrum: numpy array, スパイクを取り除き補完したスペクトル
+    """
+    spectrum_len = len(spectrum)
+    cleaned_spectrum = spectrum.copy()
+    
+    for i in range(spectrum_len):
+        # 端点では、ウィンドウサイズが足りないので、ウィンドウを調整
+        left_idx = max(i - window_size, 0)
+        right_idx = min(i + window_size + 1, spectrum_len)
+        
+        # ウィンドウ内のデータを取得
+        window = spectrum[left_idx:right_idx]
+        
+        # ウィンドウ内の中央値と標準偏差を計算
+        window_median = np.median(window)
+        window_std = np.std(window)
+        
+        # ウィンドウ内の値が標準偏差の閾値を超えるスパイクを検出
+        if abs(spectrum[i] - window_median) > threshold_factor * window_std:
+            # スパイクが見つかった場合、その値を両隣の中央値で補完
+            if i > 0 and i < spectrum_len - 1:  # 両隣の値が存在する場合
+                # cleaned_spectrum[i] = (spectrum[i - 1] + spectrum[i + 1]) / 2
+                cleaned_spectrum[i] = 0 
+            elif i == 0:  # 左端の場合
+                cleaned_spectrum[i] = spectrum[i + 1]
+            elif i == spectrum_len - 1:  # 右端の場合
+                cleaned_spectrum[i] = spectrum[i - 1] 
+    return cleaned_spectrum
+    
 def main():
     # パラメータ設定
     savgol_wsize         = 5    # Savitzky-Golayフィルタのウィンドウサイズ
@@ -346,12 +386,14 @@ def main():
 
                 # Baseline removal
                 # st.write("spectra:", spectra)
+                spectra_spikerm = remove_outliers_and_interpolate(spectra)
                 mveAve_spectra = signal.medfilt(spectra, savgol_wsize)
                 # st.write("mveAve_spectra:", mveAve_spectra)
                 baseline = airPLS(mveAve_spectra, 0.00001, 10e1, 2)
                 # st.write("baseline:", baseline)
-                BSremoval_specta = spectra - baseline
-                BSremoval_specta_pos = BSremoval_specta + abs(np.minimum(BSremoval_specta, 0))  # 負値を補正
+                BSremoval_specta = mveAve_spectra - baseline
+                BSremoval_specta_pos = BSremoval_specta + abs(np.minimum(mveAve_spectra, 0))  # 負値を補正
+                
                 
                 # 各スペクトルを格納
                 file_labels.append(file_name)  # ファイル名を追加
