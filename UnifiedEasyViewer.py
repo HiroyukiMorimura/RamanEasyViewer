@@ -438,7 +438,10 @@ def main():
         ax.set_title('Baseline Removed + Moving Average', fontsize=Fsize)
         ax.legend(title="Spectra")
         st.pyplot(fig)
-        
+
+        # for debug
+        st.title("Raman debug Viewer")
+
         # ユーザーからの入力を受け取る（微分の平滑用の値を入力）
         num_firstDev = st.number_input(
             f"1次微分の平滑化の数値を入力してください:",
