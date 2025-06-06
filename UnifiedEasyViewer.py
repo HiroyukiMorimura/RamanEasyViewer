@@ -317,7 +317,7 @@ def main():
     file_labels = []  # 各ファイル名のリスト
     
     if uploaded_files:
-        #olors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
+        #colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
 
         # 波数範囲の設定
         start_wavenum = st.number_input("波数（開始）を入力してください:", min_value=100, max_value=4800, value=pre_start_wavenum, step=100)
