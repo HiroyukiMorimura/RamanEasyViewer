@@ -406,13 +406,13 @@ def main():
     
         # すべてのファイルが処理された後に重ねてプロット
         fig, ax = plt.subplots(figsize=(10, 5))
-        selected_colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
-        # colors = ['#0000FF', '#FF0000', '#00FF00', '#FFA500', '#800080', '#A52A2A', '#FFC0CB', '#00FFFF', '#FFFF00', '#000000']
-        # selected_colors = []
-        # for i, uploaded_file in enumerate(uploaded_files):
-        #     default_color = colors[i % len(colors)]
-        #     selected_color = st.color_picker(f"{uploaded_file.name} の線色を選択してください", default_color)
-        #     selected_colors.append(selected_color)
+        # selected_colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
+        colors = ['#0000FF', '#FF0000', '#00FF00', '#FFA500', '#800080', '#A52A2A', '#FFC0CB', '#00FFFF', '#FFFF00', '#000000']
+        selected_colors = []
+        for i, uploaded_file in enumerate(uploaded_files):
+            default_color = colors[i % len(colors)]
+            selected_color = st.color_picker(f"{uploaded_file.name} の線色を選択してください", default_color)
+            selected_colors.append(selected_color)
             
         # 元のスペクトルを重ねてプロット
         for i, spectrum in enumerate(all_spectra):
