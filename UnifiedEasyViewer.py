@@ -317,8 +317,8 @@ def main():
     file_labels = []  # 各ファイル名のリスト
     
     if uploaded_files:
-        colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
-        
+        #olors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
+
         # 波数範囲の設定
         start_wavenum = st.number_input("波数（開始）を入力してください:", min_value=100, max_value=4800, value=pre_start_wavenum, step=100)
         end_wavenum = st.number_input("波数（終了）を入力してください:", min_value=start_wavenum+100, max_value=4800, value=pre_end_wavenum, step=100)
@@ -408,9 +408,16 @@ def main():
         # すべてのファイルが処理された後に重ねてプロット
         fig, ax = plt.subplots(figsize=(10, 5))
 
+        colors = ['#0000FF', '#FF0000', '#00FF00', '#FFA500', '#800080', '#A52A2A', '#FFC0CB', '#00FFFF', '#FFFF00', '#000000']
+        selected_colors = []
+        for i, uploaded_file in enumerate(uploaded_files):
+            default_color = colors[i % len(colors)]
+            selected_color = st.color_picker(f"{uploaded_file.name} の線色を選択してください", default_color)
+            selected_colors.append(selected_color)
+            
         # 元のスペクトルを重ねてプロット
         for i, spectrum in enumerate(all_spectra):
-            ax.plot(wavenum, spectrum, linestyle='-', color=colors[i % len(colors)], label=f"{file_labels[i]}")
+            ax.plot(wavenum, spectrum, linestyle='-', color=selected_colors[i], label=f"{file_labels[i]}")
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
         ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
         ax.set_title('Raw Spectra', fontsize=Fsize)
@@ -420,7 +427,7 @@ def main():
         # ベースライン補正後+スパイク修正後のスペクトルを重ねてプロット
         fig, ax = plt.subplots(figsize=(10, 5))        
         for i, spectrum in enumerate(all_bsremoval_spectra):
-            ax.plot(wavenum, spectrum, linestyle='-', color=colors[i % len(colors)], label=f"{file_labels[i]}")
+            ax.plot(wavenum, spectrum, linestyle='-', color=selected_colors[i], label=f"{file_labels[i]}")
         
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
         ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
@@ -431,7 +438,7 @@ def main():
         # ベースライン補正後+スパイク修正後+移動平均のスペクトルを重ねてプロット
         fig, ax = plt.subplots(figsize=(10, 5))        
         for i, spectrum in enumerate(all_averemoval_spectra):
-            ax.plot(wavenum, spectrum, linestyle='-', color=colors[i % len(colors)], label=f"{file_labels[i]}")
+            ax.plot(wavenum, spectrum, linestyle='-', color=selected_colors[i], label=f"{file_labels[i]}")
         
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
         ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
