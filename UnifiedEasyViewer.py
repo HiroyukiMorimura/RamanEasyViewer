@@ -1,4 +1,4 @@
-    # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Created on Sun Dec 22 19:03:55 2024
 
@@ -236,10 +236,10 @@ def detect_file_type(data):
     Determine the structure of the input data.
     """
     try:
-        if data.columns[0] == "Timestamp":
-            return "ramaneye"
+        if data.columns[0].split(':')[0] == "# Laser Wavelength":
+            return "ramaneye_new"
         elif data.columns[0] == "WaveNumber":
-            return "ramaneye"
+            return "ramaneye_old"
         elif data.columns[0] == "Pixels":
             return "eagle"
         elif data.columns[0] == "ENLIGHTEN Version":
@@ -295,7 +295,7 @@ def remove_outliers_and_interpolate(spectrum, window_size=10, threshold_factor=3
             elif i == spectrum_len - 1:  # 右端の場合
                 cleaned_spectrum[i] = spectrum[i - 1] 
     return cleaned_spectrum
-    
+
 def main():
     # パラメータ設定
     savgol_wsize         = 5    # Savitzky-Golayフィルタのウィンドウサイズ
@@ -320,8 +320,9 @@ def main():
         colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
         
         # 波数範囲の設定
-        start_wavenum = st.number_input("波数（開始）を入力してください:", min_value=100, max_value=5400, value=pre_start_wavenum, step=100)
-        end_wavenum = st.number_input("波数（終了）を入力してください:", min_value=start_wavenum+100, max_value=5400, value=pre_end_wavenum, step=100)
+        start_wavenum = st.number_input("波数（開始）を入力してください:", min_value=100, max_value=4800, value=pre_start_wavenum, step=100)
+        end_wavenum = st.number_input("波数（終了）を入力してください:", min_value=start_wavenum+100, max_value=4800, value=pre_end_wavenum, step=100)
+
         dssn_th = st.number_input("ベースラインパラメーターを入力してください:", min_value=1, max_value=1000, value=100, step=1)
         dssn_th = dssn_th/10000000
         
@@ -333,7 +334,7 @@ def main():
             try:
                 data = read_csv_file(uploaded_file, file_extension)
                 file_type = detect_file_type(data)
-
+                uploaded_file.seek(0)
                 if file_type == "unknown":
                     st.error(f"{file_name}のファイルタイプを判別できません。")
                     continue
@@ -343,26 +344,26 @@ def main():
                     st.write(f"ファイルタイプ: Wasatch ENLIGHTEN - {file_name}")
                     lambda_ex = 785
                     data = pd.read_csv(uploaded_file, skiprows=45)
-                    pre_wavelength = np.array(data["Wavelength"].values, dtype=float)
+                    pre_wavelength = np.array(data["Wavelength"].values)
                     pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
-                    pre_spectra = np.array(data["Processed"].value, dtype=float)
+                    pre_spectra = np.array(data["Processed"].values)
 
-                elif file_type == "ramaneye":
+                elif file_type == "ramaneye_old":
                     st.write(f"ファイルタイプ: RamanEye Data - {file_name}")
-                    pre_wavenum = np.array(data["WaveNumber"] , dtype=float)
-                    pre_spectra = np.array(data.iloc[:, -1], dtype=float)  # ユーザーの指定に基づく列を取得
-                    # ファイル数が1つ、RamanEyeの場合にのみ行番号の入力を受ける
-                    if len(uploaded_files) == 1:
-                        number_of_rows = data.shape[1]
-                        number_line = st.number_input(
-                            f"行番号を入力してください（1から{number_of_rows-2}までのインデックス）:", 
-                            min_value=1,
-                            max_value=number_of_rows - 2, 
-                            value=number_of_rows - 2, 
-                            step=1,
-                            key='unique_number_line_key'
-                        )
-                        pre_spectra = np.array(data.iloc[:, number_line + 1])  # ユーザーの指定に基づく列を取得
+                    pre_wavenum = data["WaveNumber"]
+                    pre_spectra = np.array(data.iloc[:, -1])  # ユーザーの指定に基づく列を取得
+                    if pre_wavenum[0] > pre_wavenum[1]:
+                        # pre_wavenum と pre_spectra を反転
+                        pre_wavenum = pre_wavenum[::-1]
+                        pre_spectra = pre_spectra[::-1]
+                        
+                elif file_type == "ramaneye_new":
+                    st.write(f"ファイルタイプ: RamanEye Data - {file_name}")
+                    
+                    data = pd.read_csv(uploaded_file, skiprows=9)
+                    pre_wavenum = data["WaveNumber"]
+                    pre_spectra = np.array(data.iloc[:, -1])  # ユーザーの指定に基づく列を取得
+
                     if pre_wavenum[0] > pre_wavenum[1]:
                         # pre_wavenum と pre_spectra を反転
                         pre_wavenum = pre_wavenum[::-1]
@@ -374,15 +375,11 @@ def main():
                     header = data_transposed.iloc[:3]  # 最初の3行
                     reversed_data = data_transposed.iloc[3:].iloc[::-1]
                     data_transposed = pd.concat([header, reversed_data], ignore_index=True)
-                    pre_wavenum = np.array(data_transposed.iloc[3:, 0], dtype=float)
-                    pre_spectra = np.array(data_transposed.iloc[3:, 1], dtype=float)
+                    pre_wavenum = np.array(data_transposed.iloc[3:, 0])
+                    pre_spectra = np.array(data_transposed.iloc[3:, 1])
                 
-                # st.write("pre_wavenum:", pre_wavenum)
-                # st.write("pre_spectra:", pre_spectra)
                 start_index = find_index(pre_wavenum, start_wavenum)
                 end_index = find_index(pre_wavenum, end_wavenum)
-                # st.write("start_index:", start_index)
-                # st.write("end_index:", end_index)
 
                 wavenum = np.array(pre_wavenum[start_index:end_index+1])
                 spectra = np.array(pre_spectra[start_index:end_index+1])
@@ -428,7 +425,7 @@ def main():
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
         ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
         ax.set_title('Baseline Removed', fontsize=Fsize)
-        # ax.legend(title="Spectra")
+        #ax.legend(title="Spectra")
         st.pyplot(fig)
 
         # ベースライン補正後+スパイク修正後+移動平均のスペクトルを重ねてプロット
@@ -439,9 +436,9 @@ def main():
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
         ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
         ax.set_title('Baseline Removed + Moving Average', fontsize=Fsize)
-        # ax.legend(title="Spectra")
+        #ax.legend(title="Spectra")
         st.pyplot(fig)
-
+        
         # ユーザーからの入力を受け取る（微分の平滑用の値を入力）
         num_firstDev = st.number_input(
             f"1次微分の平滑化の数値を入力してください:",
@@ -469,18 +466,30 @@ def main():
             step=10,
             key='unique_number_threshold_key'
         )
-        
-        # Peak detection
-        firstDev_spectra = savitzky_golay(BSremoval_specta_pos, num_firstDev, savgol_order, 1)
-        secondDev_spectra = savitzky_golay(BSremoval_specta_pos, num_secondDev, savgol_order, 2)
+        # ピーク位置の検出
+        firstDev_spectra = savitzky_golay(Averemoval_specta_pos, num_firstDev, savgol_order, 1)
+        secondDev_spectra = savitzky_golay(Averemoval_specta_pos, num_secondDev, savgol_order, 2)
+    
         peak_indices = np.where((firstDev_spectra[:-1] > 0) & (firstDev_spectra[1:] < 0) & 
                                   ((secondDev_spectra[:-1] / abs(np.min(secondDev_spectra[:-1]))) < -10/1000))[0]
-        
         peaks = wavenum[peak_indices]
-
+        
+        peak_areas = []
+        for peak_idx in peak_indices:
+            start_idx, end_idx = find_peak_width(Averemoval_specta_pos, firstDev_spectra, peak_idx, window_size=20)
+            area = find_peak_area(Averemoval_specta_pos, start_idx, end_idx)
+            peak_areas.append(area)
+        
+        # Create a DataFrame to display peaks and their areas
+        peak_data = {
+            "ピーク位置 (cm⁻¹)": peaks,
+            "ピーク面積": peak_areas
+        }
+        peak_df = pd.DataFrame(peak_data)
+        
         # ピークの位置をプロット
         fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(wavenum, BSremoval_specta_pos, linestyle='-', color='b')
+        ax.plot(wavenum, Averemoval_specta_pos, linestyle='-', color='b')
         for peak in peaks:
             ax.axvline(x=peak, color='r', linestyle='--', label=f'Peak at {peak}')
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
@@ -490,8 +499,8 @@ def main():
 
         # ピーク位置を表示
         st.write("ピーク位置:")
-        st.table(peaks)
-        
+        st.table(peak_df)
+         
         # Raman correlation table as a pandas DataFrame
         raman_data = {
             "ラマンシフト (cm⁻¹)": [
@@ -515,6 +524,5 @@ def main():
         # Display Raman correlation table
         st.subheader("（参考）ラマン分光の帰属表")
         st.table(raman_df)
-        
 if __name__ == "__main__":
     main()
