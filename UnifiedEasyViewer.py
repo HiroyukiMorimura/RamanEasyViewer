@@ -317,8 +317,7 @@ def main():
     file_labels = []  # 各ファイル名のリスト
     
     if uploaded_files:
-        #colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
-
+        
         # 波数範囲の設定
         start_wavenum = st.number_input("波数（開始）を入力してください:", min_value=100, max_value=4800, value=pre_start_wavenum, step=100)
         end_wavenum = st.number_input("波数（終了）を入力してください:", min_value=start_wavenum+100, max_value=4800, value=pre_end_wavenum, step=100)
@@ -407,13 +406,13 @@ def main():
     
         # すべてのファイルが処理された後に重ねてプロット
         fig, ax = plt.subplots(figsize=(10, 5))
-
-        colors = ['#0000FF', '#FF0000', '#00FF00', '#FFA500', '#800080', '#A52A2A', '#FFC0CB', '#00FFFF', '#FFFF00', '#000000']
-        selected_colors = []
-        for i, uploaded_file in enumerate(uploaded_files):
-            default_color = colors[i % len(colors)]
-            selected_color = st.color_picker(f"{uploaded_file.name} の線色を選択してください", default_color)
-            selected_colors.append(selected_color)
+        selected_colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
+        # colors = ['#0000FF', '#FF0000', '#00FF00', '#FFA500', '#800080', '#A52A2A', '#FFC0CB', '#00FFFF', '#FFFF00', '#000000']
+        # selected_colors = []
+        # for i, uploaded_file in enumerate(uploaded_files):
+        #     default_color = colors[i % len(colors)]
+        #     selected_color = st.color_picker(f"{uploaded_file.name} の線色を選択してください", default_color)
+        #     selected_colors.append(selected_color)
             
         # 元のスペクトルを重ねてプロット
         for i, spectrum in enumerate(all_spectra):
@@ -423,7 +422,20 @@ def main():
         ax.set_title('Raw Spectra', fontsize=Fsize)
         ax.legend(title="Spectra")
         st.pyplot(fig)
-
+        
+        export_df = pd.DataFrame({'WaveNumber': wavenum})
+        for i, spectrum in enumerate(all_spectra):
+            export_df[file_labels[i]] = spectrum
+        
+        csv_data = export_df.to_csv(index=False, encoding='utf-8-sig')
+        
+        st.download_button(
+            label="Download Raw Spectra as CSV",
+            data=csv_data,
+            file_name='raw_spectra.csv',
+            mime='text/csv'
+        )
+        
         # ベースライン補正後+スパイク修正後のスペクトルを重ねてプロット
         fig, ax = plt.subplots(figsize=(10, 5))        
         for i, spectrum in enumerate(all_bsremoval_spectra):
@@ -434,7 +446,20 @@ def main():
         ax.set_title('Baseline Removed', fontsize=Fsize)
         #ax.legend(title="Spectra")
         st.pyplot(fig)
-
+        
+        export_df_bs = pd.DataFrame({'WaveNumber': wavenum})
+        for i, spectrum in enumerate(all_bsremoval_spectra):
+            export_df_bs[file_labels[i]] = spectrum
+        
+        csv_data_bs = export_df_bs.to_csv(index=False, encoding='utf-8-sig')
+        
+        st.download_button(
+            label="Download Baseline Removed Spectra as CSV",
+            data=csv_data_bs,
+            file_name='baseline_removed_spectra.csv',
+            mime='text/csv'
+        )
+        
         # ベースライン補正後+スパイク修正後+移動平均のスペクトルを重ねてプロット
         fig, ax = plt.subplots(figsize=(10, 5))        
         for i, spectrum in enumerate(all_averemoval_spectra):
@@ -445,7 +470,19 @@ def main():
         ax.set_title('Baseline Removed + Moving Average', fontsize=Fsize)
         #ax.legend(title="Spectra")
         st.pyplot(fig)
+        # ベースライン補正後+スパイク修正後+移動平均スペクトルをCSVで出力
+        export_df_avg = pd.DataFrame({'WaveNumber': wavenum})
+        for i, spectrum in enumerate(all_averemoval_spectra):
+            export_df_avg[file_labels[i]] = spectrum
         
+        csv_data_avg = export_df_avg.to_csv(index=False, encoding='utf-8-sig')
+        
+        st.download_button(
+            label="Download Baseline Removed + Moving Average Spectra as CSV",
+            data=csv_data_avg,
+            file_name='baseline_removed_moving_avg_spectra.csv',
+            mime='text/csv'
+        )
         # ユーザーからの入力を受け取る（微分の平滑用の値を入力）
         num_firstDev = st.number_input(
             f"1次微分の平滑化の数値を入力してください:",
