@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Dec 22 19:03:55 2024
+Created on Wed Jun 11 15:56:04 2025
 
 @author: hiroy
 """
@@ -15,6 +15,13 @@ import matplotlib.pyplot as plt
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import csc_matrix, eye, diags
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.decomposition import NMF, PCA
+from sklearn.preprocessing import StandardScaler
+import seaborn as sns
+
+# Set matplotlib style
+plt.style.use('default')
+sns.set_palette("husl")
 
 def create_features_labels(spectra, window_size=10):
     # 特徴量とラベルの配列を初期化
@@ -74,7 +81,6 @@ def WhittakerSmooth(x,w,lambda_,differences=1):
     background=spsolve(A,B)
     return np.array(background)
 
-# def airPLS(x, dssn_th=0.00001, lambda_=100, porder=1, itermax=30):
 def airPLS(x, dssn_th, lambda_, porder, itermax):
     '''
     Adaptive iteratively reweighted penalized least squares for baseline fitting
@@ -87,6 +93,14 @@ def airPLS(x, dssn_th, lambda_, porder, itermax):
     output
         the fitted background vector
     '''
+    # マイナス値がある場合の処理
+    min_value = np.min(x)
+    print(np.min(x))
+    offset = 0
+    if min_value < 0:
+        offset = abs(min_value) + 1  # 最小値を1にするためのオフセット
+        x = x + offset  # 全体をシフト
+    print(np.min(x))
     m = x.shape[0]
     w = np.ones(m, dtype=np.float64)  # 明示的に型を指定
     x = np.asarray(x, dtype=np.float64)  # xも明示的に型を指定
@@ -252,10 +266,23 @@ def read_csv_file(uploaded_file, file_extension):
     """
     Read a CSV or TXT file into a DataFrame based on file extension.
     """
-    if file_extension == "csv":
-        return pd.read_csv(uploaded_file, sep=',', header=0, index_col=None, on_bad_lines='skip')
-    else:
-        return pd.read_csv(uploaded_file, sep='\t', header=0, index_col=None, on_bad_lines='skip')
+    try:
+        uploaded_file.seek(0)
+        if file_extension == "csv":
+            data = pd.read_csv(uploaded_file, sep=',', header=0, index_col=None, on_bad_lines='skip')
+        else:
+            data = pd.read_csv(uploaded_file, sep='\t', header=0, index_col=None, on_bad_lines='skip')
+        return data
+    except UnicodeDecodeError:
+        uploaded_file.seek(0)
+        if file_extension == "csv":
+            data = pd.read_csv(uploaded_file, sep=',', encoding='shift_jis', header=0, index_col=None, on_bad_lines='skip')
+        else:
+            data = pd.read_csv(uploaded_file, sep='\t', encoding='shift_jis', header=0, index_col=None, on_bad_lines='skip')
+        return data
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
+        return None
 
 def remove_outliers_and_interpolate(spectrum, window_size=10, threshold_factor=3):
     """
@@ -296,17 +323,311 @@ def remove_outliers_and_interpolate(spectrum, window_size=10, threshold_factor=3
                 cleaned_spectrum[i] = spectrum[i - 1] 
     return cleaned_spectrum
 
-def main():
+# Functions for multivariate analysis
+def load_and_process_data_for_multivariate(uploaded_files, start_wavenum, end_wavenum, lambda_param, porder, savgol_wsize=5):
+    """
+    Load and process uploaded CSV files with support for multiple file types for multivariate analysis
+    """
+    grouped_data = {}
+    all_baseline_spectra = []
+    all_labels = []
+    wavenumber = None
+    dssn_th = 0.00001
+    
+    for uploaded_file in uploaded_files:
+        try:
+            file_name = uploaded_file.name
+            file_extension = file_name.split('.')[-1].lower()
+            
+            st.write(f"Processing: {file_name}")
+            
+            # Read and detect file type
+            data = read_csv_file(uploaded_file, file_extension)
+            file_type = detect_file_type(data)
+            uploaded_file.seek(0)
+            
+            if file_type == "unknown":
+                st.error(f"{file_name}のファイルタイプを判別できません。")
+                continue
+            
+            # Process each file type
+            if file_type == "wasatch":
+                st.write(f"ファイルタイプ: Wasatch ENLIGHTEN - {file_name}")
+                lambda_ex = 785
+                data = pd.read_csv(uploaded_file, skiprows=46)                
+                pre_wavelength = np.array(data["Wavelength"].values)
+                pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
+                
+                # Get number of available spectra
+                number_of_rows = data.shape[1] - 3
+                
+                if number_of_rows > 0:
+                    # Use the last available spectrum
+                    number_line = number_of_rows - 1
+                    if number_line == 0:
+                        pre_spectrum = np.array(data["Processed"].values)
+                    else:
+                        pre_spectrum = np.array(data[f"Processed.{number_line}"].values)
+                else:
+                    pre_spectrum = np.array(data["Processed"].values)
+                
+            elif file_type == "ramaneye_old":
+                st.write(f"ファイルタイプ: RamanEye Data(Old) - {file_name}")
+                number_of_rows = data.shape[1]
+                
+                # Use the last available column
+                number_line = number_of_rows - 2
+                pre_wavenum = data["WaveNumber"]
+                pre_spectrum = np.array(data.iloc[:, number_line + 1])
+                
+                if pre_wavenum.iloc[0] > pre_wavenum.iloc[1]:
+                    # Reverse pre_wavenum and pre_spectrum
+                    pre_wavenum = pre_wavenum[::-1]
+                    pre_spectrum = pre_spectrum[::-1]
+                        
+            elif file_type == "ramaneye_new":
+                st.write(f"ファイルタイプ: RamanEye Data(New) - {file_name}")
+                data = pd.read_csv(uploaded_file, skiprows=9)
+                number_of_rows = data.shape[1]
+                
+                # Use the last available column
+                number_line = number_of_rows - 2
+                pre_wavenum = data["WaveNumber"]
+                pre_spectrum = np.array(data.iloc[:, number_line + 1])
+                
+                if pre_wavenum.iloc[0] >= pre_wavenum.iloc[1]:
+                    # Reverse pre_wavenum and pre_spectrum
+                    pre_wavenum = pre_wavenum[::-1]
+                    pre_spectrum = pre_spectrum[::-1]
+                    
+            elif file_type == "eagle":
+                st.write(f"ファイルタイプ: Eagle Data - {file_name}")
+                data_transposed = data.transpose()
+                header = data_transposed.iloc[:3]  # First 3 rows
+                reversed_data = data_transposed.iloc[3:].iloc[::-1]
+                data_transposed = pd.concat([header, reversed_data], ignore_index=True)
+                pre_wavenum = np.array(data_transposed.iloc[3:, 0])
+                pre_spectrum = np.array(data_transposed.iloc[3:, 1])
+            
+            # Convert to numpy arrays if needed
+            if isinstance(pre_wavenum, pd.Series):
+                pre_wavenum = pre_wavenum.values
+            if isinstance(pre_spectrum, pd.Series):
+                pre_spectrum = pre_spectrum.values
+            
+            # Find indices for wavenumber range
+            start_index = find_index(pre_wavenum, start_wavenum)
+            end_index = find_index(pre_wavenum, end_wavenum)
+
+            wavenum = np.array(pre_wavenum[start_index:end_index+1])
+            spectrum = np.array(pre_spectrum[start_index:end_index+1])
+
+            # Baseline and spike removal 
+            spectrum_spikerm = remove_outliers_and_interpolate(spectrum)
+            
+            # Apply median filter
+            mveAve_spectrum = signal.medfilt(spectrum_spikerm, savgol_wsize)
+            
+            # Baseline correction
+            baseline = airPLS(mveAve_spectrum, dssn_th, lambda_param, porder, 30)
+            BSremoval_spectrum = spectrum_spikerm - baseline
+            BSremoval_spectrum_pos = BSremoval_spectrum + abs(np.minimum(spectrum_spikerm, 0))  # Correct negative values
+        
+            # Use the baseline corrected spectrum
+            corrected_spectrum = BSremoval_spectrum_pos
+            
+            if wavenumber is None:
+                wavenumber = wavenum
+            
+            # Extract group name from filename
+            parts = file_name.split('_')
+            if len(parts) >= 2:
+                group_name = parts[1]  # Use second part as group name
+            else:
+                group_name = file_name.split('.')[0]  # Use filename without extension
+            
+            if group_name not in grouped_data:
+                grouped_data[group_name] = []
+            
+            # Store processed data
+            processed_data = np.column_stack([
+                wavenum,
+                spectrum,
+                corrected_spectrum
+            ])
+            grouped_data[group_name].append(processed_data)
+            
+            # Add to combined data
+            all_baseline_spectra.append(corrected_spectrum)
+            all_labels.append(group_name)
+            
+            st.success(f"Successfully processed {file_name} - Group: {group_name}, Data points: {len(wavenum)}")
+            
+        except Exception as e:
+            st.error(f"Error processing file {uploaded_file.name}: {e}")
+            import traceback
+            st.error(f"Detailed error: {traceback.format_exc()}")
+    
+    return grouped_data, np.array(all_baseline_spectra), all_labels, wavenumber
+
+def plot_spectra_matplotlib(grouped_data, title="Baseline Corrected Spectra"):
+    """
+    Plot spectra using matplotlib
+    """
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan']
+    
+    for i, (group, spectra_list) in enumerate(grouped_data.items()):
+        color = colors[i % len(colors)]
+        
+        for j, spectrum in enumerate(spectra_list):
+            label = group if j == 0 else None  # Only show legend for first spectrum of each group
+            ax.plot(spectrum[:, 0], spectrum[:, 2], color=color, alpha=0.7, label=label)
+    
+    ax.set_title(title, fontsize=14, fontweight='bold')
+    ax.set_xlabel("Wavenumber (cm⁻¹)", fontsize=12)
+    ax.set_ylabel("Intensity", fontsize=12)
+    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    
+    return fig
+
+def perform_nmf_analysis(all_spectra, n_components):
+    """
+    Perform NMF analysis
+    """
+    # Ensure non-negative values for NMF
+    all_spectra[all_spectra < 0] = 0
+    
+    # Apply NMF
+    nmf_model = NMF(n_components=n_components, init='random', random_state=42, max_iter=1000)
+    W = nmf_model.fit_transform(all_spectra)  # Concentration profiles
+    H = nmf_model.components_  # Spectral profiles
+    
+    return W, H, nmf_model
+
+def plot_nmf_components(H, wavenumber):
+    """
+    Plot NMF components
+    """
+    fig, axes = plt.subplots(len(H), 1, figsize=(12, 3 * len(H)))
+    if len(H) == 1:
+        axes = [axes]
+    
+    colors = ['red', 'blue', 'green', 'orange', 'purple']
+    
+    for i, (ax, spectrum) in enumerate(zip(axes, H)):
+        ax.plot(wavenumber, spectrum, color=colors[i % len(colors)], linewidth=2)
+        ax.set_title(f"Component {i+1}", fontsize=12, fontweight='bold')
+        ax.set_xlabel("Wavenumber (cm⁻¹)")
+        ax.set_ylabel("Intensity")
+        ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    return fig
+
+def plot_nmf_scores(W, all_labels, group_names):
+    """
+    Plot NMF concentration scores
+    """
+    if W.shape[1] >= 2:
+        fig, ax = plt.subplots(figsize=(10, 8))
+        
+        colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'pink', 'gray', 'olive', 'cyan']
+        
+        for i, group in enumerate(group_names):
+            group_indices = [j for j, label in enumerate(all_labels) if label == group]
+            
+            ax.scatter(W[group_indices, 0], W[group_indices, 1], 
+                      label=group, color=colors[i % len(colors)], 
+                      s=80, alpha=0.7, edgecolors='black', linewidth=0.5)
+        
+        ax.set_title("Score Plot (Component 1 vs Component 2)", fontsize=14, fontweight='bold')
+        ax.set_xlabel("Component 1", fontsize=12)
+        ax.set_ylabel("Component 2", fontsize=12)
+        ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        ax.grid(True, alpha=0.3)
+        plt.tight_layout()
+        
+        return fig
+    else:
+        st.warning("Need at least 2 components for score plot")
+        return None
+
+def plot_contribution_ratios(contribution_ratios):
+    """
+    Plot component contribution ratios as bar chart
+    """
+    fig, ax = plt.subplots(figsize=(10, 6))
+    
+    components = [f"Component {i+1}" for i in range(len(contribution_ratios))]
+    percentages = contribution_ratios * 100
+    
+    bars = ax.bar(components, percentages, color=plt.cm.Set3(np.linspace(0, 1, len(components))))
+    
+    # Add value labels on bars
+    for bar, pct in zip(bars, percentages):
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height + 0.5,
+                f'{pct:.1f}%', ha='center', va='bottom', fontweight='bold')
+    
+    ax.set_title("Component Contribution Ratios", fontsize=14, fontweight='bold')
+    ax.set_xlabel("Components", fontsize=12)
+    ax.set_ylabel("Contribution (%)", fontsize=12)
+    ax.grid(True, alpha=0.3, axis='y')
+    plt.tight_layout()
+    
+    return fig
+
+def spectrum_analysis_mode():
+    """
+    Spectrum analysis mode (original functionality)
+    """
+    st.header("📊 ラマンスペクトル解析")
+    
     # パラメータ設定
     savgol_wsize         = 5    # Savitzky-Golayフィルタのウィンドウサイズ
     savgol_order         = 3    # Savitzky-Golayフィルタの次数
-    pre_start_wavenum    = 200  # 波数の開始
-    pre_end_wavenum      = 3600 # 波数の終了
-    wavenum_calibration  = -0   # 校正オフセット
-    Designated_peak_wn   = 1700 # ピーク指定波数
+    pre_start_wavenum    = 400  # 波数の開始
+    pre_end_wavenum      = 2000 # 波数の終了
     Fsize                = 14   # フォントサイズ
     
-    st.title("Raman Spectrum Viewer")
+    # 波数範囲の設定
+    start_wavenum = st.sidebar.number_input("波数（開始）を入力してください:", min_value=-200, max_value=4800, value=pre_start_wavenum, step=100)
+    end_wavenum = st.sidebar.number_input("波数（終了）を入力してください:", min_value=-200, max_value=4800, value=pre_end_wavenum, step=100)
+
+    dssn_th = st.sidebar.number_input("ベースラインパラメーターを入力してください:", min_value=1, max_value=10000, value=1000, step=1)
+    dssn_th = dssn_th/10000000
+    
+    # 微分の平滑化パラメータ
+    num_firstDev = st.sidebar.number_input(
+        "1次微分の平滑化の数値を入力してください:",
+        min_value=1,
+        max_value=35,
+        value=13,
+        step=2,
+        key='unique_number_firstDev_key'
+    )
+
+    num_secondDev = st.sidebar.number_input(
+        "2次微分の平滑化の数値を入力してください:",
+        min_value=1,
+        max_value=35,
+        value=5,
+        step=2,
+        key='unique_number_secondDev_key'
+    )
+    
+    num_threshold = st.sidebar.number_input(
+        "閾値を入力してください:",
+        min_value=1,
+        max_value=1000,
+        value=10,
+        step=10,
+        key='unique_number_threshold_key'
+    )
 
     # 複数ファイルのアップロード
     uploaded_files = st.file_uploader("ファイルを選択してください", accept_multiple_files=True)
@@ -317,13 +638,6 @@ def main():
     file_labels = []  # 各ファイル名のリスト
     
     if uploaded_files:
-        
-        # 波数範囲の設定
-        start_wavenum = st.number_input("波数（開始）を入力してください:", min_value=100, max_value=4800, value=pre_start_wavenum, step=100)
-        end_wavenum = st.number_input("波数（終了）を入力してください:", min_value=start_wavenum+100, max_value=4800, value=pre_end_wavenum, step=100)
-
-        dssn_th = st.number_input("ベースラインパラメーターを入力してください:", min_value=1, max_value=1000, value=100, step=1)
-        dssn_th = dssn_th/10000000
         
         # すべてのファイルに対して処理
         for uploaded_file in uploaded_files:
@@ -406,13 +720,7 @@ def main():
     
         # すべてのファイルが処理された後に重ねてプロット
         fig, ax = plt.subplots(figsize=(10, 5))
-        # selected_colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
-        colors = ['#0000FF', '#FF0000', '#00FF00', '#FFA500', '#800080', '#A52A2A', '#FFC0CB', '#00FFFF', '#FFFF00', '#000000']
-        selected_colors = []
-        for i, uploaded_file in enumerate(uploaded_files):
-            default_color = colors[i % len(colors)]
-            selected_color = st.color_picker(f"{uploaded_file.name} の線色を選択してください", default_color)
-            selected_colors.append(selected_color)
+        selected_colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
             
         # 元のスペクトルを重ねてプロット
         for i, spectrum in enumerate(all_spectra):
@@ -428,7 +736,7 @@ def main():
             export_df[file_labels[i]] = spectrum
         
         csv_data = export_df.to_csv(index=False, encoding='utf-8-sig')
-
+        
         st.download_button(
             label="Download Raw Spectra as CSV",
             data=csv_data,
@@ -444,7 +752,6 @@ def main():
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
         ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
         ax.set_title('Baseline Removed', fontsize=Fsize)
-        #ax.legend(title="Spectra")
         st.pyplot(fig)
         
         export_df_bs = pd.DataFrame({'WaveNumber': wavenum})
@@ -468,8 +775,8 @@ def main():
         ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
         ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
         ax.set_title('Baseline Removed + Moving Average', fontsize=Fsize)
-        #ax.legend(title="Spectra")
         st.pyplot(fig)
+        
         # ベースライン補正後+スパイク修正後+移動平均スペクトルをCSVで出力
         export_df_avg = pd.DataFrame({'WaveNumber': wavenum})
         for i, spectrum in enumerate(all_averemoval_spectra):
@@ -483,68 +790,43 @@ def main():
             file_name='baseline_removed_moving_avg_spectra.csv',
             mime='text/csv'
         )
-        # ユーザーからの入力を受け取る（微分の平滑用の値を入力）
-        num_firstDev = st.number_input(
-            f"1次微分の平滑化の数値を入力してください:",
-            min_value=1,
-            max_value=35,
-            value=13,
-            step=2,
-            key='unique_number_firstDev_key'
-        )
-    
-        num_secondDev = st.number_input(
-            f"1次微分の平滑化の数値を入力してください:",
-            min_value=1 ,
-            max_value=35,
-            value=5,
-            step=2,
-            key='unique_number_secondDev_key'
-        )
         
-        num_threshold = st.number_input(
-            f"閾値を入力してください:",
-            min_value=1 ,
-            max_value=1000,
-            value=10,
-            step=10,
-            key='unique_number_threshold_key'
-        )
         # ピーク位置の検出
-        firstDev_spectra = savitzky_golay(Averemoval_specta_pos, num_firstDev, savgol_order, 1)
-        secondDev_spectra = savitzky_golay(Averemoval_specta_pos, num_secondDev, savgol_order, 2)
-    
-        peak_indices = np.where((firstDev_spectra[:-1] > 0) & (firstDev_spectra[1:] < 0) & 
-                                  ((secondDev_spectra[:-1] / abs(np.min(secondDev_spectra[:-1]))) < -10/1000))[0]
-        peaks = wavenum[peak_indices]
+        if len(all_averemoval_spectra) > 0:  # データが存在する場合のみ実行
+            firstDev_spectra = savitzky_golay(Averemoval_specta_pos, num_firstDev, savgol_order, 1)
+            secondDev_spectra = savitzky_golay(Averemoval_specta_pos, num_secondDev, savgol_order, 2)
         
-        peak_areas = []
-        for peak_idx in peak_indices:
-            start_idx, end_idx = find_peak_width(Averemoval_specta_pos, firstDev_spectra, peak_idx, window_size=20)
-            area = find_peak_area(Averemoval_specta_pos, start_idx, end_idx)
-            peak_areas.append(area)
-        
-        # Create a DataFrame to display peaks and their areas
-        peak_data = {
-            "ピーク位置 (cm⁻¹)": peaks,
-            "ピーク面積": peak_areas
-        }
-        peak_df = pd.DataFrame(peak_data)
-        
-        # ピークの位置をプロット
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.plot(wavenum, Averemoval_specta_pos, linestyle='-', color='b')
-        for peak in peaks:
-            ax.axvline(x=peak, color='r', linestyle='--', label=f'Peak at {peak}')
-        ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
-        ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
-        ax.set_title('Peak Detection', fontsize=Fsize)
-        st.pyplot(fig)
+            peak_indices = np.where((firstDev_spectra[:-1] > 0) & (firstDev_spectra[1:] < 0) & 
+                                      ((secondDev_spectra[:-1] / abs(np.min(secondDev_spectra[:-1]))) < -10/1000))[0]
+            peaks = wavenum[peak_indices]
+            
+            peak_areas = []
+            for peak_idx in peak_indices:
+                start_idx, end_idx = find_peak_width(Averemoval_specta_pos, firstDev_spectra, peak_idx, window_size=20)
+                area = find_peak_area(Averemoval_specta_pos, start_idx, end_idx)
+                peak_areas.append(area)
+            
+            # Create a DataFrame to display peaks and their areas
+            peak_data = {
+                "ピーク位置 (cm⁻¹)": peaks,
+                "ピーク面積": peak_areas
+            }
+            peak_df = pd.DataFrame(peak_data)
+            
+            # ピークの位置をプロット
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.plot(wavenum, Averemoval_specta_pos, linestyle='-', color='b')
+            for peak in peaks:
+                ax.axvline(x=peak, color='r', linestyle='--', label=f'Peak at {peak}')
+            ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
+            ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
+            ax.set_title('Peak Detection', fontsize=Fsize)
+            st.pyplot(fig)
 
-        # ピーク位置を表示
-        st.write("ピーク位置:")
-        st.table(peak_df)
-         
+            # ピーク位置を表示
+            st.write("ピーク位置:")
+            st.table(peak_df)
+             
         # Raman correlation table as a pandas DataFrame
         raman_data = {
             "ラマンシフト (cm⁻¹)": [
@@ -568,5 +850,226 @@ def main():
         # Display Raman correlation table
         st.subheader("（参考）ラマン分光の帰属表")
         st.table(raman_df)
+
+def multivariate_analysis_mode():
+    """
+    Multivariate analysis mode
+    """
+    st.header("📊 多変量解析ツール")
+    
+    # Parameters in sidebar
+    start_wavenum = st.sidebar.number_input("Start Wavenumber", value=400, min_value=0, key="mv_start")
+    end_wavenum = st.sidebar.number_input("End Wavenumber", value=1800, min_value=start_wavenum + 1, key="mv_end")
+    
+    st.sidebar.subheader("ベースライン削除")
+    lambda_param = st.sidebar.number_input("ベースラインパラメーター", value=1000, min_value=10, step=10, key="mv_lambda")
+    porder = st.sidebar.selectbox("指数", options=[1, 2, 3], index=1, key="mv_porder")
+    
+    st.sidebar.subheader("多変量解析")
+    n_components = st.sidebar.selectbox("コンポーネント数", options=[2, 3, 4, 5], index=0, key="mv_components")
+    
+    # File upload
+    st.header("📁 データアップロード")
+    uploaded_files = st.file_uploader(
+        "Choose CSV files",
+        type=['csv', 'txt'],
+        accept_multiple_files=True,
+        help="Upload multiple CSV files with spectral data. Files should have Wavenumber, Raw, and Processed columns starting from row 46.",
+        key="mv_uploader"
+    )
+    
+    if uploaded_files:
+        st.success(f"Uploaded {len(uploaded_files)} files")
+        
+        # Show uploaded file names
+        st.write("**Uploaded files:**")
+        for file in uploaded_files:
+            st.write(f"- {file.name}")
+        
+        # Process button
+        if st.button("🔄 データプロセス実効", type="primary", key="mv_process"):
+            with st.spinner("スペクトルデータを解析しています..."):
+                
+                # Load and process data
+                grouped_data, all_baseline_spectra, all_labels, wavenumber = load_and_process_data_for_multivariate(
+                    uploaded_files, start_wavenum, end_wavenum, lambda_param, porder
+                )
+                
+                if len(all_baseline_spectra) > 0:
+                    # Store data in session state
+                    st.session_state.mv_grouped_data = grouped_data
+                    st.session_state.mv_all_baseline_spectra = all_baseline_spectra
+                    st.session_state.mv_all_labels = all_labels
+                    st.session_state.mv_wavenumber = wavenumber
+                    
+                    st.success("データプロセス完了!")
+                else:
+                    st.error("アップロードされたファイルに有効なデータが見つかりませんでした")
+    
+    # Display results if data is processed
+    if hasattr(st.session_state, 'mv_grouped_data') and st.session_state.mv_grouped_data:
+        
+        st.header("📈 スペクトルプロット")
+        
+        # Plot original spectra
+        fig_spectra = plot_spectra_matplotlib(st.session_state.mv_grouped_data)
+        st.pyplot(fig_spectra)
+        
+        # Display data summary
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Spectra", len(st.session_state.mv_all_baseline_spectra))
+        with col2:
+            st.metric("Number of Groups", len(st.session_state.mv_grouped_data))
+        with col3:
+            st.metric("Data Points per Spectrum", len(st.session_state.mv_wavenumber))
+        
+        # Analysis
+        st.header("🔬 多変量解析")
+        
+        if st.button("🚀 多変量解析実効", type="primary", key="mv_analyze"):
+            with st.spinner("多変量解析を行っています..."):
+                
+                # Perform
+                W, H, nmf_model = perform_nmf_analysis(st.session_state.mv_all_baseline_spectra, n_components)
+                
+                # Store NMF results
+                st.session_state.mv_W = W
+                st.session_state.mv_H = H
+                st.session_state.mv_nmf_model = nmf_model
+                
+                # Calculate reconstruction error
+                reconstruction_error = nmf_model.reconstruction_err_
+                st.session_state.mv_reconstruction_error = reconstruction_error
+                
+                st.success(f"解析完了! Reconstruction error: {reconstruction_error:.4f}")
+        
+        # Display NMF results if available
+        if hasattr(st.session_state, 'mv_W') and hasattr(st.session_state, 'mv_H'):
+            
+            # Display reconstruction error
+            st.info(f"**Reconstruction Error:** {st.session_state.mv_reconstruction_error:.4f}")
+            
+            # Plot NMF components
+            st.subheader("コンポーネントスペクトル")
+            fig_components = plot_nmf_components(st.session_state.mv_H, st.session_state.mv_wavenumber)
+            st.pyplot(fig_components)
+            
+            # Plot NMF scores
+            st.subheader("スコアプロット")
+            group_names = list(st.session_state.mv_grouped_data.keys())
+            fig_scores = plot_nmf_scores(st.session_state.mv_W, st.session_state.mv_all_labels, group_names)
+            if fig_scores:
+                st.pyplot(fig_scores)
+            
+            # Display contribution ratios
+            st.subheader("Component Contribution Ratios")
+            contribution_ratios = np.sum(st.session_state.mv_W, axis=0)
+            contribution_ratios = contribution_ratios / np.sum(contribution_ratios)
+            
+            contrib_df = pd.DataFrame({
+                'Component': [f"Component {i+1}" for i in range(len(contribution_ratios))],
+                'Contribution Ratio': contribution_ratios,
+                'Percentage': contribution_ratios * 100
+            })
+            
+            st.dataframe(contrib_df, use_container_width=True)
+            
+            # Bar chart of contributions
+            fig_contrib = plot_contribution_ratios(contribution_ratios)
+            st.pyplot(fig_contrib)
+            
+            # Download results
+            st.subheader("📥 データダウンロード")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Download concentration matrix
+                W_df = pd.DataFrame(st.session_state.mv_W, 
+                                  columns=[f"Component_{i+1}" for i in range(st.session_state.mv_W.shape[1])])
+                W_df['Sample'] = st.session_state.mv_all_labels
+                csv_W = W_df.to_csv(index=False)
+                st.download_button(
+                    label="📊 Download Concentration Matrix",
+                    data=csv_W,
+                    file_name="nmf_concentration_matrix.csv",
+                    mime="text/csv",
+                    key="mv_download_W"
+                )
+            
+            with col2:
+                # Download spectral components
+                H_df = pd.DataFrame(st.session_state.mv_H.T, 
+                                  columns=[f"Component_{i+1}" for i in range(st.session_state.mv_H.shape[0])])
+                H_df['Wavenumber'] = st.session_state.mv_wavenumber
+                csv_H = H_df.to_csv(index=False)
+                st.download_button(
+                    label="📈 Download Spectral Components",
+                    data=csv_H,
+                    file_name="nmf_spectral_components.csv",
+                    mime="text/csv",
+                    key="mv_download_H"
+                )
+            
+            # Advanced analysis section
+            st.subheader("🔍 Advanced Analysis")
+            
+            # Show individual sample information
+            if st.checkbox("Show Individual Sample Information", key="mv_sample_info"):
+                sample_info_df = pd.DataFrame({
+                    'Sample Index': range(len(st.session_state.mv_all_labels)),
+                    'Group': st.session_state.mv_all_labels,
+                    **{f'Component_{i+1}': st.session_state.mv_W[:, i] for i in range(st.session_state.mv_W.shape[1])}
+                })
+                st.dataframe(sample_info_df, use_container_width=True)
+
+def main():
+    st.set_page_config(page_title="統合ラマンスペクトル解析ツール", page_icon="📊", layout="wide")
+    
+    st.title("📊 統合ラマンスペクトル解析ツール")
+    
+    # Mode selection in sidebar
+    st.sidebar.header("🔧 解析モード選択")
+    analysis_mode = st.sidebar.selectbox(
+        "解析モードを選択してください:",
+        ["スペクトル解析", "多変量解析"],
+        key="mode_selector"
+    )
+    
+    st.sidebar.markdown("---")
+    st.sidebar.header("📋 パラメータ設定")
+    
+    if analysis_mode == "スペクトル解析":
+        spectrum_analysis_mode()
+    else:
+        multivariate_analysis_mode()
+    
+    # Instructions
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("📋 使用方法")
+    
+    if analysis_mode == "スペクトル解析":
+        st.sidebar.markdown("""
+        **スペクトル解析モード:**
+        1. 解析したいCSVファイルをアップロード
+        2. パラメータを調整
+        3. スペクトルの表示と解析結果を確認
+        4. ピーク検出結果とラマン帰属表を参照
+        5. 結果をCSVファイルでダウンロード
+        """)
+    else:
+        st.sidebar.markdown("""
+        **多変量解析モード:**
+        1. 複数のCSVファイルをアップロード
+        2. パラメータを調整
+        3. 「データプロセス実効」をクリック
+        4. 「多変量解析実効」をクリック
+        5. 解析結果を確認・ダウンロード
+        
+        **ファイル命名規則:**
+        GroupName_Number.csv
+        """)
+
 if __name__ == "__main__":
     main()
