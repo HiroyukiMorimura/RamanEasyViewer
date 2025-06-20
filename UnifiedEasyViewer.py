@@ -373,17 +373,25 @@ def load_and_process_data_for_multivariate(uploaded_files, start_wavenum, end_wa
                 
             elif file_type == "ramaneye_old":
                 st.write(f"ファイルタイプ: RamanEye Data(Old) - {file_name}")
-                number_of_rows = data.shape[1]
+                # number_of_rows = data.shape[1]
                 
-                # Use the last available column
-                number_line = number_of_rows - 2
-                pre_wavenum = data["WaveNumber"]
-                pre_spectrum = np.array(data.iloc[:, number_line + 1])
+                df_transposed = data.set_index("WaveNumber").T
+
+                # 列名（"acrylic board" など）を汎用化
+                df_transposed.columns = ["intensity"]
                 
-                if pre_wavenum.iloc[0] > pre_wavenum.iloc[1]:
-                    # Reverse pre_wavenum and pre_spectrum
+                # 波数をfloatに変換し、インデックスに設定
+                df_transposed.index = df_transposed.index.astype(float)
+                df_transposed = df_transposed.sort_index()
+                
+                # 波数と強度をNumPy配列として取得
+                pre_wavenum = df_transposed.index.to_numpy()
+                pre_spectra = df_transposed["intensity"].to_numpy()
+                
+                if pre_wavenum[0] > pre_wavenum[1]:
+                    # pre_wavenum と pre_spectra を反転
                     pre_wavenum = pre_wavenum[::-1]
-                    pre_spectrum = pre_spectrum[::-1]
+                    pre_spectra = pre_spectra[::-1]
                         
             elif file_type == "ramaneye_new":
                 st.write(f"ファイルタイプ: RamanEye Data(New) - {file_name}")
@@ -402,25 +410,13 @@ def load_and_process_data_for_multivariate(uploaded_files, start_wavenum, end_wa
                     
             elif file_type == "eagle":
                 st.write(f"ファイルタイプ: Eagle Data - {file_name}")
-                # data_transposed = data.transpose()
-                # header = data_transposed.iloc[:3]  # First 3 rows
-                # reversed_data = data_transposed.iloc[3:].iloc[::-1]
-                # data_transposed = pd.concat([header, reversed_data], ignore_index=True)
-                # pre_wavenum = np.array(data_transposed.iloc[3:, 0])
-                # pre_spectrum = np.array(data_transposed.iloc[3:, 1])
-
-                data_T = data.transpose()
-                data_T.columns = data_T.iloc[1]  # 2行目をヘッダーに
-                data_T = data_T.drop(data_T.index[:2])  # 最初の2行を削除
-        
-                pre_wavenum = pd.to_numeric(data_T.iloc[:, 0], errors='coerce')
-                pre_spectra = pd.to_numeric(data_T.iloc[:, 1], errors='coerce')
-        
-                # NaN削除
-                valid_mask = ~(pre_wavenum.isna() | pre_spectra.isna())
-                pre_wavenum = pre_wavenum[valid_mask].values[::-1]  # Eagleは逆順
-                pre_spectra = pre_spectra[valid_mask].values[::-1]
-            print(file_type)
+                data_transposed = data.transpose()
+                header = data_transposed.iloc[:3]  # First 3 rows
+                reversed_data = data_transposed.iloc[3:].iloc[::-1]
+                data_transposed = pd.concat([header, reversed_data], ignore_index=True)
+                pre_wavenum = np.array(data_transposed.iloc[3:, 0])
+                pre_spectrum = np.array(data_transposed.iloc[3:, 1])
+            
             # Convert to numpy arrays if needed
             if isinstance(pre_wavenum, pd.Series):
                 pre_wavenum = pre_wavenum.values
@@ -669,18 +665,25 @@ def spectrum_analysis_mode():
                     st.write(f"ファイルタイプ: Wasatch ENLIGHTEN - {file_name}")
                     lambda_ex = 785
                     data = pd.read_csv(uploaded_file, encoding='shift-jis', skiprows=46)
-                    # pre_wavelength = np.array(data["Wavelength"].values)
-                    pre_wavelength = pd.to_numeric(data["Wavelength"], errors='coerce')
-                    pre_wavelength = pre_wavelength.dropna()  # NaN除去
-                    pre_wavelength = pre_wavelength.astype(float).values
+                    pre_wavelength = np.array(data["Wavelength"].values)
                     pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
                     pre_spectra = np.array(data["Processed"].values)
-                    
 
                 elif file_type == "ramaneye_old":
                     st.write(f"ファイルタイプ: RamanEye Data - {file_name}")
-                    pre_wavenum = data["WaveNumber"]
-                    pre_spectra = np.array(data.iloc[:, -1])  # ユーザーの指定に基づく列を取得
+                    df_transposed = data.set_index("WaveNumber").T
+
+                    # 列名（"acrylic board" など）を汎用化
+                    df_transposed.columns = ["intensity"]
+                    
+                    # 波数をfloatに変換し、インデックスに設定
+                    df_transposed.index = df_transposed.index.astype(float)
+                    df_transposed = df_transposed.sort_index()
+                    
+                    # 波数と強度をNumPy配列として取得
+                    pre_wavenum = df_transposed.index.to_numpy()
+                    pre_spectra = df_transposed["intensity"].to_numpy()
+                    
                     if pre_wavenum[0] > pre_wavenum[1]:
                         # pre_wavenum と pre_spectra を反転
                         pre_wavenum = pre_wavenum[::-1]
@@ -699,25 +702,13 @@ def spectrum_analysis_mode():
                         pre_spectra = pre_spectra[::-1]
                         
                 elif file_type == "eagle":
-                        st.write(f"ファイルタイプ: Eagle Data - {file_name}")
-                    
-                        try:
-                            # 転置後に列名を使って正しく読み取る
-                            data_T = data.transpose()
-                            data_T.columns = data_T.iloc[1]  # 2行目をヘッダーに
-                            data_T = data_T.drop(data_T.index[:2])  # 最初の2行を削除
-                    
-                            pre_wavenum = pd.to_numeric(data_T.iloc[:, 0], errors='coerce')
-                            pre_spectra = pd.to_numeric(data_T.iloc[:, 1], errors='coerce')
-                    
-                            # NaN削除
-                            valid_mask = ~(pre_wavenum.isna() | pre_spectra.isna())
-                            pre_wavenum = pre_wavenum[valid_mask].values[::-1]  # Eagleは逆順
-                            pre_spectra = pre_spectra[valid_mask].values[::-1]
-                    
-                        except Exception as e:
-                            st.error(f"Eagleファイルの処理中にエラーが発生しました: {e}")
-                            continue
+                    st.write(f"ファイルタイプ: Eagle Data - {file_name}")
+                    data_transposed = data.transpose()
+                    header = data_transposed.iloc[:3]  # 最初の3行
+                    reversed_data = data_transposed.iloc[3:].iloc[::-1]
+                    data_transposed = pd.concat([header, reversed_data], ignore_index=True)
+                    pre_wavenum = np.array(data_transposed.iloc[3:, 0])
+                    pre_spectra = np.array(data_transposed.iloc[3:, 1])
                 
                 start_index = find_index(pre_wavenum, start_wavenum)
                 end_index = find_index(pre_wavenum, end_wavenum)
@@ -1101,3 +1092,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
