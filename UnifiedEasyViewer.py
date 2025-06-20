@@ -687,13 +687,25 @@ def spectrum_analysis_mode():
                         pre_spectra = pre_spectra[::-1]
                         
                 elif file_type == "eagle":
-                    st.write(f"ファイルタイプ: Eagle Data - {file_name}")
-                    data_transposed = data.transpose()
-                    header = data_transposed.iloc[:3]  # 最初の3行
-                    reversed_data = data_transposed.iloc[3:].iloc[::-1]
-                    data_transposed = pd.concat([header, reversed_data], ignore_index=True)
-                    pre_wavenum = np.array(data_transposed.iloc[3:, 0])
-                    pre_spectra = np.array(data_transposed.iloc[3:, 1])
+                        st.write(f"ファイルタイプ: Eagle Data - {file_name}")
+                    
+                        try:
+                            # 転置後に列名を使って正しく読み取る
+                            data_T = data.transpose()
+                            data_T.columns = data_T.iloc[1]  # 2行目をヘッダーに
+                            data_T = data_T.drop(data_T.index[:2])  # 最初の2行を削除
+                    
+                            pre_wavenum = pd.to_numeric(data_T.iloc[:, 0], errors='coerce')
+                            pre_spectra = pd.to_numeric(data_T.iloc[:, 1], errors='coerce')
+                    
+                            # NaN削除
+                            valid_mask = ~(pre_wavenum.isna() | pre_spectra.isna())
+                            pre_wavenum = pre_wavenum[valid_mask].values[::-1]  # Eagleは逆順
+                            pre_spectra = pre_spectra[valid_mask].values[::-1]
+                    
+                        except Exception as e:
+                            st.error(f"Eagleファイルの処理中にエラーが発生しました: {e}")
+                            continue
                 
                 start_index = find_index(pre_wavenum, start_wavenum)
                 end_index = find_index(pre_wavenum, end_wavenum)
