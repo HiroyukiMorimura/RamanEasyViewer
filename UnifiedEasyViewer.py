@@ -657,9 +657,13 @@ def spectrum_analysis_mode():
                     st.write(f"ファイルタイプ: Wasatch ENLIGHTEN - {file_name}")
                     lambda_ex = 785
                     data = pd.read_csv(uploaded_file, encoding='shift-jis', skiprows=46)
-                    pre_wavelength = np.array(data["Wavelength"].values)
+                    # pre_wavelength = np.array(data["Wavelength"].values)
+                    pre_wavelength = pd.to_numeric(data["Wavelength"], errors='coerce')
+                    pre_wavelength = pre_wavelength.dropna()  # NaN除去
+                    pre_wavelength = pre_wavelength.astype(float).values
                     pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
                     pre_spectra = np.array(data["Processed"].values)
+                    
 
                 elif file_type == "ramaneye_old":
                     st.write(f"ファイルタイプ: RamanEye Data - {file_name}")
