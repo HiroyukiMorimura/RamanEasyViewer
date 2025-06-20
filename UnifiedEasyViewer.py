@@ -402,13 +402,25 @@ def load_and_process_data_for_multivariate(uploaded_files, start_wavenum, end_wa
                     
             elif file_type == "eagle":
                 st.write(f"ファイルタイプ: Eagle Data - {file_name}")
-                data_transposed = data.transpose()
-                header = data_transposed.iloc[:3]  # First 3 rows
-                reversed_data = data_transposed.iloc[3:].iloc[::-1]
-                data_transposed = pd.concat([header, reversed_data], ignore_index=True)
-                pre_wavenum = np.array(data_transposed.iloc[3:, 0])
-                pre_spectrum = np.array(data_transposed.iloc[3:, 1])
-            
+                # data_transposed = data.transpose()
+                # header = data_transposed.iloc[:3]  # First 3 rows
+                # reversed_data = data_transposed.iloc[3:].iloc[::-1]
+                # data_transposed = pd.concat([header, reversed_data], ignore_index=True)
+                # pre_wavenum = np.array(data_transposed.iloc[3:, 0])
+                # pre_spectrum = np.array(data_transposed.iloc[3:, 1])
+
+                data_T = data.transpose()
+                data_T.columns = data_T.iloc[1]  # 2行目をヘッダーに
+                data_T = data_T.drop(data_T.index[:2])  # 最初の2行を削除
+        
+                pre_wavenum = pd.to_numeric(data_T.iloc[:, 0], errors='coerce')
+                pre_spectra = pd.to_numeric(data_T.iloc[:, 1], errors='coerce')
+        
+                # NaN削除
+                valid_mask = ~(pre_wavenum.isna() | pre_spectra.isna())
+                pre_wavenum = pre_wavenum[valid_mask].values[::-1]  # Eagleは逆順
+                pre_spectra = pre_spectra[valid_mask].values[::-1]
+            print(file_type)
             # Convert to numpy arrays if needed
             if isinstance(pre_wavenum, pd.Series):
                 pre_wavenum = pre_wavenum.values
