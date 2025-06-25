@@ -371,7 +371,7 @@ def load_and_process_data_for_multivariate(uploaded_files, start_wavenum, end_wa
                 else:
                     pre_spectrum = np.array(data["Processed"].values)
                 
-            elif file_type == "ramaneye_old":
+                        elif file_type == "ramaneye_old":
                 st.write(f"ファイルタイプ: RamanEye Data(Old) - {file_name}")
                 # number_of_rows = data.shape[1]
                 
@@ -411,11 +411,11 @@ def load_and_process_data_for_multivariate(uploaded_files, start_wavenum, end_wa
             elif file_type == "eagle":
                 st.write(f"ファイルタイプ: Eagle Data - {file_name}")
                 data_transposed = data.transpose()
-                header = data_transposed.iloc[:3]  # First 3 rows
+                header = data_transposed.iloc[:3]  # 最初の3行
                 reversed_data = data_transposed.iloc[3:].iloc[::-1]
                 data_transposed = pd.concat([header, reversed_data], ignore_index=True)
                 pre_wavenum = np.array(data_transposed.iloc[3:, 0])
-                pre_spectrum = np.array(data_transposed.iloc[3:, 1])
+                pre_spectra = np.array(data_transposed.iloc[3:, 1])
             
             # Convert to numpy arrays if needed
             if isinstance(pre_wavenum, pd.Series):
