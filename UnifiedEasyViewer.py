@@ -718,6 +718,7 @@ def spectrum_analysis_mode():
 
                 # Baseline and spike removal 
                 spectra_spikerm = remove_outliers_and_interpolate(spectra)
+                spectra_spikerm = np.asarray(spectra_spikerm, dtype=np.float64)
                 mveAve_spectra = signal.medfilt(spectra_spikerm, savgol_wsize)
                 lambda_ = 10e2
                 baseline = airPLS(mveAve_spectra, dssn_th, lambda_, 2, 30)
