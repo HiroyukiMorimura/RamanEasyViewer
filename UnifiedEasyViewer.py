@@ -371,7 +371,7 @@ def load_and_process_data_for_multivariate(uploaded_files, start_wavenum, end_wa
                 else:
                     pre_spectrum = np.array(data["Processed"].values)
                 
-                        elif file_type == "ramaneye_old":
+            elif file_type == "ramaneye_old":
                 st.write(f"ファイルタイプ: RamanEye Data(Old) - {file_name}")
                 # number_of_rows = data.shape[1]
                 
