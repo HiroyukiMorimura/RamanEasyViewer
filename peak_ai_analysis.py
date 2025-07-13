@@ -41,9 +41,9 @@ except ImportError:
 
 # OpenAI API Key（環境変数から取得を推奨）
 # openai_api_key = "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"
-openai_api_key = os.getenv("OPENAI_API_KEY")
-openai.api_key = os.getenv("OPENAI_API_KEY", openai_api_key)
-
+# openai_api_key = os.getenv("OPENAI_API_KEY")
+# openai.api_key = os.getenv("OPENAI_API_KEY", openai_api_key)
+openai_api_key   = st.secrets["openai"]["openai_api_key"]
 def check_internet_connection():
     """インターネット接続をチェックする"""
     try:
