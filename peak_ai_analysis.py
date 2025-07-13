@@ -40,7 +40,9 @@ except ImportError:
     st.warning("AI analysis features require additional packages: PyPDF2, docx, openai, faiss, sentence-transformers")
 
 # OpenAI API Key（環境変数から取得を推奨）
-openai_api_key = "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"
+# openai_api_key = "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"
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
 def check_internet_connection():
     """インターネット接続をチェックする"""
     try:
