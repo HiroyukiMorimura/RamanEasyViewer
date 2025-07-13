@@ -1122,6 +1122,8 @@ def render_interactive_plot(result, file_key, spectrum_type):
     fig.update_yaxes(title_text="強度", row=1, col=1)
     fig.update_yaxes(title_text="微分値", row=2, col=1)
     
+    st.plotly_chart(fig, use_container_width=True)
+
     # クリック処理
     if plotly_events:
         event_key = f"{file_key}_click_event"
