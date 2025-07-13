@@ -40,10 +40,8 @@ except ImportError:
     st.warning("AI analysis features require additional packages: PyPDF2, docx, openai, faiss, sentence-transformers")
 
 # OpenAI API Key（環境変数から取得を推奨）
-# openai_api_key = "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"
-# openai_api_key = os.getenv("OPENAI_API_KEY")
-# openai.api_key = os.getenv("OPENAI_API_KEY", openai_api_key)
 openai_api_key   = st.secrets["openai"]["openai_api_key"]
+
 def check_internet_connection():
     """インターネット接続をチェックする"""
     try:
@@ -84,11 +82,7 @@ class LLMConnector:
         # if api_key_input:
         try:
             # openai.api_key = api_key_input
-            openai.api_key = os.getenv("OPENAI_API_KEY", openai_api_key)
-            
-            st.sidebar.write("openai_api_key repr:", repr(openai_api_key))
-            st.sidebar.write("openai.api_key repr:", repr(openai.api_key))
-            
+            openai.api_key = os.getenv("OPENAI_API_KEY", openai_api_key)  
             self.selected_model = selected_model
             self.openai_client = "openai"
             st.sidebar.success(f"✅ OpenAI API接続設定完了 ({selected_model})")
