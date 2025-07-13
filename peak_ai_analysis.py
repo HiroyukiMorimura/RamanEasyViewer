@@ -85,6 +85,10 @@ class LLMConnector:
         try:
             # openai.api_key = api_key_input
             openai.api_key = os.getenv("OPENAI_API_KEY", openai_api_key)
+            
+            st.write(openai_api_key)
+            st.write(openai.api_key)
+            
             self.selected_model = selected_model
             self.openai_client = "openai"
             st.sidebar.success(f"✅ OpenAI API接続設定完了 ({selected_model})")
@@ -587,9 +591,6 @@ def peak_ai_analysis_mode():
     
     # OpenAI API設定
     llm_ready = llm_connector.setup_llm_connection()
-    
-    st.write(openai_api_key)
-    st.write(openai.api_key)
     
     # RAG設定セクション
     st.sidebar.subheader("📚 論文データベース設定")
