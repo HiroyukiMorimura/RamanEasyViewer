@@ -810,10 +810,12 @@ def perform_peak_analysis_with_ai(llm_connector, user_hint, llm_ready):
         step=10,
         key="prominence_threshold"
     )
-    st.sidebar.write("OPENAI_API_KEY is set? ", bool(os.getenv("OPENAI_API_KEY")))
 
     # ファイルアップロード
     uploaded_files = st.file_uploader("ファイルを選択してください", accept_multiple_files=True, key="file_uploader")
+    
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    st.sidebar.write("OPENAI_API_KEY is set? ", bool(os.getenv("OPENAI_API_KEY")))
     
     # アップロードファイル変更検出
     new_filenames = [f.name for f in uploaded_files] if uploaded_files else []
