@@ -185,15 +185,26 @@ class LLMConnector:
 
 class RamanRAGSystem:
     """RAG機能のクラス"""
-    def __init__(self, embedding_model_name='all-MiniLM-L6-v2', use_openai_embeddings=True, openai_embedding_model="text-embedding-ada-002"):
+        def __init__(
+        self,
+        embedding_model_name: str = 'all-MiniLM-L6-v2',
+        use_openai_embeddings: bool = True,
+        openai_embedding_model: str = "text-embedding-ada-002"
+    ):
+        # OpenAI 埋め込みを使うかどうか
+        #   └ 環境にネット接続があり、use_openai_embeddings=True のときだけ True に
         self.use_openai = use_openai_embeddings and check_internet_connection()
         self.openai_embedding_model = openai_embedding_model
         
-        if PDF_AVAILABLE:
-            self.embedding_model = SentenceTransformer(embedding_model_name)
-        else:
+        if self.use_openai:
+            # OpenAI 埋め込みを使う → HF モデルは None にしてロードをスキップ
             self.embedding_model = None
+        else:
+            # OpenAI 埋め込みを使わない → HF SentenceTransformer をロード
+            #    例: all-MiniLM-L6-v2 をローカル or Hub から読み込む
+            self.embedding_model = SentenceTransformer(embedding_model_name)
         
+        # ベクトルDB およびメタ情報はあとで設定
         self.vector_db = None
         self.documents: List[str] = []
         self.document_metadata: List[Dict] = []
@@ -243,10 +254,10 @@ class RamanRAGSystem:
         st.info("埋め込みベクトルを生成中…")
         if self.use_openai:
             embeddings = self._create_openai_embeddings(all_chunks)
-            embeddings = np.array(embeddings, dtype=np.float32)
+            # embeddings = np.array(embeddings, dtype=np.float32)
         else:
             embeddings = self.embedding_model.encode(all_chunks, show_progress_bar=True)
-            embeddings = np.array(embeddings, dtype=np.float32)
+            # embeddings = np.array(embeddings, dtype=np.float32)
 
         # FAISSインデックス構築
         self.embedding_dim = embeddings.shape[1]
