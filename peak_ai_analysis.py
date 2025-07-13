@@ -185,7 +185,7 @@ class LLMConnector:
 
 class RamanRAGSystem:
     """RAG機能のクラス"""
-        def __init__(
+    def __init__(
         self,
         embedding_model_name: str = 'all-MiniLM-L6-v2',
         use_openai_embeddings: bool = True,
