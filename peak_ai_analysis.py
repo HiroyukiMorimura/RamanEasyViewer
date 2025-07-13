@@ -86,8 +86,8 @@ class LLMConnector:
             # openai.api_key = api_key_input
             openai.api_key = os.getenv("OPENAI_API_KEY", openai_api_key)
             
-            st.write(openai_api_key)
-            st.write(openai.api_key)
+            st.sidebar.write("openai_api_key repr:", repr(openai_api_key))
+            st.sidebar.write("openai.api_key repr:", repr(openai.api_key))
             
             self.selected_model = selected_model
             self.openai_client = "openai"
