@@ -43,8 +43,6 @@ except ImportError:
 # openai_api_key = "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"
 openai_api_key = os.getenv("OPENAI_API_KEY")
 openai.api_key = os.getenv("OPENAI_API_KEY", openai_api_key)
-print(openai_api_key)
-print(openai.api_key)
 
 def check_internet_connection():
     """インターネット接続をチェックする"""
@@ -589,6 +587,9 @@ def peak_ai_analysis_mode():
     
     # OpenAI API設定
     llm_ready = llm_connector.setup_llm_connection()
+    
+    print(openai_api_key)
+    print(openai.api_key)
     
     # RAG設定セクション
     st.sidebar.subheader("📚 論文データベース設定")
