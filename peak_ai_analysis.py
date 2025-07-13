@@ -588,8 +588,8 @@ def peak_ai_analysis_mode():
     # OpenAI API設定
     llm_ready = llm_connector.setup_llm_connection()
     
-    print(openai_api_key)
-    print(openai.api_key)
+    st.write(openai_api_key)
+    st.write(openai.api_key)
     
     # RAG設定セクション
     st.sidebar.subheader("📚 論文データベース設定")
