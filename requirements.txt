@@ -14,7 +14,7 @@ streamlit-plotly-events>=0.0.6
 # AI/RAG dependencies (optional for AI features)
 PyPDF2>=3.0.0
 python-docx>=0.8.11
-openai>=0.28.0
+openai=0.28.0
 faiss-cpu>=1.7.4
 sentence-transformers>=2.2.2
 requests>=2.31.0
