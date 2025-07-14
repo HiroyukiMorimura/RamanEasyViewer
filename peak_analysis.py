@@ -345,6 +345,13 @@ def perform_peak_detection(file_labels, all_wavenum, all_bsremoval_spectra, all_
     
     # ファイルごとの描画と詳細解析
     for result in peak_results:
+        file_key = result['file_name']
+        # ▼ ここで必ず初期化する
+        if f"{file_key}_manual_peaks" not in st.session_state:
+            st.session_state[f"{file_key}_manual_peaks"] = []
+        if f"{file_key}_excluded_peaks" not in st.session_state:
+            st.session_state[f"{file_key}_excluded_peaks"] = set()
+
         render_interactive_plot(
             result,
             result['file_name'],
