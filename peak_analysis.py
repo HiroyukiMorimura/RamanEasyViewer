@@ -345,7 +345,11 @@ def perform_peak_detection(file_labels, all_wavenum, all_bsremoval_spectra, all_
     
     # ファイルごとの描画と詳細解析
     for result in peak_results:
-        render_interactive_plot(result, spectrum_type)
+        render_interactive_plot(
+            result,
+            result['file_name'],
+            spectrum_type
+        )
     
     # ピーク解析結果の集計とダウンロード
     all_peaks_data = []
