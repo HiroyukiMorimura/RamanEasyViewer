@@ -345,7 +345,7 @@ def perform_peak_detection(file_labels, all_wavenum, all_bsremoval_spectra, all_
     
     # ファイルごとの描画と詳細解析
     for result in peak_results:
-        render_peak_analysis(result, spectrum_type)
+        render_interactive_plot(result, spectrum_type)
     
     # ピーク解析結果の集計とダウンロード
     all_peaks_data = []
@@ -397,7 +397,122 @@ def perform_peak_detection(file_labels, all_wavenum, all_bsremoval_spectra, all_
             file_name=f"peak_analysis_results_{spectrum_type}.csv",
             mime="text/csv"
         )
+def render_interactive_plot(result, file_key, spectrum_type):
+    """インタラクティブプロットを描画"""
+    # 除外を反映したピークインデックス
+    filtered_peaks = [
+        i for i in result['detected_peaks']
+        if i not in st.session_state[f"{file_key}_excluded_peaks"]
+    ]
+    filtered_prominences = [
+        prom for i, prom in zip(result['detected_peaks'], result['detected_prominences'])
+        if i not in st.session_state[f"{file_key}_excluded_peaks"]
+    ]
 
+    # フィギュア作成
+    fig = make_subplots(
+        rows=3, cols=1,
+        shared_xaxes=True,
+        subplot_titles=[
+            f'{file_key} - {spectrum_type}',
+            f'{file_key} - 微分スペクトル比較',
+            f'{file_key} - Prominence vs 波数'
+        ],
+        vertical_spacing=0.07,
+        row_heights=[0.4, 0.3, 0.3]
+    )
+
+    # 上段スペクトル
+    fig.add_trace(
+        go.Scatter(x=result['wavenum'], y=result['spectrum'], mode='lines', name=spectrum_type),
+        row=1, col=1
+    )
+    # 自動検出ピーク
+    if filtered_peaks:
+        fig.add_trace(
+            go.Scatter(
+                x=result['wavenum'][filtered_peaks],
+                y=result['spectrum'][filtered_peaks],
+                mode='markers', name='検出ピーク（有効）', marker=dict(size=8, symbol='circle')
+            ),
+            row=1, col=1
+        )
+    # 除外ピーク
+    excl = list(st.session_state[f"{file_key}_excluded_peaks"])
+    if excl:
+        fig.add_trace(
+            go.Scatter(
+                x=result['wavenum'][excl],
+                y=result['spectrum'][excl],
+                mode='markers', name='除外ピーク', marker=dict(symbol='x', size=8)
+            ),
+            row=1, col=1
+        )
+    # 手動ピーク
+    for x, y in st.session_state[f"{file_key}_manual_peaks"]:
+        fig.add_trace(
+            go.Scatter(
+                x=[x], y=[y], mode='markers+text', text=["手動"],
+                textposition='top center', name="手動ピーク", marker=dict(symbol='star', size=10)
+            ), row=1, col=1
+        )
+
+    # 2次微分
+    fig.add_trace(
+        go.Scatter(x=result['wavenum'], y=result['second_derivative'], mode='lines', name='2次微分'),
+        row=2, col=1
+    )
+    fig.add_hline(y=0, line_dash="dash", row=2, col=1)
+
+    # Prominence
+    fig.add_trace(
+        go.Scatter(x=result['wavenum'][result['all_peaks']], y=result['all_prominences'], mode='markers', name='全ピークの卓立度', marker=dict(size=4)),
+        row=3, col=1
+    )
+    if filtered_peaks:
+        fig.add_trace(
+            go.Scatter(
+                x=result['wavenum'][filtered_peaks],
+                y=filtered_prominences,
+                mode='markers', name='有効な卓立度', marker=dict(symbol='circle', size=7)
+            ), row=3, col=1
+        )
+
+    fig.update_layout(height=800, margin=dict(t=80, b=150))
+    fig.update_xaxes(title_text="波数 (cm⁻¹)", row=3, col=1)
+
+    # ① まず常に描画
+    st.plotly_chart(fig, use_container_width=True)
+
+    # ② クリック／ダブルクリックの両方をキャプチャ
+    if plotly_events:
+        event_key = f"{file_key}_click_event"
+        clicked = plotly_events(
+            fig,
+            click_event=True,
+            select_event=True,
+            hover_event=False,
+            override_height=800,
+            key=event_key
+        ) or []
+        # 最新のクリック情報を取得
+        pts = [pt for pt in clicked if pt.get("curveNumber") == 0]
+        if pts:
+            pt = pts[-1]
+            x, y = pt['x'], pt['y']
+            idx = np.argmin(np.abs(result['wavenum'] - x))
+            # 自動検出ピークならトグル、違えば手動追加
+            if idx in result['detected_peaks']:
+                excl = st.session_state[f"{file_key}_excluded_peaks"]
+                if idx in excl: excl.remove(idx)
+                else: excl.add(idx)
+            else:
+                existing = [abs(px - x) < 1.0 for px, _ in st.session_state[f"{file_key}_manual_peaks"]]
+                if not any(existing):
+                    st.session_state[f"{file_key}_manual_peaks"].append((x, y))
+    else:
+        st.info("Interactive peak selection is unavailable. 'streamlit_plotly_events'をインストールしてください。")
+        
 def render_peak_analysis(result, spectrum_type):
     """
     個別ファイルのピーク解析結果を描画
