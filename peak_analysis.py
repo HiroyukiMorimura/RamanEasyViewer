@@ -505,7 +505,12 @@ def render_interactive_plot(result, file_key, spectrum_type):
             hover_event=False,
             override_height=800,
             key=event_key
-        ) or []
+        ) # or []
+        # クリック処理
+        for pt in clicked_points:
+            if pt["curveNumber"] == 0:  # メインスペクトルレイヤー
+                x, y = pt["x"], pt["y"]
+        …  # 既存の追加／除外ロジック
         # 最新のクリック情報を取得
         # pts = [pt for pt in clicked if pt.get("curveNumber") == 0]
         # if pts:
