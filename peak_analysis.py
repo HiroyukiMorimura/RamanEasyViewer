@@ -505,27 +505,22 @@ def render_interactive_plot(result, file_key, spectrum_type):
             hover_event=False,
             override_height=800,
             key=event_key
-        ) # or []
+        )
+        
         # クリック処理
         for pt in clicked_points:
             if pt["curveNumber"] == 0:  # メインスペクトルレイヤー
                 x, y = pt["x"], pt["y"]
-        …  # 既存の追加／除外ロジック
-        # 最新のクリック情報を取得
-        # pts = [pt for pt in clicked if pt.get("curveNumber") == 0]
-        # if pts:
-        #     pt = pts[-1]
-        #    x, y = pt['x'], pt['y']
-        #    idx = np.argmin(np.abs(result['wavenum'] - x))
-        #    # 自動検出ピークならトグル、違えば手動追加
-        #    if idx in result['detected_peaks']:
-        #        excl = st.session_state[f"{file_key}_excluded_peaks"]
-        #        if idx in excl: excl.remove(idx)
-        #        else: excl.add(idx)
-        #    else:
-        #        existing = [abs(px - x) < 1.0 for px, _ in st.session_state[f"{file_key}_manual_peaks"]]
-        #        if not any(existing):
-        #            st.session_state[f"{file_key}_manual_peaks"].append((x, y))
+                idx = np.argmin(np.abs(result['wavenum'] - x))
+             # 自動検出ピークならトグル、違えば手動追加
+            if idx in result['detected_peaks']:
+                excl = st.session_state[f"{file_key}_excluded_peaks"]
+                if idx in excl: excl.remove(idx)
+                else: excl.add(idx)
+            else:
+                existing = [abs(px - x) < 1.0 for px, _ in st.session_state[f"{file_key}_manual_peaks"]]
+                if not any(existing):
+                    st.session_state[f"{file_key}_manual_peaks"].append((x, y))
     else:
         st.info("Interactive peak selection is unavailable. 'streamlit_plotly_events'をインストールしてください。")
         
