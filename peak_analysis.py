@@ -533,11 +533,11 @@ def render_peak_analysis(result, spectrum_type):
             row=r, col=1,
             automargin=True
         )
+    st.plotly_chart(fig, use_container_width=True)
     
-    # クリック処理
-    event_key = f"{file_key}_click_event"
-    
+    # クリック処理 
     if plotly_events:
+        event_key = f"{file_key}_click_event"
         clicked_points = plotly_events(
             fig,
             click_event=True,
