@@ -429,7 +429,12 @@ def render_interactive_plot(result, file_key, spectrum_type):
         prom for i, prom in zip(result["detected_peaks"], result["detected_prominences"])
         if i not in st.session_state[f"{file_key}_excluded_peaks"]
     ]
-
+　　 with st.expander("DEBUG"):
+        st.write("len wavenum:", len(result["wavenum"]))
+        st.write("len spectrum:", len(result["spectrum"]))
+        st.write("NaN? :", np.isnan(result["spectrum"]).any())
+        st.write("first 5 y:", result["spectrum"][:5])
+        st.write([tr.name for tr in fig_main.data])
     # =========================================================
     # ① クリック対象：1段目だけの Figure（fig_main）
     # =========================================================
