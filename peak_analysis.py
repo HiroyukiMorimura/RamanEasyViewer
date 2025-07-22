@@ -409,127 +409,185 @@ def perform_peak_detection(file_labels, all_wavenum, all_bsremoval_spectra, all_
             mime="text/csv"
         )
 def render_interactive_plot(result, file_key, spectrum_type):
-    """インタラクティブプロットを描画"""
-    # 除外を反映したピークインデックス
+    """
+    1段目（元スペクトル）だけを plotly_events でインタラクティブにし、
+    2段目(2次微分)・3段目(Prominence)は通常描画する実装。
+    """
+
+    # ---- セッション初期化 ----
+    if f"{file_key}_excluded_peaks" not in st.session_state:
+        st.session_state[f"{file_key}_excluded_peaks"] = set()
+    if f"{file_key}_manual_peaks" not in st.session_state:
+        st.session_state[f"{file_key}_manual_peaks"] = []
+
+    # ---- フィルタリング済みピーク配列 ----
     filtered_peaks = [
-        i for i in result['detected_peaks']
+        i for i in result["detected_peaks"]
         if i not in st.session_state[f"{file_key}_excluded_peaks"]
     ]
     filtered_prominences = [
-        prom for i, prom in zip(result['detected_peaks'], result['detected_prominences'])
+        prom for i, prom in zip(result["detected_peaks"], result["detected_prominences"])
         if i not in st.session_state[f"{file_key}_excluded_peaks"]
     ]
 
-    # フィギュア作成
-    fig = make_subplots(
-        rows=3, cols=1,
-        shared_xaxes=True,
-        subplot_titles=[
-            f'{file_key} - {spectrum_type}',
-            f'{file_key} - 微分スペクトル比較',
-            f'{file_key} - Prominence vs 波数'
-        ],
-        vertical_spacing=0.07,
-        row_heights=[0.4, 0.3, 0.3]
+    # =========================================================
+    # ① クリック対象：1段目だけの Figure（fig_main）
+    # =========================================================
+    fig_main = go.Figure()
+
+    # メインスペクトル（クリック対象）
+    fig_main.add_trace(
+        go.Scatter(
+            x=result["wavenum"],
+            y=result["spectrum"],
+            mode="lines",
+            name=spectrum_type
+        )
     )
 
-    # 上段スペクトル
-    fig.add_trace(
-        go.Scatter(x=result['wavenum'], y=result['spectrum'], mode='lines', name=spectrum_type),
-        row=1, col=1
-    )
-    # 自動検出ピーク
+    # 自動検出ピーク（有効）
     if filtered_peaks:
-        fig.add_trace(
+        fig_main.add_trace(
             go.Scatter(
-                x=result['wavenum'][filtered_peaks],
-                y=result['spectrum'][filtered_peaks],
-                mode='markers', name='検出ピーク（有効）', marker=dict(size=8, symbol='circle')
-            ),
-            row=1, col=1
+                x=result["wavenum"][filtered_peaks],
+                y=result["spectrum"][filtered_peaks],
+                mode="markers",
+                name="検出ピーク（有効）",
+                marker=dict(size=8, symbol="circle")
+            )
         )
+
     # 除外ピーク
     excl = list(st.session_state[f"{file_key}_excluded_peaks"])
     if excl:
-        fig.add_trace(
+        fig_main.add_trace(
             go.Scatter(
-                x=result['wavenum'][excl],
-                y=result['spectrum'][excl],
-                mode='markers', name='除外ピーク', marker=dict(symbol='x', size=8)
-            ),
-            row=1, col=1
+                x=result["wavenum"][excl],
+                y=result["spectrum"][excl],
+                mode="markers",
+                name="除外ピーク",
+                marker=dict(symbol="x", size=8)
+            )
         )
+
     # 手動ピーク
-    for x, y in st.session_state[f"{file_key}_manual_peaks"]:
-        fig.add_trace(
+    for x_manual, y_manual in st.session_state[f"{file_key}_manual_peaks"]:
+        fig_main.add_trace(
             go.Scatter(
-                x=[x], y=[y], mode='markers+text', text=["手動"],
-                textposition='top center', name="手動ピーク", marker=dict(symbol='star', size=10)
-            ), row=1, col=1
+                x=[x_manual],
+                y=[y_manual],
+                mode="markers+text",
+                text=["手動"],
+                textposition="top center",
+                name="手動ピーク",
+                marker=dict(symbol="star", size=10)
+            )
         )
 
-    # 2次微分
-    fig.add_trace(
-        go.Scatter(x=result['wavenum'], y=result['second_derivative'], mode='lines', name='2次微分'),
-        row=2, col=1
-    )
-    fig.add_hline(y=0, line_dash="dash", row=2, col=1)
+    fig_main.update_layout(height=360, margin=dict(t=40, b=40))
+    fig_main.update_xaxes(title_text="波数 (cm⁻¹)")
+    fig_main.update_yaxes(title_text="Intensity (a.u.)")
 
-    # Prominence
-    fig.add_trace(
-        go.Scatter(x=result['wavenum'][result['all_peaks']], y=result['all_prominences'], mode='markers', name='全ピークの卓立度', marker=dict(size=4)),
-        row=3, col=1
-    )
-    if filtered_peaks:
-        fig.add_trace(
-            go.Scatter(
-                x=result['wavenum'][filtered_peaks],
-                y=filtered_prominences,
-                mode='markers', name='有効な卓立度', marker=dict(symbol='circle', size=7)
-            ), row=3, col=1
-        )
-
-    fig.update_layout(height=800, margin=dict(t=80, b=150))
-    fig.update_xaxes(title_text="波数 (cm⁻¹)", row=3, col=1)
-    
+    # =========================================================
+    # ② イベント付き描画（plotly_events がある場合のみ）
+    # =========================================================
     if plotly_events is not None:
         event_key = f"{file_key}_click_event"
+
         clicked_points = plotly_events(
-            fig,
+            fig_main,
             click_event=True,
             select_event=False,
             hover_event=False,
-            override_height=800,
+            override_height=360,
             key=event_key
         ) or []
-        
+
         if clicked_points:
-            pt = clicked_points[-1]  # 最後のクリックだけ使う
-            # ユニークなイベントID（数値を丸めて文字列化）
+            pt = clicked_points[-1]
+            # デバウンス
             ev_id = f"{pt['curveNumber']}-{round(pt['x'], 3)}-{round(pt['y'], 3)}"
-    
             if st.session_state.get(f"{event_key}_last") != ev_id:
                 st.session_state[f"{event_key}_last"] = ev_id
-    
-                x, y = float(pt["x"]), float(pt["y"])
-                idx = int(np.argmin(np.abs(result['wavenum'] - x)))
 
-                # ===== メイントレース判定を curveNumber でなく name でやる =====
-                main_trace_name = spectrum_type  # 上段スペクトルで付けた name
-                is_main = fig.data[pt["curveNumber"]].name == main_trace_name
+                x_clicked = float(pt["x"])
+                y_clicked = float(pt["y"])
+                idx = int(np.argmin(np.abs(result["wavenum"] - x_clicked)))
 
-                if is_main:
-                    if idx in result['detected_peaks']:
-                        excl = st.session_state[f"{file_key}_excluded_peaks"]
-                        if idx in excl: excl.remove(idx)
-                        else: excl.add(idx)
+                # どのトレースをクリックしたか（名前で判定）
+                trace_name = fig_main.data[pt["curveNumber"]].name
+                is_main_trace = (trace_name == spectrum_type)
+
+                if is_main_trace:
+                    # 自動検出ピークならトグル
+                    if idx in result["detected_peaks"]:
+                        excl_set = st.session_state[f"{file_key}_excluded_peaks"]
+                        if idx in excl_set:
+                            excl_set.remove(idx)
+                        else:
+                            excl_set.add(idx)
                     else:
-                        if not any(abs(px - x) < 1.0 for px, _ in st.session_state[f"{file_key}_manual_peaks"]):
-                            st.session_state[f"{file_key}_manual_peaks"].append((x, y))
+                        # 近傍重複チェック
+                        if not any(abs(px - x_clicked) < 1.0 for px, _ in st.session_state[f"{file_key}_manual_peaks"]):
+                            st.session_state[f"{file_key}_manual_peaks"].append((x_clicked, y_clicked))
+
                     st.rerun()
     else:
-        st.plotly_chart(fig, use_container_width=True)
-        st.info("Interactive peak selection is unavailable. 'streamlit_plotly_events'をインストールしてください。")
+        # ライブラリが無い場合は普通に描画のみ
+        st.plotly_chart(fig_main, use_container_width=True)
+        st.info("Interactive peak selection is unavailable. 'streamlit_plotly_events' をインストールしてください。")
+
+    # =========================================================
+    # ③ 残り2段（2次微分 / Prominence）は表示専用 fig_sub
+    # =========================================================
+    fig_sub = make_subplots(
+        rows=2, cols=1,
+        shared_xaxes=True,
+        subplot_titles=["微分スペクトル", "Prominence vs 波数"],
+        vertical_spacing=0.08,
+        row_heights=[0.45, 0.55]
+    )
+
+    # 2次微分
+    fig_sub.add_trace(
+        go.Scatter(
+            x=result["wavenum"],
+            y=result["second_derivative"],
+            mode="lines",
+            name="2次微分"
+        ),
+        row=1, col=1
+    )
+    fig_sub.add_hline(y=0, line_dash="dash", row=1, col=1)
+
+    # 全ピークの卓立度
+    fig_sub.add_trace(
+        go.Scatter(
+            x=result["wavenum"][result["all_peaks"]],
+            y=result["all_prominences"],
+            mode="markers",
+            name="全ピークの卓立度",
+            marker=dict(size=4)
+        ),
+        row=2, col=1
+    )
+    # 有効ピークの卓立度
+    if filtered_peaks:
+        fig_sub.add_trace(
+            go.Scatter(
+                x=result["wavenum"][filtered_peaks],
+                y=filtered_prominences,
+                mode="markers",
+                name="有効な卓立度",
+                marker=dict(symbol="circle", size=7)
+            ),
+            row=2, col=1
+        )
+
+    fig_sub.update_layout(height=470, margin=dict(t=60, b=60))
+    fig_sub.update_xaxes(title_text="波数 (cm⁻¹)", row=2, col=1)
+    st.plotly_chart(fig_sub, use_container_width=True)
+
         
 def render_peak_analysis(result, spectrum_type):
     """
