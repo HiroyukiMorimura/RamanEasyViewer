@@ -1,61 +1,3 @@
-
-    # =========================================================
-    # ① クリック対象：1段目だけの Figure（fig_main）
-    # =========================================================
-    fig_main = go.Figure()
-
-    # メインスペクトル（クリック対象）
-    fig_main.add_trace(
-        go.Scatter(
-            x=result["wavenum"],
-            y=result["spectrum"],
-            mode="lines",
-            name=spectrum_type
-        )
-    )
-
-    # 自動検出ピーク（有効）
-    if filtered_peaks:
-        fig_main.add_trace(
-            go.Scatter(
-                x=result["wavenum"][filtered_peaks],
-                y=result["spectrum"][filtered_peaks],
-                mode="markers",
-                name="検出ピーク（有効）",
-                marker=dict(size=8, symbol="circle")
-            )
-        )
-
-    # 除外ピーク
-    excl = list(st.session_state[f"{file_key}_excluded_peaks"])
-    if excl:
-        fig_main.add_trace(
-            go.Scatter(
-                x=result["wavenum"][excl],
-                y=result["spectrum"][excl],
-                mode="markers",
-                name="除外ピーク",
-                marker=dict(symbol="x", size=8)
-            )
-        )
-
-    # 手動ピーク
-    for x_manual, y_manual in st.session_state[f"{file_key}_manual_peaks"]:
-        fig_main.add_trace(
-            go.Scatter(
-                x=[x_manual],
-                y=[y_manual],
-                mode="markers+text",
-                text=["手動"],
-                textposition="top center",
-                name="手動ピーク",
-                marker=dict(symbol="star", size=10)
-            )
-        )
-
-    fig_main.update_layout(height=360, margin=dict(t=40, b=40))
-    fig_main.update_xaxes(title_text="波数 (cm⁻¹)")
-    fig_main.update_yaxes(title_text="Intensity (a.u.)")
 # -*- coding: utf-8 -*-
 """
 ラマンピーク解析モジュール
@@ -487,6 +429,65 @@ def render_interactive_plot(result, file_key, spectrum_type):
         prom for i, prom in zip(result["detected_peaks"], result["detected_prominences"])
         if i not in st.session_state[f"{file_key}_excluded_peaks"]
     ]
+    
+    # =========================================================
+    # ① クリック対象：1段目だけの Figure（fig_main）
+    # =========================================================
+    fig_main = go.Figure()
+
+    # メインスペクトル（クリック対象）
+    fig_main.add_trace(
+        go.Scatter(
+            x=result["wavenum"],
+            y=result["spectrum"],
+            mode="lines",
+            name=spectrum_type
+        )
+    )
+
+    # 自動検出ピーク（有効）
+    if filtered_peaks:
+        fig_main.add_trace(
+            go.Scatter(
+                x=result["wavenum"][filtered_peaks],
+                y=result["spectrum"][filtered_peaks],
+                mode="markers",
+                name="検出ピーク（有効）",
+                marker=dict(size=8, symbol="circle")
+            )
+        )
+
+    # 除外ピーク
+    excl = list(st.session_state[f"{file_key}_excluded_peaks"])
+    if excl:
+        fig_main.add_trace(
+            go.Scatter(
+                x=result["wavenum"][excl],
+                y=result["spectrum"][excl],
+                mode="markers",
+                name="除外ピーク",
+                marker=dict(symbol="x", size=8)
+            )
+        )
+
+    # 手動ピーク
+    for x_manual, y_manual in st.session_state[f"{file_key}_manual_peaks"]:
+        fig_main.add_trace(
+            go.Scatter(
+                x=[x_manual],
+                y=[y_manual],
+                mode="markers+text",
+                text=["手動"],
+                textposition="top center",
+                name="手動ピーク",
+                marker=dict(symbol="star", size=10)
+            )
+        )
+
+    fig_main.update_layout(height=360, margin=dict(t=40, b=40))
+    fig_main.update_xaxes(title_text="波数 (cm⁻¹)")
+    fig_main.update_yaxes(title_text="Intensity (a.u.)")
+
     with st.expander("DEBUG"):
         st.write("len wavenum:", len(result["wavenum"]))
         st.write("len spectrum:", len(result["spectrum"]))
