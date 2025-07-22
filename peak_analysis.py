@@ -507,6 +507,29 @@ def render_interactive_plot(result, file_key, spectrum_type):
             key=event_key
         ) or []
         
+    if clicked_points:
+        pt = clicked_points[-1]  # 最後のクリックだけ使う
+        # ユニークなイベントID（数値を丸めて文字列化）
+        ev_id = f"{pt['curveNumber']}-{round(pt['x'], 3)}-{round(pt['y'], 3)}"
+    
+        if st.session_state.get(f"{event_key}_last") != ev_id:
+            st.session_state[f"{event_key}_last"] = ev_id
+    
+            x, y = pt["x"], pt["y"]
+            idx = int(np.argmin(np.abs(result['wavenum'] - x)))
+    
+            # 自動検出ピーク → トグル除外
+            if idx in result['detected_peaks']:
+                excl = st.session_state[f"{file_key}_excluded_peaks"]
+                if idx in excl:
+                    excl.remove(idx)
+                else:
+                    excl.add(idx)
+            else:
+                # 近傍に既存手動ピークがあればスキップ
+                if not any(abs(px - x) < 1.0 for px, _ in st.session_state[f"{file_key}_manual_peaks"]):
+                    st.session_state[f"{file_key}_manual_peaks"].append((float(x), float(y)))
+        """
         # クリック処理
         for pt in clicked_points:
             if pt["curveNumber"] == 0:  # メインスペクトルレイヤー
@@ -521,6 +544,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
                 existing = [abs(px - x) < 1.0 for px, _ in st.session_state[f"{file_key}_manual_peaks"]]
                 if not any(existing):
                     st.session_state[f"{file_key}_manual_peaks"].append((x, y))
+        """
     else:
         st.info("Interactive peak selection is unavailable. 'streamlit_plotly_events'をインストールしてください。")
         
