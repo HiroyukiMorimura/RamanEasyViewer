@@ -498,14 +498,14 @@ def render_interactive_plot(result, file_key, spectrum_type):
     # ② クリック／ダブルクリックの両方をキャプチャ
     if plotly_events:
         event_key = f"{file_key}_click_event"
-        clicked = plotly_events(
+        clicked_points = plotly_events(
             fig,
             click_event=True,
             select_event=True,
             hover_event=False,
             override_height=800,
             key=event_key
-        )
+        ) or []
         
         # クリック処理
         for pt in clicked_points:
