@@ -492,12 +492,12 @@ def render_interactive_plot(result, file_key, spectrum_type):
     fig.update_layout(height=800, margin=dict(t=80, b=150))
     fig.update_xaxes(title_text="波数 (cm⁻¹)", row=3, col=1)
     
-    if plotly_events:
+    if plotly_events is not None:
         event_key = f"{file_key}_click_event"
         clicked_points = plotly_events(
             fig,
             click_event=True,
-            select_event=True,
+            select_event=False,
             hover_event=False,
             override_height=800,
             key=event_key
@@ -667,8 +667,8 @@ def render_peak_analysis(result, spectrum_type):
             automargin=True
         )
     st.plotly_chart(fig, use_container_width=True)
-    
-    # クリック処理 
+    """
+    # クリック処理
     if plotly_events:
         event_key = f"{file_key}_click_event"
         clicked_points = plotly_events(
@@ -709,7 +709,7 @@ def render_peak_analysis(result, spectrum_type):
     else:
         st.plotly_chart(fig, use_container_width=True)
         st.info("Interactive peak selection not available. Please install streamlit_plotly_events.")
-    
+    """
     # 手動ピーク情報とグリッドサーチ
     render_manual_peak_info(result, file_key)
 
