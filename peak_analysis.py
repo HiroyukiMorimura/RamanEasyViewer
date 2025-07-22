@@ -529,6 +529,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
                 # 近傍に既存手動ピークがあればスキップ
                 if not any(abs(px - x) < 1.0 for px, _ in st.session_state[f"{file_key}_manual_peaks"]):
                     st.session_state[f"{file_key}_manual_peaks"].append((float(x), float(y)))
+            st.rerun()
         """
         # クリック処理
         for pt in clicked_points:
