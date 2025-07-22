@@ -491,23 +491,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
 
     fig.update_layout(height=800, margin=dict(t=80, b=150))
     fig.update_xaxes(title_text="波数 (cm⁻¹)", row=3, col=1)
-
-    """
-    # ① まず常に描画
-    st.plotly_chart(fig, use_container_width=True)
-
-    # ② クリック／ダブルクリックの両方をキャプチャ
-    if plotly_events:
-        event_key = f"{file_key}_click_event"
-        clicked_points = plotly_events(
-            fig,
-            click_event=True,
-            select_event=True,
-            hover_event=False,
-            override_height=800,
-            key=event_key
-        ) or []
-    """
+    
     if plotly_events:
         event_key = f"{file_key}_click_event"
         clicked_points = plotly_events(
@@ -527,37 +511,22 @@ def render_interactive_plot(result, file_key, spectrum_type):
             if st.session_state.get(f"{event_key}_last") != ev_id:
                 st.session_state[f"{event_key}_last"] = ev_id
     
-                x, y = pt["x"], pt["y"]
+                x, y = float(pt["x"]), float(pt["y"])
                 idx = int(np.argmin(np.abs(result['wavenum'] - x)))
-    
-                # 自動検出ピーク → トグル除外
-                if idx in result['detected_peaks']:
-                    excl = st.session_state[f"{file_key}_excluded_peaks"]
-                    if idx in excl:
-                        excl.remove(idx)
+
+                # ===== メイントレース判定を curveNumber でなく name でやる =====
+                main_trace_name = spectrum_type  # 上段スペクトルで付けた name
+                is_main = fig.data[pt["curveNumber"]].name == main_trace_name
+
+                if is_main:
+                    if idx in result['detected_peaks']:
+                        excl = st.session_state[f"{file_key}_excluded_peaks"]
+                        if idx in excl: excl.remove(idx)
+                        else: excl.add(idx)
                     else:
-                        excl.add(idx)
-                else:
-                    # 近傍に既存手動ピークがあればスキップ
-                    if not any(abs(px - x) < 1.0 for px, _ in st.session_state[f"{file_key}_manual_peaks"]):
-                        st.session_state[f"{file_key}_manual_peaks"].append((float(x), float(y)))
-                st.rerun()
-        """
-        # クリック処理
-        for pt in clicked_points:
-            if pt["curveNumber"] == 0:  # メインスペクトルレイヤー
-                x, y = pt["x"], pt["y"]
-                idx = np.argmin(np.abs(result['wavenum'] - x))
-             # 自動検出ピークならトグル、違えば手動追加
-            if idx in result['detected_peaks']:
-                excl = st.session_state[f"{file_key}_excluded_peaks"]
-                if idx in excl: excl.remove(idx)
-                else: excl.add(idx)
-            else:
-                existing = [abs(px - x) < 1.0 for px, _ in st.session_state[f"{file_key}_manual_peaks"]]
-                if not any(existing):
-                    st.session_state[f"{file_key}_manual_peaks"].append((x, y))
-        """
+                        if not any(abs(px - x) < 1.0 for px, _ in st.session_state[f"{file_key}_manual_peaks"]):
+                            st.session_state[f"{file_key}_manual_peaks"].append((x, y))
+                    st.rerun()
     else:
         st.plotly_chart(fig, use_container_width=True)
         st.info("Interactive peak selection is unavailable. 'streamlit_plotly_events'をインストールしてください。")
