@@ -433,15 +433,20 @@ def render_interactive_plot(result, file_key, spectrum_type):
     # =========================================================
     # ① クリック対象：1段目だけの Figure（fig_main）
     # =========================================================
+    spec_x = np.asarray(result["wavenum"], dtype=float)
+    spec_y = np.asarray(result["spectrum"], dtype=float)
+    mask = ~np.isnan(spec_y)
+    spec_x, spec_y = spec_x[mask], spec_y[mask]
     fig_main = go.Figure()
 
     # メインスペクトル（クリック対象）
     fig_main.add_trace(
         go.Scatter(
-            x=result["wavenum"],
-            y=result["spectrum"],
+            x=spec_x,
+            y=spec_y,
             mode="lines",
-            name=spectrum_type
+            name=spectrum_type,
+            connectgaps=True
         )
     )
 
