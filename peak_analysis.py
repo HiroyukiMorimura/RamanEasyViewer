@@ -489,11 +489,12 @@ def render_interactive_plot(result, file_key, spectrum_type):
     fig_main.update_yaxes(title_text="Intensity (a.u.)")
 
     with st.expander("DEBUG"):
-        st.write("len wavenum:", len(result["wavenum"]))
-        st.write("len spectrum:", len(result["spectrum"]))
-        st.write("NaN? :", np.isnan(result["spectrum"]).any())
-        st.write("first 5 y:", result["spectrum"][:5])
-        st.write([tr.name for tr in fig_main.data])
+        y = result["spectrum"]
+        x = result["wavenum"]
+        st.write("y type:", type(y))
+        st.write("y dtype:", getattr(y, "dtype", None))
+        st.write("y[:5] REAL:", np.asarray(y, dtype=float)[:5])
+        st.write([tr.name for tr in fig_main.data])  # ← これは trace の名前
         
     # =========================================================
     # ② イベント付き描画（plotly_events がある場合のみ）
