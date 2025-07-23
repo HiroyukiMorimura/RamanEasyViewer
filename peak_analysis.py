@@ -737,7 +737,7 @@ def render_peak_analysis(result, spectrum_type):
             automargin=True
         )
     st.plotly_chart(fig, use_container_width=True)
-    """
+    
     # クリック処理
     if plotly_events:
         event_key = f"{file_key}_click_event"
@@ -779,7 +779,7 @@ def render_peak_analysis(result, spectrum_type):
     else:
         st.plotly_chart(fig, use_container_width=True)
         st.info("Interactive peak selection not available. Please install streamlit_plotly_events.")
-    """
+    
     # 手動ピーク情報とグリッドサーチ
     render_manual_peak_info(result, file_key)
 
