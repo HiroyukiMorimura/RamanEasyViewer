@@ -453,8 +453,8 @@ def render_interactive_plot(result, file_key, spectrum_type):
     if filtered_peaks:
         fig_main.add_trace(
             go.Scatter(
-                lim_x=result["wavenum"][filtered_peaks],
-                lim_y=result["spectrum"][filtered_peaks],
+                x=spec_x[filtered_peaks],
+                y=spec_y[filtered_peaks],
                 mode="markers",
                 name="検出ピーク（有効）",
                 marker=dict(size=8, symbol="circle")
@@ -462,8 +462,8 @@ def render_interactive_plot(result, file_key, spectrum_type):
         )
     
     with st.expander("DEBUG"):
-        y = result["spectrum"]
-        x = result["wavenum"]
+        y = spec_x
+        x = spec_y
         st.write("y[:5] REAL:", np.asarray(y, dtype=float)[:5])
         st.write("y[:5] REAL:", np.asarray(y, dtype=float)[:5])
         st.write("filtered_peaks", filtered_peaks)
