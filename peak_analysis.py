@@ -453,8 +453,8 @@ def render_interactive_plot(result, file_key, spectrum_type):
     if filtered_peaks:
         fig_main.add_trace(
             go.Scatter(
-                x=result["wavenum"][filtered_peaks],
-                y=result["spectrum"][filtered_peaks],
+                lim_x=result["wavenum"][filtered_peaks],
+                lim_y=result["spectrum"][filtered_peaks],
                 mode="markers",
                 name="検出ピーク（有効）",
                 marker=dict(size=8, symbol="circle")
@@ -464,10 +464,9 @@ def render_interactive_plot(result, file_key, spectrum_type):
     with st.expander("DEBUG"):
         y = result["spectrum"]
         x = result["wavenum"]
-        st.write("y type:", type(y))
-        st.write("y dtype:", getattr(y, "dtype", None))
         st.write("y[:5] REAL:", np.asarray(y, dtype=float)[:5])
-        st.write([tr.name for tr in fig_main.data])  # ← これは trace の名前
+        st.write("y[:5] REAL:", np.asarray(y, dtype=float)[:5])
+        st.write("filtered_peaks", filtered_peaks)
     """
     # 除外ピーク
     excl = list(st.session_state[f"{file_key}_excluded_peaks"])
