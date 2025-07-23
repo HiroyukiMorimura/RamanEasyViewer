@@ -449,7 +449,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
             connectgaps=True
         )
     )
-
+    ”””
     # 自動検出ピーク（有効）
     if filtered_peaks:
         fig_main.add_trace(
@@ -488,6 +488,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
                 marker=dict(symbol="star", size=10)
             )
         )
+        """
 
     fig_main.update_layout(height=360, margin=dict(t=40, b=40))
     fig_main.update_xaxes(title_text="波数 (cm⁻¹)")
