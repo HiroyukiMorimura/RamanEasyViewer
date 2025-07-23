@@ -467,14 +467,14 @@ def render_interactive_plot(result, file_key, spectrum_type):
         st.write("y[:5] REAL:", np.asarray(y, dtype=float)[:5])
         st.write("y[:5] REAL:", np.asarray(y, dtype=float)[:5])
         st.write("filtered_peaks", filtered_peaks)
-    """
+    
     # 除外ピーク
     excl = list(st.session_state[f"{file_key}_excluded_peaks"])
     if excl:
         fig_main.add_trace(
             go.Scatter(
-                x=result["wavenum"][excl],
-                y=result["spectrum"][excl],
+                x=spec_x[excl],
+                y=spec_y[excl],
                 mode="markers",
                 name="除外ピーク",
                 marker=dict(symbol="x", size=8)
@@ -498,8 +498,8 @@ def render_interactive_plot(result, file_key, spectrum_type):
 
     fig_main.update_layout(height=360, margin=dict(t=40, b=40))
     fig_main.update_xaxes(title_text="波数 (cm⁻¹)")
-    fig_main.update_yaxes(title_text="Intensity (a.u.)")
-
+    fig_main.update_yaxes(title_text="Intensity (a.u.)" 
+    """
     # =========================================================
     # ② イベント付き描画（plotly_events がある場合のみ）
     # =========================================================
