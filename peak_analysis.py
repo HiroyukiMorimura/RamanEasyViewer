@@ -449,8 +449,6 @@ def render_interactive_plot(result, file_key, spectrum_type):
             connectgaps=True
         )
     )
-    print(spec_x)
-    print(spec_y)
     # 自動検出ピーク（有効）
     if filtered_peaks:
         fig_main.add_trace(
@@ -462,6 +460,14 @@ def render_interactive_plot(result, file_key, spectrum_type):
                 marker=dict(size=8, symbol="circle")
             )
         )
+    
+    with st.expander("DEBUG"):
+        y = result["spectrum"]
+        x = result["wavenum"]
+        st.write("y type:", type(y))
+        st.write("y dtype:", getattr(y, "dtype", None))
+        st.write("y[:5] REAL:", np.asarray(y, dtype=float)[:5])
+        st.write([tr.name for tr in fig_main.data])  # ← これは trace の名前
     """
     # 除外ピーク
     excl = list(st.session_state[f"{file_key}_excluded_peaks"])
@@ -495,14 +501,6 @@ def render_interactive_plot(result, file_key, spectrum_type):
     fig_main.update_xaxes(title_text="波数 (cm⁻¹)")
     fig_main.update_yaxes(title_text="Intensity (a.u.)")
 
-    with st.expander("DEBUG"):
-        y = result["spectrum"]
-        x = result["wavenum"]
-        st.write("y type:", type(y))
-        st.write("y dtype:", getattr(y, "dtype", None))
-        st.write("y[:5] REAL:", np.asarray(y, dtype=float)[:5])
-        st.write([tr.name for tr in fig_main.data])  # ← これは trace の名前
-        
     # =========================================================
     # ② イベント付き描画（plotly_events がある場合のみ）
     # =========================================================
