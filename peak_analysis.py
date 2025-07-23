@@ -435,8 +435,8 @@ def render_interactive_plot(result, file_key, spectrum_type):
     # =========================================================
     spec_x = np.asarray(result["wavenum"], dtype=float)
     spec_y = np.asarray(result["spectrum"], dtype=float)
-    mask = ~np.isnan(spec_y)
-    spec_x, spec_y = spec_x[mask], spec_y[mask]
+    # mask 　= ~np.isnan(spec_y)
+    # spec_x, spec_y = spec_x[mask], spec_y[mask]
     fig_main = go.Figure()
 
     # メインスペクトル（クリック対象）
