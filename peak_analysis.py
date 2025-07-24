@@ -507,7 +507,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
     # =========================================================
     if plotly_events is not None:
         event_key = f"{file_key}_click_event"
-
+        
         clicked_points = plotly_events(
             fig_main,
             click_event=True,
@@ -544,10 +544,10 @@ def render_interactive_plot(result, file_key, spectrum_type):
                         # 近傍重複チェック
                         if not any(abs(px - x_clicked) < 1.0 for px, _ in st.session_state[f"{file_key}_manual_peaks"]):
                             st.session_state[f"{file_key}_manual_peaks"].append((x_clicked, y_clicked))
-        # クリック有無にかかわらず描画
-        st.plotly_chart(fig_main, use_container_width=True)
-        st.rerun()
-          
+        else:
+            # plotly_events がない場合もここで描画
+            st.plotly_chart(fig_main, use_container_width=True)
+            st.info("Interactive peak selection is unavailable.")
     else:
         # ライブラリが無い場合は普通に描画のみ
         st.plotly_chart(fig_main, use_container_width=True)
