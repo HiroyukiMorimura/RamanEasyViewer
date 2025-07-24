@@ -514,7 +514,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
             click_event=True,
             select_event=True,
             hover_event=False,
-            override_height=360,
+            # override_height=360,
             key=event_key
         ) or []
         
