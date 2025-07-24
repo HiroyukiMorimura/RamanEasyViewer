@@ -607,7 +607,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
 
     # 手動ピーク情報とグリッドサーチを表示
     render_manual_peak_info(result, file_key)
-        
+"""
 def render_peak_analysis(result, spectrum_type):
     """
     個別ファイルのピーク解析結果を描画
@@ -786,7 +786,7 @@ def render_peak_analysis(result, spectrum_type):
     else:
         st.plotly_chart(fig, use_container_width=True)
         st.info("Interactive peak selection not available. Please install streamlit_plotly_events.")
-
+"""
 def render_manual_peak_info(result, file_key):
     """
     手動ピーク情報とグリッドサーチを表示
