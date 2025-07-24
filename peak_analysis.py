@@ -451,9 +451,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
             connectgaps=True
         )
     )
-    st.write(spec_x)
-    st.write(spec_y)
-    
+    """
     # 自動検出ピーク（有効）
     if filtered_peaks:
         fig_main.add_trace(
@@ -499,9 +497,10 @@ def render_interactive_plot(result, file_key, spectrum_type):
         margin=dict(t=40, b=40),
         title=f"{file_key} - {spectrum_type}"
     )
+    """
     fig_main.update_xaxes(title_text="波数 (cm⁻¹)")
     fig_main.update_yaxes(title_text="Intensity (a.u.)")
-    
+    """
     # =========================================================
     # ② イベント付き描画（plotly_events がある場合のみ）
     # =========================================================
@@ -550,7 +549,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
         # ライブラリが無い場合は普通に描画のみ
         st.plotly_chart(fig_main, use_container_width=True)
         st.info("Interactive peak selection is unavailable. 'streamlit_plotly_events' をインストールしてください。")
-    
+    """
     # =========================================================
     # ③ 残り2段（2次微分 / Prominence）は表示専用 fig_sub
     # =========================================================
