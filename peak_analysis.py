@@ -545,7 +545,6 @@ def render_interactive_plot(result, file_key, spectrum_type):
                         if not any(abs(px - x_clicked) < 1.0 for px, _ in st.session_state[f"{file_key}_manual_peaks"]):
                             st.session_state[f"{file_key}_manual_peaks"].append((x_clicked, y_clicked))
 
-        st.plotly_chart(fig_main, use_container_width=True)
     else:
         # ライブラリが無い場合は普通に描画のみ
         st.plotly_chart(fig_main, use_container_width=True)
