@@ -445,9 +445,10 @@ def render_interactive_plot(result, file_key, spectrum_type):
         go.Scatter(
             x=spec_x,
             y=spec_y,
-            mode="lines",
+            mode="lines+markers",
             name=spectrum_type,
             line=dict(color='blue', width=2),
+            marker=dict(size=6, color='rgba(0,0,0,0)'),
             connectgaps=True
         )
     )
@@ -516,6 +517,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
             key=event_key
         ) or []
         st.write(clicked_points)
+        
         """
         if clicked_points:
             pt = clicked_points[-1]
