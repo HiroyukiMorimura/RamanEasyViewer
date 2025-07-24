@@ -451,6 +451,8 @@ def render_interactive_plot(result, file_key, spectrum_type):
             connectgaps=True
         )
     )
+    st.write(spec_x)
+    st.write(spec_y)
     
     # 自動検出ピーク（有効）
     if filtered_peaks:
