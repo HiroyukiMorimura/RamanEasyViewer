@@ -491,13 +491,13 @@ def render_interactive_plot(result, file_key, spectrum_type):
                 showlegend=False
             )
         )
-    
+    """    
     fig_main.update_layout(
         height=360, 
         margin=dict(t=40, b=40),
         title=f"{file_key} - {spectrum_type}"
     )
-    """
+
     fig_main.update_xaxes(title_text="波数 (cm⁻¹)")
     fig_main.update_yaxes(title_text="Intensity (a.u.)")
     """
