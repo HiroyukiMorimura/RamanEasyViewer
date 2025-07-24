@@ -498,9 +498,10 @@ def render_interactive_plot(result, file_key, spectrum_type):
         margin=dict(t=40, b=40),
         title=f"{file_key} - {spectrum_type}"
     )
-    st.plotly_chart(fig_main, use_container_width=True)
     fig_main.update_xaxes(title_text="波数 (cm⁻¹)")
     fig_main.update_yaxes(title_text="Intensity (a.u.)")
+    st.plotly_chart(fig_main, use_container_width=True)
+
     
     # =========================================================
     # ② イベント付き描画（plotly_events がある場合のみ）
