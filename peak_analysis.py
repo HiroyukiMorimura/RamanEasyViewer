@@ -500,7 +500,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
 
     fig_main.update_xaxes(title_text="波数 (cm⁻¹)")
     fig_main.update_yaxes(title_text="Intensity (a.u.)")
-    """
+    
     # =========================================================
     # ② イベント付き描画（plotly_events がある場合のみ）
     # =========================================================
@@ -515,7 +515,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
             override_height=360,
             key=event_key
         ) or []
-
+        st.write(clicked_points)
         if clicked_points:
             pt = clicked_points[-1]
             # デバウンス
