@@ -610,7 +610,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
 """
 def render_peak_analysis(result, spectrum_type):
     """
-    個別ファイルのピーク解析結果を描画
+    # 個別ファイルのピーク解析結果を描画
     """
     file_key = result['file_name']
 
