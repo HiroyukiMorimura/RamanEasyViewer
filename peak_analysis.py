@@ -346,7 +346,7 @@ def perform_peak_detection(file_labels, all_wavenum, all_bsremoval_spectra, all_
     # ファイルごとの描画と詳細解析
     for result in peak_results:
         file_key = result['file_name']
-        # ▼ ここで必ず初期化する
+        # ここで必ず初期化する
         if f"{file_key}_manual_peaks" not in st.session_state:
             st.session_state[f"{file_key}_manual_peaks"] = []
         if f"{file_key}_excluded_peaks" not in st.session_state:
@@ -408,8 +408,10 @@ def perform_peak_detection(file_labels, all_wavenum, all_bsremoval_spectra, all_
             file_name=f"peak_analysis_results_{spectrum_type}.csv",
             mime="text/csv"
         )
+
 def render_interactive_plot(result, file_key, spectrum_type):
     """
+    インタラクティブプロットの描画
     1段目（元スペクトル）だけを plotly_events でインタラクティブにし、
     2段目(2次微分)・3段目(Prominence)は通常描画する実装。
     """
@@ -435,8 +437,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
     # =========================================================
     spec_x = np.asarray(result["wavenum"], dtype=float)
     spec_y = np.asarray(result["spectrum"], dtype=float)
-    # mask 　= ~np.isnan(spec_y)
-    # spec_x, spec_y = spec_x[mask], spec_y[mask]
+    
     fig_main = go.Figure()
 
     # メインスペクトル（クリック対象）
@@ -446,9 +447,11 @@ def render_interactive_plot(result, file_key, spectrum_type):
             y=spec_y,
             mode="lines",
             name=spectrum_type,
+            line=dict(color='blue', width=2),
             connectgaps=True
         )
     )
+    
     # 自動検出ピーク（有効）
     if filtered_peaks:
         fig_main.add_trace(
@@ -457,16 +460,9 @@ def render_interactive_plot(result, file_key, spectrum_type):
                 y=spec_y[filtered_peaks],
                 mode="markers",
                 name="検出ピーク（有効）",
-                marker=dict(size=8, symbol="circle")
+                marker=dict(size=8, symbol="circle", color='red')
             )
         )
-    
-    with st.expander("DEBUG"):
-        y = spec_x
-        x = spec_y
-        st.write("y[:5] REAL:", np.asarray(y, dtype=float)[:5])
-        st.write("y[:5] REAL:", np.asarray(y, dtype=float)[:5])
-        st.write("filtered_peaks", filtered_peaks)
     
     # 除外ピーク
     excl = list(st.session_state[f"{file_key}_excluded_peaks"])
@@ -477,7 +473,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
                 y=spec_y[excl],
                 mode="markers",
                 name="除外ピーク",
-                marker=dict(symbol="x", size=8)
+                marker=dict(symbol="x", size=8, color='gray')
             )
         )
 
@@ -491,14 +487,18 @@ def render_interactive_plot(result, file_key, spectrum_type):
                 text=["手動"],
                 textposition="top center",
                 name="手動ピーク",
-                marker=dict(symbol="star", size=10)
+                marker=dict(symbol="star", size=10, color='green'),
+                showlegend=False
             )
         )
     
-
-    fig_main.update_layout(height=360, margin=dict(t=40, b=40))
+    fig_main.update_layout(
+        height=360, 
+        margin=dict(t=40, b=40),
+        title=f"{file_key} - {spectrum_type}"
+    )
     fig_main.update_xaxes(title_text="波数 (cm⁻¹)")
-    fig_main.update_yaxes(title_text="Intensity (a.u.)" 
+    fig_main.update_yaxes(title_text="Intensity (a.u.)")
     
     # =========================================================
     # ② イベント付き描画（plotly_events がある場合のみ）
@@ -566,11 +566,12 @@ def render_interactive_plot(result, file_key, spectrum_type):
             x=result["wavenum"],
             y=result["second_derivative"],
             mode="lines",
-            name="2次微分"
+            name="2次微分",
+            line=dict(color='purple', width=1)
         ),
         row=1, col=1
     )
-    fig_sub.add_hline(y=0, line_dash="dash", row=1, col=1)
+    fig_sub.add_hline(y=0, line_dash="dash", line_color="black", opacity=0.5, row=1, col=1)
 
     # 全ピークの卓立度
     fig_sub.add_trace(
@@ -579,7 +580,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
             y=result["all_prominences"],
             mode="markers",
             name="全ピークの卓立度",
-            marker=dict(size=4)
+            marker=dict(size=4, color='orange')
         ),
         row=2, col=1
     )
@@ -591,15 +592,20 @@ def render_interactive_plot(result, file_key, spectrum_type):
                 y=filtered_prominences,
                 mode="markers",
                 name="有効な卓立度",
-                marker=dict(symbol="circle", size=7)
+                marker=dict(symbol="circle", size=7, color='red')
             ),
             row=2, col=1
         )
 
     fig_sub.update_layout(height=470, margin=dict(t=60, b=60))
     fig_sub.update_xaxes(title_text="波数 (cm⁻¹)", row=2, col=1)
+    fig_sub.update_yaxes(title_text="2次微分", row=1, col=1)
+    fig_sub.update_yaxes(title_text="Prominence", row=2, col=1)
+    
     st.plotly_chart(fig_sub, use_container_width=True)
 
+    # 手動ピーク情報とグリッドサーチを表示
+    render_manual_peak_info(result, file_key)
         
 def render_peak_analysis(result, spectrum_type):
     """
@@ -779,9 +785,6 @@ def render_peak_analysis(result, spectrum_type):
     else:
         st.plotly_chart(fig, use_container_width=True)
         st.info("Interactive peak selection not available. Please install streamlit_plotly_events.")
-    
-    # 手動ピーク情報とグリッドサーチ
-    render_manual_peak_info(result, file_key)
 
 def render_manual_peak_info(result, file_key):
     """
