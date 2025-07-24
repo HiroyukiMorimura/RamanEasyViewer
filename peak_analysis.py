@@ -516,9 +516,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
             override_height=360,
             key=event_key
         ) or []
-        st.write(clicked_points)
         
-        """
         if clicked_points:
             pt = clicked_points[-1]
             # デバウンス
@@ -546,9 +544,10 @@ def render_interactive_plot(result, file_key, spectrum_type):
                         # 近傍重複チェック
                         if not any(abs(px - x_clicked) < 1.0 for px, _ in st.session_state[f"{file_key}_manual_peaks"]):
                             st.session_state[f"{file_key}_manual_peaks"].append((x_clicked, y_clicked))
-
-                    st.rerun()
-          """
+        # クリック有無にかかわらず描画
+        st.plotly_chart(fig_main, use_container_width=True)
+        st.rerun()
+          
     else:
         # ライブラリが無い場合は普通に描画のみ
         st.plotly_chart(fig_main, use_container_width=True)
