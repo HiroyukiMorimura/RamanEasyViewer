@@ -136,30 +136,33 @@ def peak_analysis_mode():
     )
     
     second_deriv_smooth = st.sidebar.number_input(
-        "2次微分平滑化:", 3, 35,
-        step=2, 
-        value=st.session_state.get("second_deriv_smooth_temp", st.session_state.get("second_deriv_smooth", 5)),
-        key="second_deriv_smooth"
-    )
-    
+     "2次微分平滑化:",
+     min_value=3, max_value=35, step=2,
+     key="second_deriv_smooth",
+     value=st.session_state.get(
+         "second_deriv_smooth_temp",
+         st.session_state.get("second_deriv_smooth", 5)
+     )
     second_deriv_threshold = st.sidebar.number_input(
-        "2次微分閾値:",
-        min_value=0.0,
-        max_value=1000.0,
-        step=10.0,
-        value=st.session_state.get("second_deriv_threshold_temp", st.session_state.get("second_deriv_threshold", 100.0)),
-        key="second_deriv_threshold"
+    "2次微分閾値:",
+    min_value=0.0, max_value=1000.0, step=10.0,
+    key="second_deriv_threshold",
+    value=st.session_state.get(
+        "second_deriv_threshold_temp",
+        st.session_state.get("second_deriv_threshold", 100.0)
+        )
     )
     
     peak_prominence_threshold = st.sidebar.number_input(
-        "ピーク卓立度閾値:",
-        min_value=0.0,
-        max_value=1000.0,
-        step=10.0,
-        value=st.session_state.get("prominence_threshold_temp", st.session_state.get("prominence_threshold", 100.0)),
-        key="prominence_threshold"
+    "ピーク卓立度閾値:",
+    min_value=0.0, max_value=1000.0, step=10.0,
+    key="prominence_threshold",
+    value=st.session_state.get(
+    "prominence_threshold_temp",
+        st.session_state.get("prominence_threshold", 100.0)
+        )
     )
-
+    
     # ファイルアップロード
     uploaded_files = st.file_uploader(
         "ファイルを選択してください",
