@@ -142,7 +142,8 @@ def peak_analysis_mode():
      value=st.session_state.get(
          "second_deriv_smooth_temp",
          st.session_state.get("second_deriv_smooth", 5)
-     )
+         )
+    )
     second_deriv_threshold = st.sidebar.number_input(
     "2次微分閾値:",
     min_value=0.0, max_value=1000.0, step=10.0,
