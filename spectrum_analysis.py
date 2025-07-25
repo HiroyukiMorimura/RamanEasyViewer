@@ -67,14 +67,11 @@ def spectrum_analysis_mode():
         "ファイルを選択してください",
         type=['csv', 'txt'],
         accept_multiple_files=True,
-        help="Upload multiple CSV files with spectral data. Files should be named as GroupName_Number.csv",
         key="mv_uploader"
     )
     
-    all_spectra = []  # すべてのスペクトルを格納するリスト
-    all_bsremoval_spectra = []  # ベースライン補正後のスペクトルを格納するリスト
-    all_averemoval_spectra = []  # ベースライン補正後移動平均を行ったスペクトルを格納するリスト
-    file_labels = []  # 各ファイル名のリスト
+    # 各ファイルのデータを格納するリスト（波数データも含む）
+    all_data = []  # 各要素は辞書形式 {'wavenum': array, 'raw_spectrum': array, 'baseline_removed': array, 'moving_avg': array, 'file_name': str}
     
     if uploaded_files:
         # すべてのファイルに対して処理
@@ -91,23 +88,30 @@ def spectrum_analysis_mode():
                 
                 st.write(f"ファイルタイプ: {file_type} - {file_name}")
                 
-                # 各スペクトルを格納
-                file_labels.append(file_name)
-                all_spectra.append(spectra)
-                all_bsremoval_spectra.append(BSremoval_specta_pos)
-                all_averemoval_spectra.append(Averemoval_specta_pos)
+                # 各ファイルのデータを辞書として格納
+                file_data = {
+                    'wavenum': wavenum,
+                    'raw_spectrum': spectra,
+                    'baseline_removed': BSremoval_specta_pos,
+                    'moving_avg': Averemoval_specta_pos,
+                    'file_name': file_name
+                }
+                all_data.append(file_data)
                 
             except Exception as e:
                 st.error(f"{uploaded_file.name}の処理中にエラーが発生しました: {e}")
     
         # すべてのファイルが処理された後に重ねてプロット
-        if all_spectra:
+        if all_data:
             selected_colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
             
             # 元のスペクトルを重ねてプロット
             fig, ax = plt.subplots(figsize=(10, 5))
-            for i, spectrum in enumerate(all_spectra):
-                ax.plot(wavenum, spectrum, linestyle='-', color=selected_colors[i % len(selected_colors)], label=f"{file_labels[i]}")
+            for i, data in enumerate(all_data):
+                ax.plot(data['wavenum'], data['raw_spectrum'], 
+                       linestyle='-', 
+                       color=selected_colors[i % len(selected_colors)], 
+                       label=f"{data['file_name']}")
             ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
             ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
             ax.set_title('Raw Spectra', fontsize=Fsize)
@@ -115,69 +119,96 @@ def spectrum_analysis_mode():
             st.pyplot(fig)
             
             # Raw spectraのCSVダウンロード
-            export_df = pd.DataFrame({'WaveNumber': wavenum})
-            for i, spectrum in enumerate(all_spectra):
-                export_df[file_labels[i]] = spectrum
-            
-            csv_data = export_df.to_csv(index=False, encoding='utf-8-sig')
-            
+            raw_csv_data = create_interpolated_csv(all_data, 'raw_spectrum')
             st.download_button(
                 label="Download Raw Spectra as CSV",
-                data=csv_data,
+                data=raw_csv_data,
                 file_name='raw_spectra.csv',
                 mime='text/csv'
             )
             
             # ベースライン補正後+スパイク修正後のスペクトルを重ねてプロット
             fig, ax = plt.subplots(figsize=(10, 5))
-            for i, spectrum in enumerate(all_bsremoval_spectra):
-                ax.plot(wavenum, spectrum, linestyle='-', color=selected_colors[i % len(selected_colors)], label=f"{file_labels[i]}")
+            for i, data in enumerate(all_data):
+                ax.plot(data['wavenum'], data['baseline_removed'], 
+                       linestyle='-', 
+                       color=selected_colors[i % len(selected_colors)], 
+                       label=f"{data['file_name']}")
             
             ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
             ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
             ax.set_title('Baseline Removed', fontsize=Fsize)
+            ax.legend(title="Spectra")
             st.pyplot(fig)
             
             # Baseline removedのCSVダウンロード
-            export_df_bs = pd.DataFrame({'WaveNumber': wavenum})
-            for i, spectrum in enumerate(all_bsremoval_spectra):
-                export_df_bs[file_labels[i]] = spectrum
-            
-            csv_data_bs = export_df_bs.to_csv(index=False, encoding='utf-8-sig')
-            
+            baseline_csv_data = create_interpolated_csv(all_data, 'baseline_removed')
             st.download_button(
                 label="Download Baseline Removed Spectra as CSV",
-                data=csv_data_bs,
+                data=baseline_csv_data,
                 file_name='baseline_removed_spectra.csv',
                 mime='text/csv'
             )
             
             # ベースライン補正後+スパイク修正後+移動平均のスペクトルを重ねてプロット
             fig, ax = plt.subplots(figsize=(10, 5))
-            for i, spectrum in enumerate(all_averemoval_spectra):
-                ax.plot(wavenum, spectrum, linestyle='-', color=selected_colors[i % len(selected_colors)], label=f"{file_labels[i]}")
+            for i, data in enumerate(all_data):
+                ax.plot(data['wavenum'], data['moving_avg'], 
+                       linestyle='-', 
+                       color=selected_colors[i % len(selected_colors)], 
+                       label=f"{data['file_name']}")
             
             ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
             ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
             ax.set_title('Baseline Removed + Moving Average', fontsize=Fsize)
+            ax.legend(title="Spectra")
             st.pyplot(fig)
             
             # Baseline removed + Moving AverageのCSVダウンロード
-            export_df_avg = pd.DataFrame({'WaveNumber': wavenum})
-            for i, spectrum in enumerate(all_averemoval_spectra):
-                export_df_avg[file_labels[i]] = spectrum
-            
-            csv_data_avg = export_df_avg.to_csv(index=False, encoding='utf-8-sig')
-            
+            moving_avg_csv_data = create_interpolated_csv(all_data, 'moving_avg')
             st.download_button(
                 label="Download Baseline Removed + Moving Average Spectra as CSV",
-                data=csv_data_avg,
+                data=moving_avg_csv_data,
                 file_name='baseline_removed_moving_avg_spectra.csv',
                 mime='text/csv'
             )
             
             # ラマン相関表
             display_raman_correlation_table()
+
+def create_interpolated_csv(all_data, spectrum_type):
+    """
+    異なる波数データを持つスペクトラムを統一された波数グリッドで補間してCSVを作成
+    
+    Parameters:
+    all_data: 全ファイルのデータリスト
+    spectrum_type: 'raw_spectrum', 'baseline_removed', 'moving_avg'のいずれか
+    
+    Returns:
+    str: CSV形式の文字列
+    """
+    if not all_data:
+        return ""
+    
+    # 全ファイルの波数範囲を取得
+    min_wavenum = min(data['wavenum'].min() for data in all_data)
+    max_wavenum = max(data['wavenum'].max() for data in all_data)
+    
+    # 最も細かい波数間隔を取得（最大データ点数に基づく）
+    max_points = max(len(data['wavenum']) for data in all_data)
+    
+    # 統一された波数グリッドを作成
+    common_wavenum = np.linspace(min_wavenum, max_wavenum, max_points)
+    
+    # DataFrameを作成
+    export_df = pd.DataFrame({'WaveNumber': common_wavenum})
+    
+    # 各ファイルのスペクトラムを共通の波数グリッドに補間
+    for data in all_data:
+        interpolated_spectrum = np.interp(common_wavenum, data['wavenum'], data[spectrum_type])
+        export_df[data['file_name']] = interpolated_spectrum
+    
+    return export_df.to_csv(index=False, encoding='utf-8-sig')
 
 def display_raman_correlation_table():
     """
