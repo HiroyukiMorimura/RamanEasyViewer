@@ -592,11 +592,11 @@ def render_static_plot_with_manual_controls(result, file_key, spectrum_type):
     fig = make_subplots(
         rows=3, cols=1,
         shared_xaxes=True,
-        subplot_titles=[
-            f'{file_key} - {spectrum_type}',
-            f'{file_key} - 2次微分スペクトル',
-            f'{file_key} - Prominence vs 波数'
-        ],
+        # subplot_titles=[
+        #    f'{file_key} - {spectrum_type}',
+        #    f'{file_key} - 2次微分スペクトル',
+        #    f'{file_key} - Prominence vs 波数'
+        #],
         vertical_spacing=0.07,
         row_heights=[0.4, 0.3, 0.3]
     )
