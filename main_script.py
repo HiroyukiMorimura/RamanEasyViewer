@@ -13,7 +13,7 @@ import streamlit as st
 
 # 各モジュールのインポート
 from spectrum_analysis import spectrum_analysis_mode
-from peak_analysis import peak_analysis_mode
+from peak_analysis_web import peak_analysis_mode
 from peak_deconvolution import peak_deconvolution_mode
 from multivariate_analysis import multivariate_analysis_mode
 from peak_ai_analysis import peak_ai_analysis_mode
