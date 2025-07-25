@@ -100,11 +100,15 @@ def peak_analysis_mode():
     pre_start_wavenum = 400
     pre_end_wavenum = 2000
     
-    # temporary変数の処理
+    # temporary変数の処理（ウィジェット作成後にクリア）
     for param in ["second_deriv_smooth", "prominence_threshold", "second_deriv_threshold"]:
         temp_key = f"{param}_temp"
         if temp_key in st.session_state:
-            st.session_state[param] = st.session_state.pop(temp_key)
+            st.session_state.pop(temp_key)  # temporary変数をクリア
+    
+    # グリッドサーチ結果の適用フラグをクリア
+    if st.session_state.get("apply_grid_result", False):
+        st.session_state.pop("apply_grid_result", None)
             
     # セッションステートの初期化
     for key, default in {
@@ -133,7 +137,9 @@ def peak_analysis_mode():
     
     second_deriv_smooth = st.sidebar.number_input(
         "2次微分平滑化:", 3, 35,
-        step=2, key="second_deriv_smooth"
+        step=2, 
+        value=st.session_state.get("second_deriv_smooth_temp", st.session_state.get("second_deriv_smooth", 5)),
+        key="second_deriv_smooth"
     )
     
     second_deriv_threshold = st.sidebar.number_input(
@@ -141,6 +147,7 @@ def peak_analysis_mode():
         min_value=0.0,
         max_value=1000.0,
         step=10.0,
+        value=st.session_state.get("second_deriv_threshold_temp", st.session_state.get("second_deriv_threshold", 100.0)),
         key="second_deriv_threshold"
     )
     
@@ -149,6 +156,7 @@ def peak_analysis_mode():
         min_value=0.0,
         max_value=1000.0,
         step=10.0,
+        value=st.session_state.get("prominence_threshold_temp", st.session_state.get("prominence_threshold", 100.0)),
         key="prominence_threshold"
     )
 
@@ -732,10 +740,11 @@ def render_gridsearch_controls(result, file_key):
         
             st.session_state[f"{file_key}_grid_result"] = result_opt
 
-            # temp に保存
+            # temp に保存（次回実行時に使用）
             st.session_state["second_deriv_smooth_temp"] = int(result_opt["second_deriv_smooth"])
             st.session_state["prominence_threshold_temp"] = float(result_opt["prominence_threshold"])
             st.session_state["second_deriv_threshold_temp"] = float(result_opt["second_deriv_threshold"])
+            st.session_state["apply_grid_result"] = True
             
             st.rerun()
         
@@ -756,11 +765,8 @@ def render_gridsearch_controls(result, file_key):
                 st.session_state[f"{file_key}_manual_peaks"] = []
                 st.session_state[f"{file_key}_excluded_peaks"] = set()
             
-                # パラメータを更新
-                st.session_state["prominence_threshold"] = float(result_grid["prominence_threshold"])
-                st.session_state["second_deriv_threshold"] = float(result_grid["second_deriv_threshold"])
-                st.session_state["second_deriv_smooth"] = int(result_grid["second_deriv_smooth"])
-            
+                # 再検出フラグを設定
+                st.session_state["apply_grid_result"] = True
                 st.session_state["peak_detection_triggered"] = True
             
                 st.rerun()
