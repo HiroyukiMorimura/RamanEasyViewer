@@ -19,7 +19,7 @@ from plotly.subplots import make_subplots
 from scipy.signal import savgol_filter, find_peaks, peak_prominences
 from pathlib import Path
 from common_utils import *
-from peak_analysis import optimize_thresholds_via_gridsearch
+from peak_analysis_web import optimize_thresholds_via_gridsearch
 
 # Interactive plotting
 try:
