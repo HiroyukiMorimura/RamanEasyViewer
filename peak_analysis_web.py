@@ -141,7 +141,6 @@ def peak_analysis_mode():
         min_value=3,
         max_value=35,
         step=2,
-        value=int(st.session_state.get("second_deriv_smooth", 5)),
         key="second_deriv_smooth"
     )
 
@@ -151,7 +150,6 @@ def peak_analysis_mode():
         min_value=0.0,
         max_value=1000.0,
         step=10.0,
-        value=float(st.session_state.get("second_deriv_threshold", 100.0)),
         key="second_deriv_threshold"
     )
 
@@ -161,7 +159,6 @@ def peak_analysis_mode():
         min_value=0.0,
         max_value=1000.0,
         step=10.0,
-        value=float(st.session_state.get("prominence_threshold", 100.0)),
         key="prominence_threshold"
     )
     
