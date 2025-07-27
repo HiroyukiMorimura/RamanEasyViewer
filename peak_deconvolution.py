@@ -622,7 +622,7 @@ def peak_deconvolution_mode():
                 y = corrected_spectrum
                 
                 # データの確認
-                st.success(f"データを正常に読み込みました: {len(x)} データポイント")
+                # st.success(f"データを正常に読み込みました: {len(x)} データポイント")
                 
                 # 処理前後のスペクトル比較
                 with st.expander("処理前後のスペクトル比較"):
