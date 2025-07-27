@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 from scipy.optimize import curve_fit
-from scipy.integrate import trapz
+from numpy import trapz
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.model_selection import cross_val_score, LeaveOneOut
 from sklearn.metrics import r2_score, mean_squared_error
