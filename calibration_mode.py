@@ -673,5 +673,5 @@ def calibration_mode():
         else:
             st.info("スペクトルファイルをアップロードしてください")
 
-# if __name__ == "__main__":
-#    calibration_mode()
+if __name__ == "__main__":
+   calibration_mode()
