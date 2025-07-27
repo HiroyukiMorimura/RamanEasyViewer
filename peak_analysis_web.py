@@ -34,9 +34,9 @@ def optimize_thresholds_via_gridsearch(
     best_smooth = current_smooth
 
     # prominence と deriv の範囲
-    prom_range = np.logspace(np.log10(0.01), np.log10(10), num=100)
+    prom_range = np.logspace(np.log10(0.01), np.log10(10), num=50)
     prom_range = [round(p, 2) for p in prom_range]
-    deriv_range = np.logspace(np.log10(0.01), np.log10(10), num=100)
+    deriv_range = np.logspace(np.log10(0.01), np.log10(10), num=50)
     deriv_range = [round(q, 2) for q in deriv_range]
 
     # 最初に安全にリスト化
