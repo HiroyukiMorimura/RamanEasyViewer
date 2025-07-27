@@ -8,141 +8,36 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 import io
-import scipy.signal as signal
-from scipy.sparse.linalg import spsolve
-from scipy.sparse import csc_matrix, eye, diags
-from scipy.signal import savgol_filter, peak_prominences
+
+# 共通ユーティリティ関数のインポート
+from common_utils import (
+    detect_file_type, read_csv_file, find_index, WhittakerSmooth, airPLS,
+    remove_outliers_and_interpolate, process_spectrum_file
+)
 
 # 日本語フォント設定
 plt.rcParams['font.family'] = 'DejaVu Sans'
 
-def detect_file_type(data):
+def process_uploaded_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, savgol_wsize):
     """
-    Determine the structure of the input data.
-    """
-    try:
-        if data.columns[0].split(':')[0] == "# Laser Wavelength":
-            return "ramaneye_new"
-        elif data.columns[0] == "WaveNumber":
-            return "ramaneye_old"
-        elif data.columns[0] == "Pixels":
-            return "eagle"
-        elif data.columns[0] == "ENLIGHTEN Version":
-            return "wasatch"
-        return "unknown"
-    except:
-        return "unknown"
-
-def read_csv_file(uploaded_file, file_extension):
-    """
-    Read a CSV or TXT file into a DataFrame based on file extension.
+    アップロードされたファイルを処理してスペクトルデータを取得
+    共通ユーティリティ関数を使用
     """
     try:
-        uploaded_file.seek(0)
-        if file_extension == "csv":
-            data = pd.read_csv(uploaded_file, sep=',', header=0, index_col=None, on_bad_lines='skip')
-        else:
-            data = pd.read_csv(uploaded_file, sep='\t', header=0, index_col=None, on_bad_lines='skip')
-        return data
-    except UnicodeDecodeError:
-        uploaded_file.seek(0)
-        if file_extension == "csv":
-            data = pd.read_csv(uploaded_file, sep=',', encoding='shift_jis', header=0, index_col=None, on_bad_lines='skip')
-        else:
-            data = pd.read_csv(uploaded_file, sep='\t', encoding='shift_jis', header=0, index_col=None, on_bad_lines='skip')
-        return data
+        # 共通ユーティリティ関数を使用
+        wavenum, raw_spectrum, corrected_spectrum, _, file_type, file_name = process_spectrum_file(
+            uploaded_file, start_wavenum, end_wavenum, dssn_th, savgol_wsize
+        )
+        
+        if wavenum is None:
+            st.error(f"{file_name}のファイルタイプを判別できません。")
+            return None, None, None
+        
+        return wavenum, raw_spectrum, corrected_spectrum
+        
     except Exception as e:
-        st.error(f"Error reading file: {e}")
-        return None
-
-def find_index(rs_array, rs_focused):
-    '''
-    Convert the index of the proximate wavenumber by finding the absolute 
-    minimum value of (rs_array - rs_focused)
-    '''
-    diff = [abs(element - rs_focused) for element in rs_array]
-    index = np.argmin(diff)
-    return index
-
-def WhittakerSmooth(x, w, lambda_, differences=1):
-    '''
-    Penalized least squares algorithm for background fitting
-    '''
-    X = np.array(x, dtype=np.float64)
-    m = X.size
-    E = eye(m, format='csc')
-    for i in range(differences):
-        E = E[1:] - E[:-1]
-    W = diags(w, 0, shape=(m, m))
-    A = csc_matrix(W + (lambda_ * E.T * E))
-    B = csc_matrix(W * X.T).toarray().flatten()
-    background = spsolve(A, B)
-    return np.array(background)
-
-def airPLS(x, dssn_th, lambda_, porder, itermax):
-    '''
-    Adaptive iteratively reweighted penalized least squares for baseline fitting
-    '''
-    # マイナス値がある場合の処理
-    min_value = np.min(x)
-    offset = 0
-    if min_value < 0:
-        offset = abs(min_value) + 1
-        x = x + offset
-    
-    m = x.shape[0]
-    w = np.ones(m, dtype=np.float64)
-    x = np.asarray(x, dtype=np.float64)
-    
-    for i in range(1, itermax + 1):
-        z = WhittakerSmooth(x, w, lambda_, porder)
-        d = x - z
-        dssn = np.abs(d[d < 0].sum())
-        
-        if dssn < 1e-10:
-            dssn = 1e-10
-        
-        if (dssn < dssn_th * (np.abs(x)).sum()) or (i == itermax):
-            if i == itermax:
-                print('WARNING: max iteration reached!')
-            break
-        
-        w[d >= 0] = 0
-        w[d < 0] = np.exp(i * np.abs(d[d < 0]) / dssn)
-        
-        if d[d < 0].size > 0:
-            w[0] = np.exp(i * np.abs(d[d < 0]).max() / dssn)
-        else:
-            w[0] = 1.0
-        
-        w[-1] = w[0]
-
-    return z - offset if offset > 0 else z
-
-def remove_outliers_and_interpolate(spectrum, window_size=10, threshold_factor=3):
-    """
-    スペクトルからスパイク（外れ値）を検出し、補完する関数
-    """
-    spectrum_len = len(spectrum)
-    cleaned_spectrum = spectrum.copy()
-    
-    for i in range(spectrum_len):
-        left_idx = max(i - window_size, 0)
-        right_idx = min(i + window_size + 1, spectrum_len)
-        
-        window = spectrum[left_idx:right_idx]
-        
-        window_median = np.median(window)
-        window_std = np.std(window)
-        
-        if abs(spectrum[i] - window_median) > threshold_factor * window_std:
-            if i > 0 and i < spectrum_len - 1:
-                cleaned_spectrum[i] = (spectrum[i - 1] + spectrum[i + 1]) / 2
-            elif i == 0:
-                cleaned_spectrum[i] = spectrum[i + 1]
-            elif i == spectrum_len - 1:
-                cleaned_spectrum[i] = spectrum[i - 1]
-    return cleaned_spectrum
+        st.error(f"ファイル処理エラー: {str(e)}")
+        return None, None, None
 
 class RamanDeconvolution:
     def __init__(self):
@@ -694,133 +589,8 @@ def process_peak_constraints(constraints_df):
     
     return constraints
 
-def process_uploaded_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, savgol_wsize):
-    """
-    アップロードされたファイルを処理してスペクトルデータを取得
-    """
-    file_name = uploaded_file.name
-    file_extension = file_name.split('.')[-1].lower()
-    
-    try:
-        # CSVファイルの読み込み
-        data = read_csv_file(uploaded_file, file_extension)
-        if data is None:
-            return None, None, None
-        
-        # ファイルタイプの判定
-        file_type = detect_file_type(data)
-        uploaded_file.seek(0)
-        
-        if file_type == "unknown":
-            st.error(f"{file_name}のファイルタイプを判別できません。")
-            return None, None, None
-        
-        # 各ファイルタイプに対する処理
-        if file_type == "wasatch":
-            st.info(f"ファイルタイプ: Wasatch ENLIGHTEN - {file_name}")
-            lambda_ex = 785
-            data = pd.read_csv(uploaded_file, skiprows=46)
-            pre_wavelength = np.array(data["Wavelength"].values)
-            pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
-            
-            # Get number of available spectra
-            number_of_rows = data.shape[1] - 3
-            
-            if number_of_rows > 0:
-                # Use the last available spectrum
-                number_line = number_of_rows - 1
-                if number_line == 0:
-                    pre_spectrum = np.array(data["Processed"].values)
-                else:
-                    pre_spectrum = np.array(data[f"Processed.{number_line}"].values)
-            else:
-                pre_spectrum = np.array(data["Processed"].values)
-                
-        elif file_type == "ramaneye_old":
-            st.info(f"ファイルタイプ: RamanEye Data(Old) - {file_name}")
-            df_transposed = data.set_index("WaveNumber").T
-            
-            # 列名を汎用化
-            df_transposed.columns = ["intensity"]
-            
-            # 波数をfloatに変換し、インデックスに設定
-            df_transposed.index = df_transposed.index.astype(float)
-            df_transposed = df_transposed.sort_index()
-            
-            # 波数と強度をNumPy配列として取得
-            pre_wavenum = df_transposed.index.to_numpy()
-            pre_spectrum = df_transposed["intensity"].to_numpy()
-            
-            if pre_wavenum[0] >= pre_wavenum[1]:
-                # pre_wavenum と pre_spectrum を反転
-                pre_wavenum = pre_wavenum[::-1]
-                pre_spectrum = pre_spectrum[::-1]
-                
-        elif file_type == "ramaneye_new":
-            st.info(f"ファイルタイプ: RamanEye Data(New) - {file_name}")
-            data = pd.read_csv(uploaded_file, skiprows=9)
-            number_of_rows = data.shape[1]
-            
-            # Use the last available column
-            number_line = number_of_rows - 2
-            pre_wavenum = data["WaveNumber"]
-            pre_spectrum = np.array(data.iloc[:, number_line + 1])
-            
-            if pre_wavenum.iloc[0] >= pre_wavenum.iloc[1]:
-                # Reverse pre_wavenum and pre_spectrum
-                pre_wavenum = pre_wavenum[::-1]
-                pre_spectrum = pre_spectrum[::-1]
-                
-        elif file_type == "eagle":
-            st.info(f"ファイルタイプ: Eagle Data - {file_name}")
-            data_transposed = data.transpose()
-            header = data_transposed.iloc[:3]  # First 3 rows
-            reversed_data = data_transposed.iloc[3:].iloc[::-1]
-            data_transposed = pd.concat([header, reversed_data], ignore_index=True)
-            pre_wavenum = np.array(data_transposed.iloc[3:, 0])
-            pre_spectrum = np.array(data_transposed.iloc[3:, 1])
-        
-        # Convert to numpy arrays if needed
-        if isinstance(pre_wavenum, pd.Series):
-            pre_wavenum = pre_wavenum.values
-        if isinstance(pre_spectrum, pd.Series):
-            pre_spectrum = pre_spectrum.values
-        
-        # Find indices for wavenumber range
-        start_index = find_index(pre_wavenum, start_wavenum)
-        end_index = find_index(pre_wavenum, end_wavenum)
-        
-        wavenum = np.array(pre_wavenum[start_index:end_index+1])
-        spectrum = np.array(pre_spectrum[start_index:end_index+1])
-        
-        # Baseline and spike removal
-        spectrum_spikerm = remove_outliers_and_interpolate(spectrum)
-        
-        # Apply median filter
-        mveAve_spectrum = signal.medfilt(spectrum_spikerm, savgol_wsize)
-        
-        # Baseline correction
-        lambda_ = 10e2
-        baseline = airPLS(mveAve_spectrum, dssn_th, lambda_, 2, 30)
-        BSremoval_spectrum = spectrum_spikerm - baseline
-        BSremoval_spectrum_pos = BSremoval_spectrum + abs(np.minimum(spectrum_spikerm, 0))
-        
-        # Use the baseline corrected spectrum
-        corrected_spectrum = BSremoval_spectrum_pos
-        
-        return wavenum, spectrum, corrected_spectrum
-        
-    except Exception as e:
-        st.error(f"ファイル処理エラー ({file_name}): {str(e)}")
-        return None, None, None
-
 def peak_deconvolution_mode():
-    # st.set_page_config(page_title="ピーク分離機能")
-    
     st.title("ピーク分離機能")
-    
-    # サイドバーでオプション選択
-    # st.sidebar.header("設定")
     
     deconv = RamanDeconvolution()
     
@@ -883,14 +653,10 @@ def peak_deconvolution_mode():
                 
                 # フィッティング範囲の設定
                 st.sidebar.subheader("フィッティング範囲設定")
-                #use_range = st.sidebar.checkbox("フィッティング範囲を限定する", value=False)
                 
-                #if use_range:
                 range_min = st.sidebar.number_input("範囲最小値:", value=int(x.min()), min_value=int(x.min()), max_value=int(x.max()))
                 range_max = st.sidebar.number_input("範囲最大値:", value=int(x.max()), min_value=range_min, max_value=int(x.max()))
                 peak_range = [range_min, range_max]
-                # else:
-                #     peak_range = None
                 
                 # レイアウトを2列に分割
                 col1, col2 = st.columns([2, 1])
@@ -987,7 +753,7 @@ def peak_deconvolution_mode():
                         
                         st.write(f"**合計**: 固定ピーク {fixed_count}個, 自動最適化ピーク {free_count}個")
                         
-                        # 想定パラメータ数の表示フィ
+                        # 想定パラメータ数の表示
                         expected_params = n_peaks * 2 + free_count  # 振幅×n + 半値幅×n + 中心波数×free_count
                         st.write(f"**想定パラメータ数**: {expected_params}")
                     
@@ -1167,6 +933,3 @@ def peak_deconvolution_mode():
         except Exception as e:
             st.error(f"ファイル処理エラー: {str(e)}")
             return
-#    else:
-#        st.warning("CSV/TXTファイルをアップロードしてください。")
-#        return
