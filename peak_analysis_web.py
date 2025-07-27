@@ -60,21 +60,21 @@ def optimize_thresholds_via_gridsearch(
     
                 # 1. 元のピークを正しく残せたか（+2）/ 消えたか（-1）
                 for idx in orig_peaks:
-                    score += 2 if idx in final_peaks else -1
+                    score += 5 if idx in final_peaks else -1
     
                 # 2. 手動追加ピークを正しく拾えたか（+2）/ 見逃したか（-1）
                 for x in manual_add_peaks:
                     idx = np.argmin(np.abs(wavenum - x))
-                    score += 2 if idx in final_peaks else -1
+                    score += 5 if idx in final_peaks else -1
     
                 # 3. 手動除外ピークを正しく除外できたか（+2）/ 残ってしまったか（-1）
                 for idx in manual_exclude_indices:
-                    score += 2 if idx not in final_peaks else -1
+                    score += 5 if idx not in final_peaks else -1
     
                 # 4. 余分なピークはペナルティ
                 for idx in final_peaks:
                     if idx not in orig_peaks and all(abs(x - wavenum[idx]) > 0 for x in manual_add_peaks):
-                        score -= 2
+                        score -= 5
 
                 # ベスト更新
                 if score > best_score:
@@ -589,11 +589,6 @@ def render_static_plot_with_manual_controls(result, file_key, spectrum_type):
     fig = make_subplots(
         rows=3, cols=1,
         shared_xaxes=True,
-        # subplot_titles=[
-        #    f'{file_key} - {spectrum_type}',
-        #    f'{file_key} - 2次微分スペクトル',
-        #    f'{file_key} - Prominence vs 波数'
-        #],
         vertical_spacing=0.07,
         row_heights=[0.4, 0.3, 0.3]
     )
