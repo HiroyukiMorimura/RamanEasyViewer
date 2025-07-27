@@ -25,7 +25,7 @@ def process_uploaded_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, sa
     """
     try:
         # 共通ユーティリティ関数を使用
-        wavenum, raw_spectrum, corrected_spectrum, _, file_type, file_name = process_spectrum_file(
+        wavenum, raw_spectrum, corrected_spectrum, average_spectrum, file_type, file_name = process_spectrum_file(
             uploaded_file, start_wavenum, end_wavenum, dssn_th, savgol_wsize
         )
         
@@ -33,7 +33,7 @@ def process_uploaded_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, sa
             st.error(f"{file_name}のファイルタイプを判別できません。")
             return None, None, None
         
-        return wavenum, raw_spectrum, corrected_spectrum
+        return wavenum, raw_spectrum, average_spectrum
         
     except Exception as e:
         st.error(f"ファイル処理エラー: {str(e)}")
