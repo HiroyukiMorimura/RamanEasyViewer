@@ -601,7 +601,7 @@ def peak_deconvolution_mode():
     start_wavenum = st.sidebar.number_input("波数（開始）:", value=400, min_value=0, max_value=4000)
     end_wavenum = st.sidebar.number_input("波数（終了）:", value=2000, min_value=start_wavenum+1, max_value=4000)
     dssn_th = st.sidebar.number_input("ベースラインパラメーター:", value=1000, min_value=1, max_value=10000) / 1e7
-    savgol_wsize = st.sidebar.number_input("ウィンドウサイズ:", value=5, min_value=3, max_value=101, step=2)
+    savgol_wsize = st.sidebar.number_input("ウィンドウサイズ:", value=5, min_value=1, max_value=101, step=2)
     
     uploaded_file = st.file_uploader(
         "ファイルを選択してください",
