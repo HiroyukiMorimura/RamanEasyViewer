@@ -1167,9 +1167,6 @@ def peak_deconvolution_mode():
         except Exception as e:
             st.error(f"ファイル処理エラー: {str(e)}")
             return
-    else:
-        st.warning("CSV/TXTファイルをアップロードしてください。")
-        return
-
-# if __name__ == "__main__":
-#     main()
+#    else:
+#        st.warning("CSV/TXTファイルをアップロードしてください。")
+#        return
