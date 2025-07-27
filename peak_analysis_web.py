@@ -34,8 +34,8 @@ def optimize_thresholds_via_gridsearch(
     best_smooth = current_smooth
 
     # prominence と deriv の範囲
-    prom_range = list(range(10, 401, 10))
-    deriv_range = list(range(10, 401, 10))
+    prom_range = list(range(0, 401, 20))
+    deriv_range = list(range(0, 401, 20))
 
     # 最初に安全にリスト化
     if detected_original_peaks is None:
