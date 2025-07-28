@@ -204,7 +204,7 @@ def process_spectrum_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, sa
     file_extension = file_name.split('.')[-1].lower()
     
     data = read_csv_file(uploaded_file, file_extension)
-    st.write(data)
+    
     if data is None:
         return None, None, None, None, None, file_name
     
