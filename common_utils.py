@@ -21,6 +21,8 @@ def detect_file_type(data):
             return "ramaneye_new"
         elif data.columns[0] == "WaveNumber":
             return "ramaneye_old"
+        elif data.columns[0] == "Timestamp":
+            return "ramaneye_old_old"
         elif data.columns[0] == "Pixels":
             return "eagle"
         elif data.columns[0] == "ENLIGHTEN Version":
@@ -204,24 +206,35 @@ def process_spectrum_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, sa
     file_extension = file_name.split('.')[-1].lower()
     
     data = read_csv_file(uploaded_file, file_extension)
-    
     if data is None:
         return None, None, None, None, None, file_name
     
     file_type = detect_file_type(data)
     uploaded_file.seek(0)
-    st.write(file_type)
+    
     if file_type == "unknown":
         return None, None, None, None, None, file_name
     
     # 各ファイルタイプに応じた処理
     if file_type == "wasatch":
         lambda_ex = 785
-        data = pd.read_csv(uploaded_file, encoding='shift-jis', skiprows=45)
+        data = pd.read_csv(uploaded_file, encoding='shift-jis', skiprows=46)
         pre_wavelength = np.array(data["Wavelength"].values)
         pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
         pre_spectra = np.array(data["Processed"].values)
         
+    elif file_type == "ramaneye_old_old":
+        df_transposed = data.set_index("WaveNumber").T
+        df_transposed.columns = ["intensity"]
+        df_transposed.index = df_transposed.index.astype(float)
+        df_transposed = df_transposed.sort_index()
+        
+        pre_wavenum = df_transposed.index.to_numpy()
+        pre_spectra = df_transposed["intensity"].to_numpy()
+        
+        if pre_wavenum[0] >= pre_wavenum[1]:
+            pre_wavenum = pre_wavenum[::-1]
+            pre_spectra = pre_spectra[::-1]
     elif file_type == "ramaneye_old":
         df_transposed = data.set_index("WaveNumber")
         pre_wavenum = data["WaveNumber"]
@@ -230,7 +243,6 @@ def process_spectrum_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, sa
         if pre_wavenum[0] >= pre_wavenum[1]:
             pre_wavenum = pre_wavenum[::-1]
             pre_spectra = pre_spectra[::-1]
-
     elif file_type == "ramaneye_new":
         data = pd.read_csv(uploaded_file, skiprows=9)
         pre_wavenum = data["WaveNumber"]
