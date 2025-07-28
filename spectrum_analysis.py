@@ -81,7 +81,7 @@ def spectrum_analysis_mode():
                     uploaded_file, start_wavenum, end_wavenum, dssn_th, savgol_wsize
                 )
                 wavenum, spectra, BSremoval_specta_pos, Averemoval_specta_pos, file_type, file_name = result
-                
+                st.write(file_type)
                 if wavenum is None:
                     st.error(f"{file_name}の処理中にエラーが発生しました")
                     continue
