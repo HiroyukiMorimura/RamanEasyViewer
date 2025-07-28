@@ -209,7 +209,7 @@ def process_spectrum_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, sa
     
     file_type = detect_file_type(data)
     uploaded_file.seek(0)
-    
+    st.write(file_type)
     if file_type == "unknown":
         return None, None, None, None, None, file_name
     
@@ -222,9 +222,9 @@ def process_spectrum_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, sa
         pre_spectra = np.array(data["Processed"].values)
         
     elif file_type == "ramaneye_old":
+        print("I'm here")
         df_transposed = data.set_index("WaveNumber").T
         df_transposed.index = df_transposed.index.astype(float)
-        st.write(df_transposed)
         df_transposed = df_transposed.sort_index()
         pre_wavenum = df_transposed.index.to_numpy()
         pre_spectra = df_transposed.iloc[:, -1].to_numpy()
