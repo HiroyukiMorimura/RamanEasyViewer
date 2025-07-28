@@ -224,10 +224,8 @@ def process_spectrum_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, sa
         
     elif file_type == "ramaneye_old":
         df_transposed = data.set_index("WaveNumber")
-        df_transposed.index = df_transposed.index.astype(float)
-        df_transposed = df_transposed.sort_index()
-        pre_wavenum = df_transposed.index.to_numpy()
-        pre_spectra = df_transposed.iloc[:, -1].to_numpy()
+        pre_wavenum = data["WaveNumber"]
+        pre_spectra = np.array(data.iloc[:, -1])
         
         if pre_wavenum[0] >= pre_wavenum[1]:
             pre_wavenum = pre_wavenum[::-1]
