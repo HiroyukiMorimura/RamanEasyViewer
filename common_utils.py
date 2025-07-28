@@ -20,6 +20,7 @@ def detect_file_type(data):
         if data.columns[0].split(':')[0] == "# Laser Wavelength":
             return "ramaneye_new"
         elif data.columns[0] == "WaveNumber":
+            print("IMHERERERERERERE ")
             return "ramaneye_old"
         elif data.columns[0] == "Timestamp":
             return "ramaneye_old_old"
