@@ -235,6 +235,7 @@ def process_spectrum_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, sa
         if pre_wavenum[0] >= pre_wavenum[1]:
             pre_wavenum = pre_wavenum[::-1]
             pre_spectra = pre_spectra[::-1]
+            
     elif file_type == "ramaneye_old":
         df_transposed = data.set_index("WaveNumber")
         pre_wavenum = data["WaveNumber"]
@@ -243,6 +244,7 @@ def process_spectrum_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, sa
         if pre_wavenum[0] >= pre_wavenum[1]:
             pre_wavenum = pre_wavenum[::-1]
             pre_spectra = pre_spectra[::-1]
+            
     elif file_type == "ramaneye_new":
         data = pd.read_csv(uploaded_file, skiprows=9)
         pre_wavenum = data["WaveNumber"]
