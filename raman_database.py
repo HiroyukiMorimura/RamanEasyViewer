@@ -186,13 +186,13 @@ def upload_and_process_database_files():
                 status_text.text(f"処理中: {uploaded_file.name}...")
                 
                 try:
-                    # スペクトルを処理
+                    # スペクトルを処理（savgol_wsizeはデフォルト値3を使用）
                     result = process_spectrum_file(
                         uploaded_file,
                         start_wavenum=start_wavenum,
                         end_wavenum=end_wavenum,
                         dssn_th=dssn_th,
-                        savgol_wsize=savgol_wsize
+                        savgol_wsize=3  # 固定値
                     )
                     
                     wavenum, spectra, BSremoval_specta_pos, Averemoval_specta_pos, file_type, file_name = result
@@ -209,8 +209,7 @@ def upload_and_process_database_files():
                             'processing_params': {
                                 'start_wavenum': start_wavenum,
                                 'end_wavenum': end_wavenum,
-                                'dssn_th': dssn_th,
-                                'savgol_wsize': savgol_wsize
+                                'dssn_th': dssn_th
                             }
                         }
                         
@@ -318,8 +317,7 @@ def upload_and_process_database_files():
                     'processing_params': {
                         'start_wavenum': start_wavenum,
                         'end_wavenum': end_wavenum,
-                        'dssn_th': dssn_th,
-                        'savgol_wsize': savgol_wsize
+                        'dssn_th': dssn_th
                     },
                     'saved_at': datetime.now().isoformat()
                 }
