@@ -159,15 +159,6 @@ def upload_and_process_database_files():
     )
     dssn_th = dssn_th_input / 10000000
     
-    savgol_wsize = st.sidebar.number_input(
-        "Savitzky-Golayウィンドウサイズを入力してください:",
-        min_value=1,
-        max_value=35,
-        value=5,
-        step=2,
-        key="db_savgol"
-    )
-    
     uploaded_files = st.file_uploader(
         "ラマンスペクトルファイルをアップロード (CSV/TXT)",
         type=['csv', 'txt'],
