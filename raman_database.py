@@ -184,7 +184,7 @@ def upload_and_process_database_files():
                                     uploaded_file.seek(0)
                                     
                                     # 複数のskiprows値を試す
-                                    for skiprows in [0, 10, 20, 30, 40, 46, 50]:
+                                    for skiprows in [45, 46, 47, 48, 49, 50]:
                                         try:
                                             test_data = pd.read_csv(uploaded_file, encoding='shift-jis', skiprows=skiprows, nrows=5)
                                             st.write(f"skiprows={skiprows}の場合:")
