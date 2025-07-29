@@ -366,7 +366,38 @@ def load_pickle_spectra():
                 for name in spectrum_names:
                     st.write(f"• {name}")
                 
-                if st.button("🔄 データベースに追加", type="primary", key="add_to_database"):
+                # スペクトル選択用のチェックボックス
+                st.subheader("表示するスペクトルを選択してください")
+                selected_spectra = []
+                
+                for i, data in enumerate(spectra_data):
+                    if st.checkbox(data['file_name'], key=f"spectrum_checkbox_{i}"):
+                        selected_spectra.append(data)
+                
+                # 選択されたスペクトルを表示するボタン
+                if selected_spectra and st.button("選択したスペクトルを表示", type="primary", key="show_selected_spectra"):
+                    selected_colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
+                    Fsize = 14
+                    
+                    import matplotlib.pyplot as plt
+                    
+                    # 選択されたスペクトルを表示
+                    fig, ax = plt.subplots(figsize=(10, 5))
+                    for i, data in enumerate(selected_spectra):
+                        ax.plot(data['wavenum'], data['baseline_removed'], 
+                               linestyle='-', 
+                               color=selected_colors[i % len(selected_colors)], 
+                               label=f"{data['file_name']} ({data.get('file_type', 'loaded')})")
+                    
+                    ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
+                    ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
+                    ax.set_title('Selected Baseline Removed Spectra', fontsize=Fsize)
+                    ax.legend(title="Spectra", bbox_to_anchor=(1.05, 1), loc='upper left')
+                    plt.tight_layout()
+                    st.pyplot(fig)
+                
+                # データベースに追加機能
+                if st.button("🔄 データベースに追加", type="secondary", key="add_to_database"):
                     added_count = 0
                     
                     for i, data in enumerate(spectra_data):
@@ -411,28 +442,6 @@ def load_pickle_spectra():
                     st.session_state.database_analyzer.save_metadata()
                     st.success(f"🎉 {added_count}個のスペクトルをデータベースに追加しました！")
                 
-                # スペクトル表示
-                if st.checkbox("📊 読み込んだスペクトルを表示", key="show_loaded_spectra"):
-                    selected_colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
-                    Fsize = 14
-                    
-                    import matplotlib.pyplot as plt
-                    
-                    # ベースライン補正後のスペクトルを表示
-                    fig, ax = plt.subplots(figsize=(10, 5))
-                    for i, data in enumerate(spectra_data):
-                        ax.plot(data['wavenum'], data['baseline_removed'], 
-                               linestyle='-', 
-                               color=selected_colors[i % len(selected_colors)], 
-                               label=f"{data['file_name']} ({data.get('file_type', 'loaded')})")
-                    
-                    ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
-                    ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
-                    ax.set_title('Loaded Baseline Removed Spectra', fontsize=Fsize)
-                    ax.legend(title="Spectra", bbox_to_anchor=(1.05, 1), loc='upper left')
-                    plt.tight_layout()
-                    st.pyplot(fig)
-                
             else:
                 st.error("❌ 無効なpickleファイル形式です")
                 
@@ -447,12 +456,12 @@ def display_uploaded_database_spectra():
             spectra_df = pd.DataFrame(st.session_state.uploaded_database_spectra)
             spectra_df.columns = ['ID', 'ファイル名']
             st.dataframe(spectra_df, use_container_width=True)
-        
-    # pickleファイル読み込み機能を下に配置
-    load_pickle_spectra()
 
 def run_database_comparison():
     """データベース比較を実行"""
+    # pickleファイル読み込み機能を追加
+    load_pickle_spectra()
+    
     if len(st.session_state.uploaded_database_spectra) < 2:
         st.warning("データベース比較には少なくとも2つのスペクトルファイルをアップロードしてください。")
         return
