@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-ラマンスペクトルデータベース比較ツール（統合版）
-RamanEye Easy Viewer用のデータベース比較機能（WebUI統合）
+ラマンスペクトルデータベース比較ツール
+RamanEye Easy Viewer用のデータベース比較機能
 """
 
 import streamlit as st
@@ -148,9 +148,6 @@ def upload_and_process_database_files():
             dssn_th = st.slider("ベースライン補正閾値", 0.001, 0.1, 0.01, step=0.001, key="db_dssn")
             savgol_wsize = st.selectbox("Savitzky-Golayウィンドウサイズ", [3, 5, 7, 9], index=0, key="db_savgol")
         
-        # デバッグ用：ファイル内容確認オプション
-        debug_mode = st.checkbox("デバッグモードを有効化（ファイル内容を表示）", key="debug_mode")
-        
         if st.button("全ファイルを処理", type="primary", key="process_database_files"):
             progress_bar = st.progress(0)
             status_text = st.empty()
@@ -162,47 +159,6 @@ def upload_and_process_database_files():
                 status_text.text(f"処理中: {uploaded_file.name}...")
                 
                 try:
-                    # デバッグモード：ファイル内容を表示
-                    if debug_mode:
-                        st.write(f"**{uploaded_file.name} のデバッグ情報:**")
-                        uploaded_file.seek(0)
-                        
-                        # ファイルタイプを確認
-                        try:
-                            data_preview = read_csv_file(uploaded_file, uploaded_file.name.split('.')[-1].lower())
-                            if data_preview is not None:
-                                file_type = detect_file_type(data_preview)
-                                st.write(f"検出されたファイルタイプ: {file_type}")
-                                st.write("最初の数行:")
-                                st.dataframe(data_preview.head())
-                                st.write("列名:")
-                                st.write(list(data_preview.columns))
-                                
-                                # Wasatchファイルの場合は特別な処理
-                                if file_type == "wasatch":
-                                    st.write("**Wasatchファイルが検出されました - ヘッダー構造を確認中:**")
-                                    uploaded_file.seek(0)
-                                    
-                                    # 複数のskiprows値を試す
-                                    for skiprows in [45, 46, 47, 48, 49, 50]:
-                                        try:
-                                            test_data = pd.read_csv(uploaded_file, encoding='shift-jis', skiprows=skiprows, nrows=5)
-                                            st.write(f"skiprows={skiprows}の場合:")
-                                            st.write(f"列: {list(test_data.columns)}")
-                                            if 'Wavelength' in test_data.columns:
-                                                st.success(f"✅ skiprows={skiprows}で'Wavelength'列が見つかりました")
-                                                break
-                                            uploaded_file.seek(0)
-                                        except Exception as e:
-                                            st.write(f"skiprows={skiprows}: エラー - {str(e)}")
-                                            uploaded_file.seek(0)
-                            else:
-                                st.error(f"ファイルを読み込めませんでした: {uploaded_file.name}")
-                        except Exception as e:
-                            st.error(f"ファイル解析エラー: {str(e)}")
-                        
-                        uploaded_file.seek(0)
-                    
                     # スペクトルを処理
                     result = process_spectrum_file(
                         uploaded_file,
@@ -257,8 +213,6 @@ def upload_and_process_database_files():
                 
                 except Exception as e:
                     st.error(f"{uploaded_file.name}の処理中にエラーが発生しました: {str(e)}")
-                    if debug_mode:
-                        st.exception(e)
                 
                 progress_bar.progress((i + 1) / len(uploaded_files))
             
@@ -267,7 +221,7 @@ def upload_and_process_database_files():
             if processed_count > 0:
                 st.success(f"{processed_count} 個のスペクトルファイルが正常に処理されました！")
             else:
-                st.warning("ファイルが正常に処理されませんでした。ファイル形式を確認してデバッグモードをお試しください。")
+                st.warning("ファイルが正常に処理されませんでした。ファイル形式を確認してください。")
 
 def display_uploaded_database_spectra():
     """アップロードされたスペクトルを表示"""
