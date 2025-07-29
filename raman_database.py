@@ -414,11 +414,6 @@ def load_pickle_spectra():
                 spectra_data = pickle_data['spectra_data']
                 processing_params = pickle_data.get('processing_params', {})
                 
-                # 読み込んだスペクトルの名前を表示
-                spectrum_names = [data['file_name'] for data in spectra_data]
-                for name in spectrum_names:
-                    st.write(f"• {name}")
-                
                 # 自動的に全てのスペクトルをデータベースに追加
                 added_count = 0
                 
@@ -462,7 +457,13 @@ def load_pickle_spectra():
                         st.error(f"{data['file_name']}のデータベース追加中にエラー: {str(e)}")
                 
                 st.session_state.database_analyzer.save_metadata()
-                st.success(f"🎉 {added_count}個のスペクトルをデータベースに追加しました！")
+                st.success(f"🎉 {added_count}個のスペクトルを自動的にデータベースに追加しました！")
+                
+                # 追加されたスペクトルの名前を表示
+                st.info("**追加されたスペクトル:**")
+                spectrum_names = [data['file_name'] for data in spectra_data]
+                for name in spectrum_names:
+                    st.write(f"• {name}")
                 
             else:
                 st.error("❌ 無効なpickleファイル形式です")
