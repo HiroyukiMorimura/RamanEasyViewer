@@ -299,13 +299,67 @@ def upload_and_process_database_files():
                 'saved_at': datetime.now().isoformat()
             }
             pickle_buffer = pickle.dumps(pickle_data)
-            st.download_button(
-                label="💾 スペクトルデータ保存 (pickle)",
-                data=pickle_buffer,
-                file_name=f'spectrum_data_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pkl',
-                mime='application/octet-stream',
-                key="download_pickle"
-            )
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.download_button(
+                    label="💾 スペクトルデータ保存 (pickle)",
+                    data=pickle_buffer,
+                    file_name=f'spectrum_data_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pkl',
+                    mime='application/octet-stream',
+                    key="download_pickle"
+                )
+            
+            with col2:
+                # 既存データに追加する機能
+                st.subheader("📥 既存データに追加")
+                existing_pickle = st.file_uploader(
+                    "既存のpickleファイルを選択",
+                    type=['pkl'],
+                    help="新しいスペクトルを既存のデータに追加します",
+                    key="existing_pickle_uploader"
+                )
+                
+                if existing_pickle is not None and st.button("📝 スペクトルデータ追加", type="primary", key="add_to_existing"):
+                    try:
+                        # 既存データを読み込み
+                        existing_data = pickle.load(existing_pickle)
+                        
+                        if 'spectra_data' in existing_data:
+                            # 既存データに新しいデータを追加
+                            combined_spectra_data = existing_data['spectra_data'] + all_spectrum_data
+                            
+                            # 新しいpickleデータを作成
+                            combined_pickle_data = {
+                                'spectra_data': combined_spectra_data,
+                                'processing_params': {
+                                    'start_wavenum': start_wavenum,
+                                    'end_wavenum': end_wavenum,
+                                    'dssn_th': dssn_th
+                                },
+                                'saved_at': datetime.now().isoformat(),
+                                'original_count': len(existing_data['spectra_data']),
+                                'added_count': len(all_spectrum_data),
+                                'total_count': len(combined_spectra_data)
+                            }
+                            
+                            combined_pickle_buffer = pickle.dumps(combined_pickle_data)
+                            
+                            st.success(f"✅ {len(existing_data['spectra_data'])}個の既存スペクトル + {len(all_spectrum_data)}個の新規スペクトル = 合計{len(combined_spectra_data)}個")
+                            
+                            st.download_button(
+                                label="📥 統合スペクトルデータダウンロード",
+                                data=combined_pickle_buffer,
+                                file_name=f'combined_spectrum_data_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pkl',
+                                mime='application/octet-stream',
+                                key="download_combined_pickle"
+                            )
+                        else:
+                            st.error("❌ 無効なpickleファイル形式です")
+                    
+                    except Exception as e:
+                        st.error(f"❌ ファイルの処理中にエラーが発生しました: {str(e)}")
 
 def create_interpolated_csv(all_data, spectrum_type):
     """
