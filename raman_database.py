@@ -303,6 +303,7 @@ def upload_and_process_database_files():
             col1, col2 = st.columns(2)
             
             with col1:
+                st.subheader("📥 データベースに新規作成")
                 st.download_button(
                     label="💾 スペクトルデータ保存 (pickle)",
                     data=pickle_buffer,
