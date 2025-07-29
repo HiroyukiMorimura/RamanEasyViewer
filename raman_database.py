@@ -446,12 +446,11 @@ def load_pickle_spectra():
 def display_uploaded_database_spectra():
     """アップロードされたスペクトルを表示"""
     if st.session_state.uploaded_database_spectra:
-        st.header("📊 アップロード済みスペクトル")
-        
-        # アップロードされたファイルのリスト表示
-        spectra_df = pd.DataFrame(st.session_state.uploaded_database_spectra)
-        spectra_df.columns = ['ID', 'ファイル名']
-        st.dataframe(spectra_df, use_container_width=True)
+        with st.expander("📊 アップロード済みスペクトル", expanded=False):
+            # アップロードされたファイルのリスト表示
+            spectra_df = pd.DataFrame(st.session_state.uploaded_database_spectra)
+            spectra_df.columns = ['ID', 'ファイル名']
+            st.dataframe(spectra_df, use_container_width=True)
         
     # pickleファイル読み込み機能を下に配置
     load_pickle_spectra()
