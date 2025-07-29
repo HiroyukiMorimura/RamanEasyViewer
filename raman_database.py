@@ -288,16 +288,6 @@ def upload_and_process_database_files():
             plt.tight_layout()
             st.pyplot(fig)
             
-            # Baseline removedのCSVダウンロード
-            baseline_csv_data = create_interpolated_csv(all_spectrum_data, 'baseline_removed')
-            st.download_button(
-                label="📥 Baseline Removed Spectra CSV ダウンロード",
-                data=baseline_csv_data,
-                file_name=f'baseline_removed_spectra_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
-                mime='text/csv',
-                key="download_baseline_csv"
-            )
-            
             # pickleファイルとして保存
             pickle_data = {
                 'spectra_data': all_spectrum_data,
@@ -463,34 +453,6 @@ def display_uploaded_database_spectra():
         spectra_df.columns = ['ID', 'ファイル名']
         st.dataframe(spectra_df, use_container_width=True)
         
-        # 個別スペクトルの表示
-        with st.expander("個別スペクトルを表示", expanded=False):
-            selected_spectrum = st.selectbox(
-                "表示するスペクトルを選択:",
-                options=[spec['id'] for spec in st.session_state.uploaded_database_spectra],
-                format_func=lambda x: next(spec['filename'] for spec in st.session_state.uploaded_database_spectra if spec['id'] == x),
-                key="individual_spectrum_selector"
-            )
-            
-            if selected_spectrum:
-                spectrum_data = st.session_state.database_analyzer.load_spectrum(selected_spectrum)
-                if spectrum_data:
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(
-                        x=spectrum_data['wavenum'],
-                        y=spectrum_data['spectrum'],
-                        mode='lines',
-                        name=spectrum_data['original_filename'],
-                        line=dict(width=2)
-                    ))
-                    fig.update_layout(
-                        title=f"スペクトル: {spectrum_data['original_filename']}",
-                        xaxis_title="波数 (cm⁻¹)",
-                        yaxis_title="強度",
-                        height=400
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-    
     # pickleファイル読み込み機能を下に配置
     load_pickle_spectra()
 
