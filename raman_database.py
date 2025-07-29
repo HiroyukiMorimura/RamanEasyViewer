@@ -419,81 +419,50 @@ def load_pickle_spectra():
                 for name in spectrum_names:
                     st.write(f"• {name}")
                 
-                # 読み込み時点で自動的にデータベースに追加
-                if st.button("🔄 データベースに追加", type="primary", key="add_to_database"):
-                    added_count = 0
-                    
-                    for i, data in enumerate(spectra_data):
-                        try:
-                            # スペクトルデータを保存（データベース用）
-                            spectrum_id = f"{data['file_name']}_loaded_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{i}"
-                            
-                            spectrum_data_db = {
-                                'wavenum': data['wavenum'],
-                                'spectrum': data['baseline_removed'],  # ベースライン削除済み
-                                'original_filename': data['file_name'],
-                                'file_type': data.get('file_type', 'loaded'),
-                                'processing_params': processing_params
-                            }
-                            
-                            # アナライザーに保存
-                            st.session_state.database_analyzer.metadata[spectrum_id] = {
-                                'filename': f"{spectrum_id}.pkl",
-                                'original_filename': data['file_name'],
-                                'file_type': data.get('file_type', 'loaded'),
-                                'wavenum_range': (data['wavenum'][0], data['wavenum'][-1]),
-                                'data_points': len(data['wavenum']),
-                                'saved_at': datetime.now().isoformat()
-                            }
-                            
-                            # データをメモリに保存
-                            spectrum_file = st.session_state.database_analyzer.storage_dir / f"{spectrum_id}.pkl"
-                            spectrum_file.parent.mkdir(exist_ok=True)
-                            with open(spectrum_file, 'wb') as f:
-                                pickle.dump(spectrum_data_db, f)
-                            
-                            st.session_state.uploaded_database_spectra.append({
-                                'id': spectrum_id,
-                                'filename': data['file_name']
-                            })
-                            
-                            added_count += 1
-                            
-                        except Exception as e:
-                            st.error(f"{data['file_name']}のデータベース追加中にエラー: {str(e)}")
-                    
-                    st.session_state.database_analyzer.save_metadata()
-                    st.success(f"🎉 {added_count}個のスペクトルをデータベースに追加しました！")
-                
-                # スペクトル選択用のチェックボックス
-                st.subheader("表示するスペクトルを選択してください")
-                selected_spectra = []
+                # 自動的に全てのスペクトルをデータベースに追加
+                added_count = 0
                 
                 for i, data in enumerate(spectra_data):
-                    if st.checkbox(data['file_name'], key=f"spectrum_checkbox_{i}"):
-                        selected_spectra.append(data)
+                    try:
+                        # スペクトルデータを保存（データベース用）
+                        spectrum_id = f"{data['file_name']}_loaded_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{i}"
+                        
+                        spectrum_data_db = {
+                            'wavenum': data['wavenum'],
+                            'spectrum': data['baseline_removed'],  # ベースライン削除済み
+                            'original_filename': data['file_name'],
+                            'file_type': data.get('file_type', 'loaded'),
+                            'processing_params': processing_params
+                        }
+                        
+                        # アナライザーに保存
+                        st.session_state.database_analyzer.metadata[spectrum_id] = {
+                            'filename': f"{spectrum_id}.pkl",
+                            'original_filename': data['file_name'],
+                            'file_type': data.get('file_type', 'loaded'),
+                            'wavenum_range': (data['wavenum'][0], data['wavenum'][-1]),
+                            'data_points': len(data['wavenum']),
+                            'saved_at': datetime.now().isoformat()
+                        }
+                        
+                        # データをメモリに保存
+                        spectrum_file = st.session_state.database_analyzer.storage_dir / f"{spectrum_id}.pkl"
+                        spectrum_file.parent.mkdir(exist_ok=True)
+                        with open(spectrum_file, 'wb') as f:
+                            pickle.dump(spectrum_data_db, f)
+                        
+                        st.session_state.uploaded_database_spectra.append({
+                            'id': spectrum_id,
+                            'filename': data['file_name']
+                        })
+                        
+                        added_count += 1
+                        
+                    except Exception as e:
+                        st.error(f"{data['file_name']}のデータベース追加中にエラー: {str(e)}")
                 
-                # 選択されたスペクトルを表示するボタン
-                if selected_spectra and st.button("選択したスペクトルを表示", type="secondary", key="show_selected_spectra"):
-                    selected_colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
-                    Fsize = 14
-                    
-                    import matplotlib.pyplot as plt
-                    
-                    # 選択されたスペクトルを表示
-                    fig, ax = plt.subplots(figsize=(10, 5))
-                    for i, data in enumerate(selected_spectra):
-                        ax.plot(data['wavenum'], data['baseline_removed'], 
-                               linestyle='-', 
-                               color=selected_colors[i % len(selected_colors)], 
-                               label=f"{data['file_name']} ({data.get('file_type', 'loaded')})")
-                    
-                    ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
-                    ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
-                    ax.set_title('Selected Baseline Removed Spectra', fontsize=Fsize)
-                    ax.legend(title="Spectra", bbox_to_anchor=(1.05, 1), loc='upper left')
-                    plt.tight_layout()
-                    st.pyplot(fig)
+                st.session_state.database_analyzer.save_metadata()
+                st.success(f"🎉 {added_count}個のスペクトルをデータベースに追加しました！")
                 
             else:
                 st.error("❌ 無効なpickleファイル形式です")
