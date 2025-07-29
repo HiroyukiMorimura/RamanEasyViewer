@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-ラマンスペクトルデータベース比較ツール
-RamanEye Easy Viewer用のデータベース比較機能
+ラマンスペクトルデータベース比較ツール（統合版）
+RamanEye Easy Viewer用のデータベース比較機能（WebUI統合）
 """
 
 import streamlit as st
@@ -130,6 +130,44 @@ def upload_and_process_database_files():
     """データベース比較用のファイルアップロードと処理"""
     st.header("📁 データベース比較用スペクトルファイルアップロード")
     
+    # パラメータ設定をサイドバーに移動
+    st.sidebar.subheader("🔧 処理パラメータ")
+    start_wavenum = st.sidebar.number_input(
+        "波数（開始）を入力してください:", 
+        min_value=-200, 
+        max_value=4800, 
+        value=200, 
+        step=100,
+        key="db_start_wave"
+    )
+    end_wavenum = st.sidebar.number_input(
+        "波数（終了）を入力してください:", 
+        min_value=-200, 
+        max_value=4800, 
+        value=3000, 
+        step=100,
+        key="db_end_wave"
+    )
+    
+    dssn_th_input = st.sidebar.number_input(
+        "ベースライン補正閾値を入力してください:", 
+        min_value=1, 
+        max_value=10000, 
+        value=100, 
+        step=1,
+        key="db_dssn_input"
+    )
+    dssn_th = dssn_th_input / 10000000
+    
+    savgol_wsize = st.sidebar.number_input(
+        "Savitzky-Golayウィンドウサイズを入力してください:",
+        min_value=1,
+        max_value=35,
+        value=5,
+        step=2,
+        key="db_savgol"
+    )
+    
     uploaded_files = st.file_uploader(
         "ラマンスペクトルファイルをアップロード (CSV/TXT)",
         type=['csv', 'txt'],
@@ -138,22 +176,20 @@ def upload_and_process_database_files():
         key="database_file_uploader"
     )
     
+    # 各ファイルのデータを格納するリスト
+    all_spectrum_data = []
+    
     if uploaded_files:
-        # 処理パラメータ設定
-        col1, col2 = st.columns(2)
-        with col1:
-            start_wavenum = st.number_input("開始波数", value=200, step=10, key="db_start_wave")
-            end_wavenum = st.number_input("終了波数", value=3000, step=10, key="db_end_wave")
-        with col2:
-            dssn_th = st.slider("ベースライン補正閾値", 0.001, 0.1, 0.01, step=0.001, key="db_dssn")
-            savgol_wsize = st.selectbox("Savitzky-Golayウィンドウサイズ", [3, 5, 7, 9], index=0, key="db_savgol")
-        
         if st.button("全ファイルを処理", type="primary", key="process_database_files"):
             progress_bar = st.progress(0)
             status_text = st.empty()
             
             processed_count = 0
             st.session_state.uploaded_database_spectra = []
+            
+            # 色の設定
+            selected_colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
+            Fsize = 14
             
             for i, uploaded_file in enumerate(uploaded_files):
                 status_text.text(f"処理中: {uploaded_file.name}...")
@@ -171,7 +207,7 @@ def upload_and_process_database_files():
                     wavenum, spectra, BSremoval_specta_pos, Averemoval_specta_pos, file_type, file_name = result
                     
                     if wavenum is not None:
-                        # スペクトルデータを保存
+                        # スペクトルデータを保存（データベース用）
                         spectrum_id = f"{file_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{i}"
                         
                         spectrum_data = {
@@ -207,6 +243,17 @@ def upload_and_process_database_files():
                             'id': spectrum_id,
                             'filename': file_name
                         })
+                        
+                        # 表示用データも追加
+                        file_data = {
+                            'wavenum': wavenum,
+                            'raw_spectrum': spectra,
+                            'baseline_removed': BSremoval_specta_pos,
+                            'file_name': file_name,
+                            'file_type': file_type
+                        }
+                        all_spectrum_data.append(file_data)
+                        
                         processed_count += 1
                     else:
                         st.error(f"{uploaded_file.name}の処理に失敗しました: スペクトルデータを抽出できませんでした")
@@ -218,10 +265,220 @@ def upload_and_process_database_files():
             
             st.session_state.database_analyzer.save_metadata()
             status_text.text(f"処理完了！ {processed_count}/{len(uploaded_files)} ファイルが正常に処理されました。")
+            
             if processed_count > 0:
                 st.success(f"{processed_count} 個のスペクトルファイルが正常に処理されました！")
+                
+                # スペクトル表示（spectrum_analysis.pyと同じスタイル）
+                import matplotlib.pyplot as plt
+                
+                # 元のスペクトルを重ねてプロット
+                fig, ax = plt.subplots(figsize=(10, 5))
+                for i, data in enumerate(all_spectrum_data):
+                    ax.plot(data['wavenum'], data['raw_spectrum'], 
+                           linestyle='-', 
+                           color=selected_colors[i % len(selected_colors)], 
+                           label=f"{data['file_name']} ({data['file_type']})")
+                ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
+                ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
+                ax.set_title('Raw Spectra', fontsize=Fsize)
+                ax.legend(title="Spectra", bbox_to_anchor=(1.05, 1), loc='upper left')
+                plt.tight_layout()
+                st.pyplot(fig)
+                
+                # Raw spectraのCSVダウンロード
+                raw_csv_data = create_interpolated_csv(all_spectrum_data, 'raw_spectrum')
+                st.download_button(
+                    label="📥 Raw Spectra CSV ダウンロード",
+                    data=raw_csv_data,
+                    file_name=f'raw_spectra_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
+                    mime='text/csv',
+                    key="download_raw_csv"
+                )
+                
+                # ベースライン補正後のスペクトルを重ねてプロット
+                fig, ax = plt.subplots(figsize=(10, 5))
+                for i, data in enumerate(all_spectrum_data):
+                    ax.plot(data['wavenum'], data['baseline_removed'], 
+                           linestyle='-', 
+                           color=selected_colors[i % len(selected_colors)], 
+                           label=f"{data['file_name']} ({data['file_type']})")
+                
+                ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
+                ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
+                ax.set_title('Baseline Removed Spectra', fontsize=Fsize)
+                ax.legend(title="Spectra", bbox_to_anchor=(1.05, 1), loc='upper left')
+                plt.tight_layout()
+                st.pyplot(fig)
+                
+                # Baseline removedのCSVダウンロード
+                baseline_csv_data = create_interpolated_csv(all_spectrum_data, 'baseline_removed')
+                st.download_button(
+                    label="📥 Baseline Removed Spectra CSV ダウンロード",
+                    data=baseline_csv_data,
+                    file_name=f'baseline_removed_spectra_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
+                    mime='text/csv',
+                    key="download_baseline_csv"
+                )
+                
+                # pickleファイルとして保存
+                pickle_data = {
+                    'spectra_data': all_spectrum_data,
+                    'processing_params': {
+                        'start_wavenum': start_wavenum,
+                        'end_wavenum': end_wavenum,
+                        'dssn_th': dssn_th,
+                        'savgol_wsize': savgol_wsize
+                    },
+                    'saved_at': datetime.now().isoformat()
+                }
+                pickle_buffer = pickle.dumps(pickle_data)
+                st.download_button(
+                    label="💾 スペクトルデータ保存 (pickle)",
+                    data=pickle_buffer,
+                    file_name=f'spectrum_data_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pkl',
+                    mime='application/octet-stream',
+                    key="download_pickle"
+                )
             else:
                 st.warning("ファイルが正常に処理されませんでした。ファイル形式を確認してください。")
+
+def create_interpolated_csv(all_data, spectrum_type):
+    """
+    異なる波数データを持つスペクトラムを統一された波数グリッドで補間してCSVを作成
+    
+    Parameters:
+    all_data: 全ファイルのデータリスト
+    spectrum_type: 'raw_spectrum', 'baseline_removed'のいずれか
+    
+    Returns:
+    str: CSV形式の文字列
+    """
+    if not all_data:
+        return ""
+    
+    # 全ファイルの波数範囲を取得
+    min_wavenum = min(data['wavenum'].min() for data in all_data)
+    max_wavenum = max(data['wavenum'].max() for data in all_data)
+    
+    # 最も細かい波数間隔を取得（最大データ点数に基づく）
+    max_points = max(len(data['wavenum']) for data in all_data)
+    
+    # 統一された波数グリッドを作成
+    common_wavenum = np.linspace(min_wavenum, max_wavenum, max_points)
+    
+    # DataFrameを作成
+    export_df = pd.DataFrame({'WaveNumber': common_wavenum})
+    
+    # 各ファイルのスペクトラムを共通の波数グリッドに補間
+    for data in all_data:
+        interpolated_spectrum = np.interp(common_wavenum, data['wavenum'], data[spectrum_type])
+        export_df[data['file_name']] = interpolated_spectrum
+    
+    return export_df.to_csv(index=False, encoding='utf-8-sig')
+
+def load_pickle_spectra():
+    """pickleファイルからスペクトルデータを読み込み"""
+    st.subheader("💾 保存済みスペクトルデータの読み込み")
+    
+    uploaded_pickle = st.file_uploader(
+        "pickleファイルを選択してください",
+        type=['pkl'],
+        help="以前に保存したスペクトルデータファイルを読み込みます",
+        key="pickle_uploader"
+    )
+    
+    if uploaded_pickle is not None:
+        try:
+            pickle_data = pickle.load(uploaded_pickle)
+            
+            if 'spectra_data' in pickle_data:
+                spectra_data = pickle_data['spectra_data']
+                processing_params = pickle_data.get('processing_params', {})
+                saved_at = pickle_data.get('saved_at', 'Unknown')
+                
+                st.success(f"✅ {len(spectra_data)}個のスペクトルデータを読み込みました")
+                st.info(f"保存日時: {saved_at}")
+                
+                # 処理パラメータ表示
+                if processing_params:
+                    with st.expander("📋 処理パラメータ"):
+                        st.write(f"波数範囲: {processing_params.get('start_wavenum', 'N/A')} - {processing_params.get('end_wavenum', 'N/A')} cm⁻¹")
+                        st.write(f"ベースライン補正閾値: {processing_params.get('dssn_th', 'N/A')}")
+                        st.write(f"Savitzky-Golayウィンドウサイズ: {processing_params.get('savgol_wsize', 'N/A')}")
+                
+                if st.button("🔄 データベースに追加", type="primary", key="add_to_database"):
+                    added_count = 0
+                    
+                    for i, data in enumerate(spectra_data):
+                        try:
+                            # スペクトルデータを保存（データベース用）
+                            spectrum_id = f"{data['file_name']}_loaded_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{i}"
+                            
+                            spectrum_data_db = {
+                                'wavenum': data['wavenum'],
+                                'spectrum': data['baseline_removed'],  # ベースライン削除済み
+                                'original_filename': data['file_name'],
+                                'file_type': data.get('file_type', 'loaded'),
+                                'processing_params': processing_params
+                            }
+                            
+                            # アナライザーに保存
+                            st.session_state.database_analyzer.metadata[spectrum_id] = {
+                                'filename': f"{spectrum_id}.pkl",
+                                'original_filename': data['file_name'],
+                                'file_type': data.get('file_type', 'loaded'),
+                                'wavenum_range': (data['wavenum'][0], data['wavenum'][-1]),
+                                'data_points': len(data['wavenum']),
+                                'saved_at': datetime.now().isoformat()
+                            }
+                            
+                            # データをメモリに保存
+                            spectrum_file = st.session_state.database_analyzer.storage_dir / f"{spectrum_id}.pkl"
+                            spectrum_file.parent.mkdir(exist_ok=True)
+                            with open(spectrum_file, 'wb') as f:
+                                pickle.dump(spectrum_data_db, f)
+                            
+                            st.session_state.uploaded_database_spectra.append({
+                                'id': spectrum_id,
+                                'filename': data['file_name']
+                            })
+                            
+                            added_count += 1
+                            
+                        except Exception as e:
+                            st.error(f"{data['file_name']}のデータベース追加中にエラー: {str(e)}")
+                    
+                    st.session_state.database_analyzer.save_metadata()
+                    st.success(f"🎉 {added_count}個のスペクトルをデータベースに追加しました！")
+                
+                # スペクトル表示
+                if st.checkbox("📊 読み込んだスペクトルを表示", key="show_loaded_spectra"):
+                    selected_colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
+                    Fsize = 14
+                    
+                    import matplotlib.pyplot as plt
+                    
+                    # ベースライン補正後のスペクトルを表示
+                    fig, ax = plt.subplots(figsize=(10, 5))
+                    for i, data in enumerate(spectra_data):
+                        ax.plot(data['wavenum'], data['baseline_removed'], 
+                               linestyle='-', 
+                               color=selected_colors[i % len(selected_colors)], 
+                               label=f"{data['file_name']} ({data.get('file_type', 'loaded')})")
+                    
+                    ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
+                    ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
+                    ax.set_title('Loaded Baseline Removed Spectra', fontsize=Fsize)
+                    ax.legend(title="Spectra", bbox_to_anchor=(1.05, 1), loc='upper left')
+                    plt.tight_layout()
+                    st.pyplot(fig)
+                
+            else:
+                st.error("❌ 無効なpickleファイル形式です")
+                
+        except Exception as e:
+            st.error(f"❌ pickleファイルの読み込みに失敗しました: {str(e)}")
 
 def display_uploaded_database_spectra():
     """アップロードされたスペクトルを表示"""
@@ -260,6 +517,9 @@ def display_uploaded_database_spectra():
                         height=400
                     )
                     st.plotly_chart(fig, use_container_width=True)
+    
+    # pickleファイル読み込み機能を下に配置
+    load_pickle_spectra()
 
 def run_database_comparison():
     """データベース比較を実行"""
