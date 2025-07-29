@@ -198,6 +198,54 @@ def calculate_peak_width(spectrum, peak_idx, wavenum):
     fwhm = abs(right_wavenum - left_wavenum)
     return fwhm
 
+def try_read_wasatch_file(uploaded_file, skiprows_list=None):
+    """
+    Wasatchファイルを複数のskiprows値で試行錯誤して読み込む
+    
+    Parameters:
+    uploaded_file: アップロードされたファイル
+    skiprows_list: 試行するskiprows値のリスト
+    
+    Returns:
+    data: 読み込み成功したDataFrame（失敗時はNone）
+    successful_skiprows: 成功したskiprows値
+    """
+    if skiprows_list is None:
+        # デフォルトの試行リスト（よく使われる値を優先）
+        skiprows_list = [46, 47, 45, 44, 48, 49, 50]
+    
+    for skiprows in skiprows_list:
+        try:
+            uploaded_file.seek(0)
+            # UTF-8を先に試す
+            try:
+                data = pd.read_csv(uploaded_file, skiprows=skiprows, nrows=None)
+            except UnicodeDecodeError:
+                # UTF-8で失敗した場合はshift-jisを試す
+                uploaded_file.seek(0)
+                data = pd.read_csv(uploaded_file, encoding='shift-jis', skiprows=skiprows, nrows=None)
+            
+            # Wavelength列とProcessed列の存在を確認
+            if 'Wavelength' in data.columns and 'Processed' in data.columns:
+                print(f"INFO: Wasatchファイルの読み込みに成功しました (skiprows={skiprows})")
+                return data, skiprows
+            
+            # Wavelength列だけでもある場合は候補として保持
+            elif 'Wavelength' in data.columns:
+                # Processedがない場合、他の数値列を探す
+                numeric_columns = data.select_dtypes(include=[np.number]).columns.tolist()
+                if len(numeric_columns) > 1:  # Wavelength以外にも数値列がある
+                    print(f"INFO: Wasatchファイルの読み込みに成功しました (skiprows={skiprows}, Processed列の代替使用)")
+                    return data, skiprows
+                    
+        except Exception as e:
+            # このskiprows値では読み込めないので次を試す
+            continue
+    
+    # 全ての試行が失敗
+    print("WARNING: Wasatchファイルの読み込みに失敗しました（全てのskiprows値で試行）")
+    return None, None
+
 def process_spectrum_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, savgol_wsize):
     """
     スペクトルファイルを処理する共通関数
@@ -218,10 +266,42 @@ def process_spectrum_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, sa
     # 各ファイルタイプに応じた処理
     if file_type == "wasatch":
         lambda_ex = 785
-        data = pd.read_csv(uploaded_file, encoding='shift-jis', skiprows=47)
-        pre_wavelength = np.array(data["Wavelength"].values)
-        pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
-        pre_spectra = np.array(data["Processed"].values)
+        
+        # 複数のskiprows値を試行錯誤
+        data, successful_skiprows = try_read_wasatch_file(uploaded_file)
+        
+        if data is None:
+            print(f"ERROR: Wasatchファイル {file_name} の読み込みに失敗しました")
+            return None, None, None, None, None, file_name
+        
+        try:
+            pre_wavelength = np.array(data["Wavelength"].values)
+            pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
+            
+            # Processed列を優先的に使用、なければ他の数値列を使用
+            if "Processed" in data.columns:
+                pre_spectra = np.array(data["Processed"].values)
+            else:
+                # Processed列がない場合、Wavelength以外の数値列を使用
+                numeric_columns = data.select_dtypes(include=[np.number]).columns.tolist()
+                spectrum_columns = [col for col in numeric_columns if col != 'Wavelength']
+                
+                if spectrum_columns:
+                    # 最後の数値列をスペクトルデータとして使用
+                    spectrum_column = spectrum_columns[-1]
+                    pre_spectra = np.array(data[spectrum_column].values)
+                    print(f"INFO: Processed列の代わりに{spectrum_column}列をスペクトルデータとして使用")
+                else:
+                    print(f"ERROR: スペクトルデータに使用できる数値列が見つかりません")
+                    return None, None, None, None, None, file_name
+                    
+        except KeyError as e:
+            print(f"ERROR: 必要な列が見つかりません: {e}")
+            print(f"利用可能な列: {list(data.columns)}")
+            return None, None, None, None, None, file_name
+        except Exception as e:
+            print(f"ERROR: Wasatchファイルの処理中にエラーが発生しました: {e}")
+            return None, None, None, None, None, file_name
         
     elif file_type == "ramaneye_old_old":
         df_transposed = data.set_index("WaveNumber").T
