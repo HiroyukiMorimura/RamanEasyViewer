@@ -21,7 +21,7 @@ from scipy.sparse.linalg import spsolve
 from scipy.sparse import csc_matrix, eye, diags
 
 # 共通ユーティリティから必要な関数をインポート
-from utils_common import process_spectrum_file, find_index
+from common_utils import *
 
 class RamanDatabaseAnalyzer:
     def __init__(self, storage_dir=None, comparison_threshold=0.7):
