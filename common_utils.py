@@ -218,7 +218,7 @@ def process_spectrum_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, sa
     # 各ファイルタイプに応じた処理
     if file_type == "wasatch":
         lambda_ex = 785
-        data = pd.read_csv(uploaded_file, encoding='shift-jis', skiprows=46)
+        data = pd.read_csv(uploaded_file, encoding='shift-jis', skiprows=47)
         pre_wavelength = np.array(data["Wavelength"].values)
         pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
         pre_spectra = np.array(data["Processed"].values)
