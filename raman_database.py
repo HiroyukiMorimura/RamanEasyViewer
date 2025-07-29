@@ -361,14 +361,10 @@ def load_pickle_spectra():
                 processing_params = pickle_data.get('processing_params', {})
                 saved_at = pickle_data.get('saved_at', 'Unknown')
                 
-                st.success(f"✅ {len(spectra_data)}個のスペクトルデータを読み込みました")
-                st.info(f"保存日時: {saved_at}")
-                
-                # 処理パラメータ表示
-                if processing_params:
-                    with st.expander("📋 処理パラメータ"):
-                        st.write(f"波数範囲: {processing_params.get('start_wavenum', 'N/A')} - {processing_params.get('end_wavenum', 'N/A')} cm⁻¹")
-                        st.write(f"ベースライン補正閾値: {processing_params.get('dssn_th', 'N/A')}")
+                # 読み込んだスペクトルの名前を表示
+                spectrum_names = [data['file_name'] for data in spectra_data]
+                for name in spectrum_names:
+                    st.write(f"• {name}")
                 
                 if st.button("🔄 データベースに追加", type="primary", key="add_to_database"):
                     added_count = 0
