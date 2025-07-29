@@ -148,6 +148,9 @@ def upload_and_process_database_files():
             dssn_th = st.slider("Baseline Correction Threshold", 0.001, 0.1, 0.01, step=0.001, key="db_dssn")
             savgol_wsize = st.selectbox("Savitzky-Golay Window Size", [3, 5, 7, 9], index=0, key="db_savgol")
         
+        # デバッグ用：ファイル内容確認オプション
+        debug_mode = st.checkbox("Enable debug mode (show file contents)", key="debug_mode")
+        
         if st.button("Process All Files", type="primary", key="process_database_files"):
             progress_bar = st.progress(0)
             status_text = st.empty()
@@ -158,61 +161,113 @@ def upload_and_process_database_files():
             for i, uploaded_file in enumerate(uploaded_files):
                 status_text.text(f"Processing {uploaded_file.name}...")
                 
-                # スペクトルを処理
-                result = process_spectrum_file(
-                    uploaded_file,
-                    start_wavenum=start_wavenum,
-                    end_wavenum=end_wavenum,
-                    dssn_th=dssn_th,
-                    savgol_wsize=savgol_wsize
-                )
-                
-                wavenum, spectra, BSremoval_specta_pos, Averemoval_specta_pos, file_type, file_name = result
-                
-                if wavenum is not None:
-                    # スペクトルデータを保存
-                    spectrum_id = f"{file_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{i}"
+                try:
+                    # デバッグモード：ファイル内容を表示
+                    if debug_mode:
+                        st.write(f"**Debug info for {uploaded_file.name}:**")
+                        uploaded_file.seek(0)
+                        
+                        # ファイルタイプを確認
+                        try:
+                            data_preview = read_csv_file(uploaded_file, uploaded_file.name.split('.')[-1].lower())
+                            if data_preview is not None:
+                                file_type = detect_file_type(data_preview)
+                                st.write(f"Detected file type: {file_type}")
+                                st.write("First few rows:")
+                                st.dataframe(data_preview.head())
+                                st.write("Column names:")
+                                st.write(list(data_preview.columns))
+                                
+                                # Wasatchファイルの場合は特別な処理
+                                if file_type == "wasatch":
+                                    st.write("**Wasatch file detected - checking header structure:**")
+                                    uploaded_file.seek(0)
+                                    
+                                    # 複数のskiprows値を試す
+                                    for skiprows in [0, 10, 20, 30, 40, 46, 50]:
+                                        try:
+                                            test_data = pd.read_csv(uploaded_file, encoding='shift-jis', skiprows=skiprows, nrows=5)
+                                            st.write(f"With skiprows={skiprows}:")
+                                            st.write(f"Columns: {list(test_data.columns)}")
+                                            if 'Wavelength' in test_data.columns:
+                                                st.success(f"✅ Found 'Wavelength' column with skiprows={skiprows}")
+                                                break
+                                            uploaded_file.seek(0)
+                                        except Exception as e:
+                                            st.write(f"skiprows={skiprows}: Error - {str(e)}")
+                                            uploaded_file.seek(0)
+                            else:
+                                st.error(f"Could not read file: {uploaded_file.name}")
+                        except Exception as e:
+                            st.error(f"Error analyzing file: {str(e)}")
+                        
+                        uploaded_file.seek(0)
                     
-                    spectrum_data = {
-                        'wavenum': wavenum,
-                        'spectrum': BSremoval_specta_pos,  # ベースライン削除済み（移動平均無し）
-                        'original_filename': file_name,
-                        'file_type': file_type,
-                        'processing_params': {
-                            'start_wavenum': start_wavenum,
-                            'end_wavenum': end_wavenum,
-                            'dssn_th': dssn_th,
-                            'savgol_wsize': savgol_wsize
+                    # スペクトルを処理
+                    result = process_spectrum_file(
+                        uploaded_file,
+                        start_wavenum=start_wavenum,
+                        end_wavenum=end_wavenum,
+                        dssn_th=dssn_th,
+                        savgol_wsize=savgol_wsize
+                    )
+                    
+                    wavenum, spectra, BSremoval_specta_pos, Averemoval_specta_pos, file_type, file_name = result
+                    
+                    if wavenum is not None:
+                        # スペクトルデータを保存
+                        spectrum_id = f"{file_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{i}"
+                        
+                        spectrum_data = {
+                            'wavenum': wavenum,
+                            'spectrum': BSremoval_specta_pos,  # ベースライン削除済み（移動平均無し）
+                            'original_filename': file_name,
+                            'file_type': file_type,
+                            'processing_params': {
+                                'start_wavenum': start_wavenum,
+                                'end_wavenum': end_wavenum,
+                                'dssn_th': dssn_th,
+                                'savgol_wsize': savgol_wsize
+                            }
                         }
-                    }
-                    
-                    # アナライザーに保存
-                    st.session_state.database_analyzer.metadata[spectrum_id] = {
-                        'filename': f"{spectrum_id}.pkl",
-                        'original_filename': file_name,
-                        'file_type': file_type,
-                        'wavenum_range': (wavenum[0], wavenum[-1]),
-                        'data_points': len(wavenum),
-                        'saved_at': datetime.now().isoformat()
-                    }
-                    
-                    # データをメモリに保存
-                    spectrum_file = st.session_state.database_analyzer.storage_dir / f"{spectrum_id}.pkl"
-                    spectrum_file.parent.mkdir(exist_ok=True)
-                    with open(spectrum_file, 'wb') as f:
-                        pickle.dump(spectrum_data, f)
-                    
-                    st.session_state.uploaded_database_spectra.append({
-                        'id': spectrum_id,
-                        'filename': file_name
-                    })
-                    processed_count += 1
+                        
+                        # アナライザーに保存
+                        st.session_state.database_analyzer.metadata[spectrum_id] = {
+                            'filename': f"{spectrum_id}.pkl",
+                            'original_filename': file_name,
+                            'file_type': file_type,
+                            'wavenum_range': (wavenum[0], wavenum[-1]),
+                            'data_points': len(wavenum),
+                            'saved_at': datetime.now().isoformat()
+                        }
+                        
+                        # データをメモリに保存
+                        spectrum_file = st.session_state.database_analyzer.storage_dir / f"{spectrum_id}.pkl"
+                        spectrum_file.parent.mkdir(exist_ok=True)
+                        with open(spectrum_file, 'wb') as f:
+                            pickle.dump(spectrum_data, f)
+                        
+                        st.session_state.uploaded_database_spectra.append({
+                            'id': spectrum_id,
+                            'filename': file_name
+                        })
+                        processed_count += 1
+                    else:
+                        st.error(f"Failed to process {uploaded_file.name}: Could not extract spectrum data")
+                
+                except Exception as e:
+                    st.error(f"Error processing {uploaded_file.name}: {str(e)}")
+                    if debug_mode:
+                        st.exception(e)
                 
                 progress_bar.progress((i + 1) / len(uploaded_files))
             
             st.session_state.database_analyzer.save_metadata()
             status_text.text(f"Processing complete! {processed_count}/{len(uploaded_files)} files processed successfully.")
-            st.success(f"Successfully processed {processed_count} spectrum files!")
+            if processed_count > 0:
+                st.success(f"Successfully processed {processed_count} spectrum files!")
+            else:
+                st.warning("No files were processed successfully. Please check the file formats and try debug mode.")
 
 def display_uploaded_database_spectra():
     """アップロードされたスペクトルを表示"""
