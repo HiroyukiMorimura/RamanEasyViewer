@@ -18,6 +18,7 @@ from peak_deconvolution import peak_deconvolution_mode
 from multivariate_analysis import multivariate_analysis_mode
 from peak_ai_analysis import peak_ai_analysis_mode
 from calibration_mode import calibration_mode
+from raman_database import database_comparison_mode
 
 def main():
     """
@@ -39,7 +40,7 @@ def main():
     st.sidebar.header("🔧 解析モード選択")
     analysis_mode = st.sidebar.selectbox(
         "解析モードを選択してください:",
-        ["スペクトル解析", "ラマンピークファインダー", "ラマンピーク分離", "多変量解析",  "検量線作成", "ピークAI解析"],
+        ["スペクトル解析", "ラマンピークファインダー", "ラマンピーク分離", "多変量解析",  "検量線作成", "ピークAI解析", "データベース比較"],
         key="mode_selector"
     )
     
@@ -57,6 +58,8 @@ def main():
         peak_analysis_mode()
     elif analysis_mode == "検量線作成":
         calibration_mode()
+    elif analysis_mode == "データベース比較":
+        database_comparison_mode()
     else:  # ピークAI解析
         peak_ai_analysis_mode()
     
