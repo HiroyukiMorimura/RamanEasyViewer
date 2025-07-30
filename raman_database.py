@@ -93,25 +93,168 @@ class RamanDatabaseAnalyzer:
         
         return downsampled
     
-    def calculate_cross_correlation(self, spectrum1, spectrum2):
+    def interpolate_spectrum_to_common_grid(self, wavenum, spectrum, common_wavenum):
         """
-        2つのスペクトル間の正規化相互相関を計算
+        スペクトルを共通の波数グリッドに補間
         
         Parameters:
-        spectrum1, spectrum2: 比較するスペクトル
+        wavenum: 元の波数配列
+        spectrum: 元のスペクトル配列
+        common_wavenum: 共通の波数グリッド
         
         Returns:
-        max_correlation: 最大相関値
+        interpolated_spectrum: 補間されたスペクトル
         """
+        # 線形補間を使用して共通グリッドに補間
+        interpolated_spectrum = np.interp(common_wavenum, wavenum, spectrum)
+        return interpolated_spectrum
+    
+    def normalize_spectrum(self, spectrum):
+        """
+        スペクトルを正規化
+        
+        Parameters:
+        spectrum: 入力スペクトル
+        
+        Returns:
+        normalized_spectrum: 正規化されたスペクトル
+        """
+        # 平均を0、標準偏差を1に正規化
+        mean_val = np.mean(spectrum)
+        std_val = np.std(spectrum)
+        
+        if std_val == 0:
+            return np.zeros_like(spectrum)
+        
+        normalized_spectrum = (spectrum - mean_val) / std_val
+        return normalized_spectrum
+    
+    def calculate_cosine_similarity(self, spectrum1, spectrum2):
+        """
+        2つのスペクトル間のコサイン類似度を計算
+        
+        Parameters:
+        spectrum1, spectrum2: 比較するスペクトル（同じ長さである必要がある）
+        
+        Returns:
+        cosine_similarity: コサイン類似度 (0-1の範囲)
+        """
+        # ベクトルの内積を計算
+        dot_product = np.dot(spectrum1, spectrum2)
+        
+        # ベクトルのノルムを計算
+        norm1 = np.linalg.norm(spectrum1)
+        norm2 = np.linalg.norm(spectrum2)
+        
+        # ゼロベクトルの場合は0を返す
+        if norm1 == 0 or norm2 == 0:
+            return 0.0
+        
+        # コサイン類似度を計算
+        cosine_sim = dot_product / (norm1 * norm2)
+        
+        # 負の値を0にクリップ（類似度として0-1の範囲にする）
+        cosine_sim = max(0.0, cosine_sim)
+        
+        return cosine_sim
+    
+    def calculate_pearson_correlation(self, spectrum1, spectrum2):
+        """
+        2つのスペクトル間のピアソン相関係数を計算
+        
+        Parameters:
+        spectrum1, spectrum2: 比較するスペクトル（同じ長さである必要がある）
+        
+        Returns:
+        correlation: ピアソン相関係数の絶対値 (0-1の範囲)
+        """
+        # ピアソン相関係数を計算
+        correlation_matrix = np.corrcoef(spectrum1, spectrum2)
+        correlation = correlation_matrix[0, 1]
+        
+        # NaNの場合は0を返す
+        if np.isnan(correlation):
+            return 0.0
+        
+        # 絶対値を取って0-1の範囲にする
+        return abs(correlation)
+    
+    def calculate_spectrum_similarity(self, spectrum1_data, spectrum2_data, method='cosine'):
+        """
+        2つのスペクトル間の類似度を計算（波数軸の統一を含む）
+        
+        Parameters:
+        spectrum1_data: 第1スペクトルのデータ辞書 ({'wavenum': array, 'spectrum': array})
+        spectrum2_data: 第2スペクトルのデータ辞書 ({'wavenum': array, 'spectrum': array})
+        method: 類似度計算手法 ('cosine', 'pearson', 'cross_correlation')
+        
+        Returns:
+        similarity: 類似度スコア (0-1の範囲)
+        """
+        wavenum1 = spectrum1_data['wavenum']
+        spectrum1 = spectrum1_data['spectrum']
+        wavenum2 = spectrum2_data['wavenum']
+        spectrum2 = spectrum2_data['spectrum']
+        
+        # 共通の波数範囲を決定
+        min_wavenum = max(wavenum1.min(), wavenum2.min())
+        max_wavenum = min(wavenum1.max(), wavenum2.max())
+        
+        # 共通範囲が存在しない場合は類似度0
+        if min_wavenum >= max_wavenum:
+            return 0.0
+        
+        # 共通の波数グリッドを作成（より細かい解像度に合わせる）
+        resolution1 = len(wavenum1) / (wavenum1.max() - wavenum1.min())
+        resolution2 = len(wavenum2) / (wavenum2.max() - wavenum2.min())
+        target_resolution = max(resolution1, resolution2)
+        
+        num_points = int((max_wavenum - min_wavenum) * target_resolution)
+        num_points = max(100, min(num_points, 2000))  # 100-2000点の範囲に制限
+        
+        common_wavenum = np.linspace(min_wavenum, max_wavenum, num_points)
+        
+        # 両スペクトルを共通グリッドに補間
+        interp_spectrum1 = self.interpolate_spectrum_to_common_grid(wavenum1, spectrum1, common_wavenum)
+        interp_spectrum2 = self.interpolate_spectrum_to_common_grid(wavenum2, spectrum2, common_wavenum)
+        
         # スペクトルを正規化
-        spectrum1_norm = (spectrum1 - np.mean(spectrum1)) / np.std(spectrum1)
-        spectrum2_norm = (spectrum2 - np.mean(spectrum2)) / np.std(spectrum2)
+        norm_spectrum1 = self.normalize_spectrum(interp_spectrum1)
+        norm_spectrum2 = self.normalize_spectrum(interp_spectrum2)
+        
+        # 指定された手法で類似度を計算
+        if method == 'cosine':
+            similarity = self.calculate_cosine_similarity(norm_spectrum1, norm_spectrum2)
+        elif method == 'pearson':
+            similarity = self.calculate_pearson_correlation(norm_spectrum1, norm_spectrum2)
+        elif method == 'cross_correlation':
+            similarity = self.calculate_cross_correlation(norm_spectrum1, norm_spectrum2)
+        else:
+            # デフォルトはコサイン類似度
+            similarity = self.calculate_cosine_similarity(norm_spectrum1, norm_spectrum2)
+        
+        return similarity
+    
+    def calculate_cross_correlation(self, spectrum1, spectrum2):
+        """
+        2つのスペクトル間の正規化相互相関を計算（改良版）
+        
+        Parameters:
+        spectrum1, spectrum2: 比較するスペクトル（同じ長さである必要がある）
+        
+        Returns:
+        max_correlation: 最大相関値 (0-1の範囲)
+        """
+        # 既に正規化されているスペクトルを前提とする
         
         # 相互相関を計算
-        correlation = np.correlate(spectrum1_norm, spectrum2_norm, mode='full')
+        correlation = np.correlate(spectrum1, spectrum2, mode='full')
         
         # 正規化相関係数を計算
-        max_correlation = np.max(correlation) / len(spectrum1_norm)
+        max_correlation = np.max(correlation) / len(spectrum1)
+        
+        # 0-1の範囲にクリップ
+        max_correlation = max(0.0, min(1.0, max_correlation))
         
         return max_correlation
 
@@ -261,7 +404,7 @@ def upload_and_process_database_files():
             ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
             ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
             ax.set_title('Raw Spectra', fontsize=Fsize)
-            ax.legend(title="Spectra")
+            ax.legend(title="Spectra", loc='upper right')
             plt.tight_layout()
             st.pyplot(fig)
             
@@ -360,6 +503,133 @@ def upload_and_process_database_files():
                     
                     except Exception as e:
                         st.error(f"❌ ファイルの処理中にエラーが発生しました: {str(e)}")
+    
+    # データベース比較機能をここに統合
+    st.markdown("---")
+    
+    # 利用可能なスペクトルの数を確認
+    total_spectra = len(st.session_state.uploaded_database_spectra)
+    
+    if total_spectra >= 2:
+        st.header("🎯 基準スペクトル選択・比較実行")
+        
+        # 基準スペクトル選択
+        spectrum_names = [spec['filename'] for spec in st.session_state.uploaded_database_spectra]
+        spectrum_ids = [spec['id'] for spec in st.session_state.uploaded_database_spectra]
+        
+        selected_index = st.selectbox(
+            "比較の基準とするスペクトルを選択してください:",
+            range(len(spectrum_names)),
+            format_func=lambda x: spectrum_names[x],
+            key="reference_spectrum_select"
+        )
+        
+        if selected_index is not None:
+            reference_spectrum_id = spectrum_ids[selected_index]
+            reference_spectrum_name = spectrum_names[selected_index]
+            
+            st.info(f"📌 基準スペクトル: **{reference_spectrum_name}**")
+            
+            # 類似度計算手法の説明
+            st.markdown("""
+            **類似度計算手法:**
+            - **コサイン類似度**: ベクトル角度に基づく類似度（形状の類似性を重視）
+            - **ピアソン相関**: 線形関係の強さ（相関の強さを重視）  
+            - **相互相関**: 時系列的な類似性（位置ずれに対応）
+            """)
+            
+            # 比較計算パラメータ
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                similarity_method = st.selectbox(
+                    "類似度計算手法", 
+                    ['cosine', 'pearson', 'cross_correlation'], 
+                    index=0,
+                    format_func=lambda x: {
+                        'cosine': 'コサイン類似度',
+                        'pearson': 'ピアソン相関',
+                        'cross_correlation': '相互相関'
+                    }[x],
+                    key="similarity_method"
+                )
+            with col2:
+                pool_size = st.selectbox("プーリングサイズ", [2, 4, 8], index=1, key="db_pool_size")
+            with col3:
+                comparison_threshold = st.slider("比較閾値", 0.5, 0.95, 0.7, step=0.05, key="db_threshold")
+            with col4:
+                max_spectra = len(st.session_state.uploaded_database_spectra)
+                top_n = st.slider("解析対象スペクトル数", 2, min(max_spectra, 20), min(10, max_spectra), key="db_top_n")
+            
+            with st.expander("⚙️ 詳細設定", expanded=False):
+                st.markdown("""
+                - **プーリングサイズ**: スペクトルのダウンサンプリング設定（現在は未使用）
+                - **比較閾値**: 詳細計算の実行閾値（現在は未使用）
+                - **解析対象スペクトル数**: 表示する上位結果数（現在は未使用）
+                
+                **注意**: 異なる波数範囲・間隔のスペクトルは自動的に共通グリッドに補間されます。
+                """)
+            
+            if st.button("比較計算を実行", type="primary", key="calculate_comparison_btn"):
+                with st.spinner("基準スペクトルとの比較を計算中..."):
+                    # 全スペクトルを読み込み
+                    all_spectra = st.session_state.database_analyzer.load_all_spectra()
+                    
+                    # 基準スペクトルを取得
+                    reference_spectrum_data = all_spectra[reference_spectrum_id]
+                    
+                    # 他のスペクトルとの類似度を計算
+                    comparison_results = []
+                    
+                    progress_bar = st.progress(0)
+                    
+                    for i, spectrum_id in enumerate(spectrum_ids):
+                        if spectrum_id == reference_spectrum_id:
+                            # 基準スペクトル自身の場合
+                            comparison_results.append({
+                                'spectrum_id': spectrum_id,
+                                'spectrum_name': spectrum_names[i],
+                                'match_score': 1.0
+                            })
+                        else:
+                            # 他のスペクトルとの比較
+                            spectrum_data = all_spectra[spectrum_id]
+                            match_score = st.session_state.database_analyzer.calculate_spectrum_similarity(
+                                reference_spectrum_data, spectrum_data, method=similarity_method
+                            )
+                            comparison_results.append({
+                                'spectrum_id': spectrum_id,
+                                'spectrum_name': spectrum_names[i],
+                                'match_score': match_score
+                            })
+                        
+                        progress_bar.progress((i + 1) / len(spectrum_ids))
+                    
+                    # 結果をスコア順にソート
+                    comparison_results.sort(key=lambda x: x['match_score'], reverse=True)
+                    
+                    # 結果をセッション状態に保存
+                    st.session_state.comparison_results = {
+                        'reference_spectrum_id': reference_spectrum_id,
+                        'reference_spectrum_name': reference_spectrum_name,
+                        'results': comparison_results,
+                        'spectra_data': all_spectra
+                    }
+                    
+                    st.success("データベース比較が完了しました！")
+    
+    elif total_spectra == 1:
+        st.info("💡 比較には少なくとも2つのスペクトルが必要です。もう1つスペクトルを追加してください。")
+    elif total_spectra == 0:
+        st.info("💡 スペクトルファイルをアップロードするか、保存済みデータを読み込んでください。")
+    
+    # アップロード済みスペクトルの表示
+    if st.session_state.uploaded_database_spectra:
+        st.markdown("---")
+        with st.expander("📊 アップロード済みスペクトル", expanded=False):
+            # アップロードされたファイルのリスト表示
+            spectra_df = pd.DataFrame(st.session_state.uploaded_database_spectra)
+            spectra_df.columns = ['ID', 'ファイル名']
+            st.dataframe(spectra_df, use_container_width=True)
 
 def create_interpolated_csv(all_data, spectrum_type):
     """
@@ -395,15 +665,16 @@ def create_interpolated_csv(all_data, spectrum_type):
     
     return export_df.to_csv(index=False, encoding='utf-8-sig')
 
-def load_pickle_spectra():
-    """pickleファイルからスペクトルデータを読み込み"""
-    st.subheader("💾 保存済みスペクトルデータの読み込み")
+def load_pickle_spectra_sidebar():
+    """サイドバーでpickleファイルからスペクトルデータを読み込み"""
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("💾 保存済みデータ読み込み")
     
-    uploaded_pickle = st.file_uploader(
-        "pickleファイルを選択してください",
+    uploaded_pickle = st.sidebar.file_uploader(
+        "pickleファイルを選択",
         type=['pkl'],
         help="以前に保存したスペクトルデータファイルを読み込みます",
-        key="pickle_uploader"
+        key="sidebar_pickle_uploader"
     )
     
     if uploaded_pickle is not None:
@@ -454,115 +725,24 @@ def load_pickle_spectra():
                         added_count += 1
                         
                     except Exception as e:
-                        st.error(f"{data['file_name']}のデータベース追加中にエラー: {str(e)}")
+                        st.sidebar.error(f"エラー: {data['file_name']}")
                 
                 st.session_state.database_analyzer.save_metadata()
-                st.success(f"🎉 {added_count}個のスペクトルを自動的にデータベースに追加しました！")
+                st.sidebar.success(f"✅ {added_count}個のスペクトルを追加")
                 
             else:
-                st.error("❌ 無効なpickleファイル形式です")
+                st.sidebar.error("❌ 無効なpickleファイル形式です")
                 
         except Exception as e:
-            st.error(f"❌ pickleファイルの読み込みに失敗しました: {str(e)}")
+            st.sidebar.error(f"❌ 読み込み失敗: {str(e)}")
 
 def display_uploaded_database_spectra():
-    """アップロードされたスペクトルを表示"""
-    if st.session_state.uploaded_database_spectra:
-        with st.expander("📊 アップロード済みスペクトル", expanded=False):
-            # アップロードされたファイルのリスト表示
-            spectra_df = pd.DataFrame(st.session_state.uploaded_database_spectra)
-            spectra_df.columns = ['ID', 'ファイル名']
-            st.dataframe(spectra_df, use_container_width=True)
+    """アップロードされたスペクトルを表示（この関数は現在使用されていません）"""
+    pass
 
 def run_database_comparison():
-    """データベース比較を実行"""
-    # pickleファイル読み込み機能を追加
-    load_pickle_spectra()
-    
-    # 利用可能なスペクトルの数を確認
-    total_spectra = len(st.session_state.uploaded_database_spectra)
-    
-    if total_spectra < 2:
-        st.warning(f"データベース比較には少なくとも2つのスペクトルファイルが必要です。現在: {total_spectra}個")
-        return
-    
-    st.header("🔍 データベース比較")
-    
-    # 基準スペクトル選択
-    st.subheader("🎯 基準スペクトルを選択")
-    spectrum_names = [spec['filename'] for spec in st.session_state.uploaded_database_spectra]
-    spectrum_ids = [spec['id'] for spec in st.session_state.uploaded_database_spectra]
-    
-    selected_index = st.selectbox(
-        "比較の基準とするスペクトルを選択してください:",
-        range(len(spectrum_names)),
-        format_func=lambda x: spectrum_names[x],
-        key="reference_spectrum_select"
-    )
-    
-    if selected_index is not None:
-        reference_spectrum_id = spectrum_ids[selected_index]
-        reference_spectrum_name = spectrum_names[selected_index]
-        
-        st.info(f"📌 基準スペクトル: **{reference_spectrum_name}**")
-        
-        # 比較計算パラメータ
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            pool_size = st.selectbox("プーリングサイズ", [2, 4, 8], index=1, key="db_pool_size")
-        with col2:
-            comparison_threshold = st.slider("比較閾値", 0.5, 0.95, 0.7, step=0.05, key="db_threshold")
-        with col3:
-            max_spectra = len(st.session_state.uploaded_database_spectra)
-            top_n = st.slider("解析対象スペクトル数", 2, min(max_spectra, 20), min(10, max_spectra), key="db_top_n")
-        
-        if st.button("比較計算を実行", type="primary", key="calculate_comparison_btn"):
-            with st.spinner("基準スペクトルとの比較を計算中..."):
-                # 全スペクトルを読み込み
-                all_spectra = st.session_state.database_analyzer.load_all_spectra()
-                
-                # 基準スペクトルを取得
-                reference_spectrum = all_spectra[reference_spectrum_id]['spectrum']
-                
-                # 他のスペクトルとの一致度を計算
-                comparison_results = []
-                
-                progress_bar = st.progress(0)
-                
-                for i, spectrum_id in enumerate(spectrum_ids):
-                    if spectrum_id == reference_spectrum_id:
-                        # 基準スペクトル自身の場合
-                        comparison_results.append({
-                            'spectrum_id': spectrum_id,
-                            'spectrum_name': spectrum_names[i],
-                            'match_score': 1.0
-                        })
-                    else:
-                        # 他のスペクトルとの比較
-                        spectrum = all_spectra[spectrum_id]['spectrum']
-                        match_score = st.session_state.database_analyzer.calculate_cross_correlation(
-                            reference_spectrum, spectrum
-                        )
-                        comparison_results.append({
-                            'spectrum_id': spectrum_id,
-                            'spectrum_name': spectrum_names[i],
-                            'match_score': match_score
-                        })
-                    
-                    progress_bar.progress((i + 1) / len(spectrum_ids))
-                
-                # 結果をスコア順にソート
-                comparison_results.sort(key=lambda x: x['match_score'], reverse=True)
-                
-                # 結果をセッション状態に保存
-                st.session_state.comparison_results = {
-                    'reference_spectrum_id': reference_spectrum_id,
-                    'reference_spectrum_name': reference_spectrum_name,
-                    'results': comparison_results,
-                    'spectra_data': all_spectra
-                }
-                
-                st.success("データベース比較が完了しました！")
+    """データベース比較を実行（この関数は現在使用されていません）"""
+    pass
 
 def display_comparison_results():
     """比較結果を表示"""
@@ -586,23 +766,23 @@ def display_comparison_results():
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            st.metric("平均一致度", f"{np.mean(scores):.3f}")
+            st.metric("平均類似度", f"{np.mean(scores):.3f}")
         with col2:
-            st.metric("最大一致度", f"{np.max(scores):.3f}")
+            st.metric("最大類似度", f"{np.max(scores):.3f}")
         with col3:
-            st.metric("最小一致度", f"{np.min(scores):.3f}")
+            st.metric("最小類似度", f"{np.min(scores):.3f}")
         with col4:
             st.metric("標準偏差", f"{np.std(scores):.3f}")
     
     # 比較結果テーブル
-    st.subheader("🏆 一致スコアランキング")
+    st.subheader("🏆 類似度スコアランキング")
     
     # DataFrameを作成
     results_df = pd.DataFrame([
         {
             'ランク': i + 1,
             'スペクトル名': r['spectrum_name'],
-            '一致スコア': f"{r['match_score']:.4f}",
+            '類似度スコア': f"{r['match_score']:.4f}",
             '基準スペクトル': '⭐' if r['match_score'] == 1.0 else ''
         }
         for i, r in enumerate(comparison_results)
@@ -614,12 +794,12 @@ def display_comparison_results():
     best_match = next((r for r in comparison_results if r['match_score'] < 1.0), None)
     
     if best_match:
-        st.header("⭐ 最高一致スペクトル")
+        st.header("⭐ 最高類似スペクトル")
         
         best_spectrum_name = best_match['spectrum_name']
         best_score = best_match['match_score']
         
-        st.success(f"**最高一致スコア: {best_score:.4f}**")
+        st.success(f"**最高類似度スコア: {best_score:.4f}**")
         st.info(f"**スペクトル: {best_spectrum_name}**")
         
         # スペクトル比較表示
@@ -688,7 +868,7 @@ def display_comparison_results():
         ))
         
         fig_overlay.update_layout(
-            title=f"重ね合わせ: {reference_name} vs {best_spectrum_name} (一致スコア: {best_score:.4f})",
+            title=f"重ね合わせ: {reference_name} vs {best_spectrum_name} (類似度スコア: {best_score:.4f})",
             xaxis_title="波数 (cm⁻¹)",
             yaxis_title="強度",
             height=500,
@@ -697,21 +877,21 @@ def display_comparison_results():
         
         st.plotly_chart(fig_overlay, use_container_width=True)
     
-    # 高一致スペクトルリスト
-    with st.expander("📋 高一致スペクトル (> 0.8)", expanded=False):
+    # 高類似スペクトルリスト
+    with st.expander("📋 高類似スペクトル (> 0.8)", expanded=False):
         high_match_results = [r for r in comparison_results if r['match_score'] > 0.8 and r['match_score'] < 1.0]
         
         if high_match_results:
             high_match_df = pd.DataFrame([
                 {
                     'スペクトル名': r['spectrum_name'],
-                    '一致スコア': f"{r['match_score']:.4f}"
+                    '類似度スコア': f"{r['match_score']:.4f}"
                 }
                 for r in high_match_results
             ])
             st.dataframe(high_match_df, use_container_width=True, hide_index=True)
         else:
-            st.info("一致スコア > 0.8 のスペクトルが見つかりませんでした。")
+            st.info("類似度スコア > 0.8 のスペクトルが見つかりませんでした。")
 
 def export_comparison_results():
     """比較結果のエクスポート"""
@@ -733,7 +913,7 @@ def export_comparison_results():
                 {
                     'ランク': i + 1,
                     'スペクトル名': r['spectrum_name'],
-                    '一致スコア': r['match_score'],
+                    '類似度スコア': r['match_score'],
                     '基準スペクトル': reference_name if r['match_score'] == 1.0 else ''
                 }
                 for i, r in enumerate(comparison_results)
@@ -759,7 +939,7 @@ def export_comparison_results():
                 spectrum_data = spectra_data[r['spectrum_id']]
                 spectra_info.append({
                     'スペクトル名': r['spectrum_name'],
-                    '一致スコア': r['match_score'],
+                    '類似度スコア': r['match_score'],
                     '元ファイル名': spectrum_data['original_filename'],
                     'ファイルタイプ': spectrum_data['file_type'],
                     '波数範囲': f"{spectrum_data['wavenum'][0]:.1f} - {spectrum_data['wavenum'][-1]:.1f}",
@@ -783,19 +963,24 @@ def database_comparison_mode():
     # セッション状態を初期化
     init_database_session_state()
     
+    # サイドバーでpickleファイル読み込み機能
+    load_pickle_spectra_sidebar()
+    
+    # サイドバーに現在の状態を表示
+    total_spectra = len(st.session_state.uploaded_database_spectra)
+    st.sidebar.markdown("---")
+    st.sidebar.metric("📊 登録済みスペクトル数", total_spectra)
+    
     st.header("🔍 スペクトルデータベース比較")
     st.markdown("---")
     
-    # タブを作成
-    tab1, tab2, tab3 = st.tabs(["📁 アップロード・処理", "🔍 データベース比較", "📊 結果・エクスポート"])
+    # タブを作成（2つに変更）
+    tab1, tab2 = st.tabs(["📁 アップロード・処理・比較", "📊 結果・エクスポート"])
     
     with tab1:
         upload_and_process_database_files()
     
     with tab2:
-        run_database_comparison()
-    
-    with tab3:
         display_comparison_results()
         export_comparison_results()
 
