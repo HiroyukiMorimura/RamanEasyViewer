@@ -315,7 +315,9 @@ def upload_and_process_database_files():
     
     if uploaded_files:
         processed_count = 0
-        st.session_state.uploaded_database_spectra = []
+        # 既存のスペクトルをクリアしないように修正
+        if not hasattr(st.session_state, 'uploaded_database_spectra'):
+            st.session_state.uploaded_database_spectra = []
         
         # 色の設定
         selected_colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'pink', 'cyan', 'yellow', 'black']
@@ -509,6 +511,16 @@ def upload_and_process_database_files():
     
     # 利用可能なスペクトルの数を確認
     total_spectra = len(st.session_state.uploaded_database_spectra)
+    
+    # デバッグ情報（開発時のみ表示）
+    if st.sidebar.checkbox("🐛 デバッグ情報", key="debug_mode"):
+        st.info(f"🔍 デバッグ: 現在のスペクトル数 = {total_spectra}")
+        if total_spectra > 0:
+            st.write("登録済みスペクトル（最初の5個）:")
+            for i, spec in enumerate(st.session_state.uploaded_database_spectra[:5]):
+                st.write(f"  {i+1}. ID: {spec['id'][:50]}..., Name: {spec['filename']}")
+            if total_spectra > 5:
+                st.write(f"  ... 他 {total_spectra - 5} 個")
     
     if total_spectra >= 2:
         st.header("🎯 基準スペクトル選択・比較実行")
@@ -729,6 +741,9 @@ def load_pickle_spectra_sidebar():
                 
                 st.session_state.database_analyzer.save_metadata()
                 st.sidebar.success(f"✅ {added_count}個のスペクトルを追加")
+                
+                # ページを再読み込みしてメインエリアを更新
+                st.rerun()
                 
             else:
                 st.sidebar.error("❌ 無効なpickleファイル形式です")
