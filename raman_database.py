@@ -682,6 +682,17 @@ def load_pickle_spectra_sidebar():
     st.sidebar.markdown("---")
     st.sidebar.subheader("💾 保存済みデータ読み込み")
     
+    # リセットボタンを追加
+    if st.sidebar.button("🗑️ 全データクリア", help="登録済みスペクトルを全て削除"):
+        st.session_state.uploaded_database_spectra = []
+        st.session_state.processed_pickle_files = set()
+        st.session_state.loaded_spectrum_names = set()
+        if hasattr(st.session_state, 'database_analyzer'):
+            st.session_state.database_analyzer.metadata = {}
+            st.session_state.database_analyzer.save_metadata()
+        st.sidebar.success("✅ 全データをクリアしました")
+        st.rerun()
+    
     uploaded_pickle = st.sidebar.file_uploader(
         "pickleファイルを選択",
         type=['pkl'],
@@ -689,19 +700,21 @@ def load_pickle_spectra_sidebar():
         key="sidebar_pickle_uploader"
     )
     
-    # 処理済みファイルを追跡するためのセッション状態
+    # 処理済みファイルとスペクトル名を追跡するためのセッション状態
     if 'processed_pickle_files' not in st.session_state:
         st.session_state.processed_pickle_files = set()
+    if 'loaded_spectrum_names' not in st.session_state:
+        st.session_state.loaded_spectrum_names = set()
     
     if uploaded_pickle is not None:
-        # ファイルのハッシュを生成して重複処理を防ぐ
+        # ファイル名と内容のハッシュを生成して重複処理を防ぐ
         file_content = uploaded_pickle.read()
         uploaded_pickle.seek(0)  # ファイルポインタをリセット
-        file_hash = hash(file_content)
+        file_identifier = f"{uploaded_pickle.name}_{len(file_content)}_{hash(file_content[:1000])}"
         
         # すでに処理済みのファイルかチェック
-        if file_hash in st.session_state.processed_pickle_files:
-            st.sidebar.info("ℹ️ このファイルは既に読み込み済みです")
+        if file_identifier in st.session_state.processed_pickle_files:
+            st.sidebar.info(f"ℹ️ ファイル '{uploaded_pickle.name}' は既に読み込み済みです")
             return
         
         try:
@@ -711,18 +724,26 @@ def load_pickle_spectra_sidebar():
                 spectra_data = pickle_data['spectra_data']
                 processing_params = pickle_data.get('processing_params', {})
                 
-                # 自動的に全てのスペクトルをデータベースに追加
+                # 重複しないスペクトルのみを追加
                 added_count = 0
+                skipped_count = 0
                 
                 for i, data in enumerate(spectra_data):
+                    spectrum_name = data['file_name']
+                    
+                    # スペクトル名で重複チェック
+                    if spectrum_name in st.session_state.loaded_spectrum_names:
+                        skipped_count += 1
+                        continue
+                    
                     try:
                         # スペクトルデータを保存（データベース用）
-                        spectrum_id = f"{data['file_name']}_loaded_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{i}"
+                        spectrum_id = f"{spectrum_name}_loaded_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{i}"
                         
                         spectrum_data_db = {
                             'wavenum': data['wavenum'],
                             'spectrum': data['baseline_removed'],  # ベースライン削除済み
-                            'original_filename': data['file_name'],
+                            'original_filename': spectrum_name,
                             'file_type': data.get('file_type', 'loaded'),
                             'processing_params': processing_params
                         }
@@ -730,7 +751,7 @@ def load_pickle_spectra_sidebar():
                         # アナライザーに保存
                         st.session_state.database_analyzer.metadata[spectrum_id] = {
                             'filename': f"{spectrum_id}.pkl",
-                            'original_filename': data['file_name'],
+                            'original_filename': spectrum_name,
                             'file_type': data.get('file_type', 'loaded'),
                             'wavenum_range': (data['wavenum'][0], data['wavenum'][-1]),
                             'data_points': len(data['wavenum']),
@@ -745,26 +766,55 @@ def load_pickle_spectra_sidebar():
                         
                         st.session_state.uploaded_database_spectra.append({
                             'id': spectrum_id,
-                            'filename': data['file_name']
+                            'filename': spectrum_name
                         })
+                        
+                        # スペクトル名を読み込み済みとしてマーク
+                        st.session_state.loaded_spectrum_names.add(spectrum_name)
                         
                         added_count += 1
                         
                     except Exception as e:
-                        st.sidebar.error(f"エラー: {data['file_name']}")
+                        st.sidebar.error(f"エラー: {spectrum_name}")
+                        skipped_count += 1
                 
                 st.session_state.database_analyzer.save_metadata()
                 
                 # ファイルを処理済みとしてマーク
-                st.session_state.processed_pickle_files.add(file_hash)
+                st.session_state.processed_pickle_files.add(file_identifier)
                 
-                st.sidebar.success(f"✅ {added_count}個のスペクトルを追加")
+                # 結果を表示
+                if added_count > 0:
+                    st.sidebar.success(f"✅ {added_count}個の新規スペクトルを追加")
+                if skipped_count > 0:
+                    st.sidebar.info(f"ℹ️ {skipped_count}個のスペクトルは既存のためスキップ")
                 
             else:
                 st.sidebar.error("❌ 無効なpickleファイル形式です")
                 
         except Exception as e:
             st.sidebar.error(f"❌ 読み込み失敗: {str(e)}")
+    
+    # 現在の状態を表示
+    total_spectra = len(st.session_state.uploaded_database_spectra)
+    unique_names = len(st.session_state.loaded_spectrum_names) if 'loaded_spectrum_names' in st.session_state else 0
+    
+    if total_spectra > 0:
+        st.sidebar.markdown("---")
+        st.sidebar.metric("📊 登録済みスペクトル数", total_spectra)
+        st.sidebar.metric("🔤 ユニーク名数", unique_names)
+        
+        if total_spectra != unique_names:
+            st.sidebar.warning(f"⚠️ 重複の可能性があります")
+            if st.sidebar.button("🔧 重複を除去", help="同じ名前のスペクトルを1つに統合"):
+                # 重複除去処理
+                unique_spectra = {}
+                for spec in st.session_state.uploaded_database_spectra:
+                    if spec['filename'] not in unique_spectra:
+                        unique_spectra[spec['filename']] = spec
+                
+                st.session_state.uploaded_database_spectra = list(unique_spectra.values())
+                st.sidebar.success(f"✅ {total_spectra - len(unique_spectra)}個の重複を除去")
 
 def display_uploaded_database_spectra():
     """アップロードされたスペクトルを表示（この関数は現在使用されていません）"""
@@ -995,11 +1045,6 @@ def database_comparison_mode():
     
     # サイドバーでpickleファイル読み込み機能
     load_pickle_spectra_sidebar()
-    
-    # サイドバーに現在の状態を表示
-    total_spectra = len(st.session_state.uploaded_database_spectra)
-    st.sidebar.markdown("---")
-    st.sidebar.metric("📊 登録済みスペクトル数", total_spectra)
     
     st.header("🔍 スペクトルデータベース比較")
     st.markdown("---")
