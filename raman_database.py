@@ -261,7 +261,7 @@ def upload_and_process_database_files():
             ax.set_xlabel('WaveNumber / cm-1', fontsize=Fsize)
             ax.set_ylabel('Intensity / a.u.', fontsize=Fsize)
             ax.set_title('Raw Spectra', fontsize=Fsize)
-            ax.legend(title="Spectra", bbox_to_anchor=(1.05, 1), loc='upper left')
+            ax.legend(title="Spectra")
             plt.tight_layout()
             st.pyplot(fig)
             
