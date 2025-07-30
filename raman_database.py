@@ -459,12 +459,6 @@ def load_pickle_spectra():
                 st.session_state.database_analyzer.save_metadata()
                 st.success(f"🎉 {added_count}個のスペクトルを自動的にデータベースに追加しました！")
                 
-                # 追加されたスペクトルの名前を表示
-                st.info("**追加されたスペクトル:**")
-                spectrum_names = [data['file_name'] for data in spectra_data]
-                for name in spectrum_names:
-                    st.write(f"• {name}")
-                
             else:
                 st.error("❌ 無効なpickleファイル形式です")
                 
