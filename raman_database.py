@@ -689,7 +689,21 @@ def load_pickle_spectra_sidebar():
         key="sidebar_pickle_uploader"
     )
     
+    # 処理済みファイルを追跡するためのセッション状態
+    if 'processed_pickle_files' not in st.session_state:
+        st.session_state.processed_pickle_files = set()
+    
     if uploaded_pickle is not None:
+        # ファイルのハッシュを生成して重複処理を防ぐ
+        file_content = uploaded_pickle.read()
+        uploaded_pickle.seek(0)  # ファイルポインタをリセット
+        file_hash = hash(file_content)
+        
+        # すでに処理済みのファイルかチェック
+        if file_hash in st.session_state.processed_pickle_files:
+            st.sidebar.info("ℹ️ このファイルは既に読み込み済みです")
+            return
+        
         try:
             pickle_data = pickle.load(uploaded_pickle)
             
@@ -740,10 +754,11 @@ def load_pickle_spectra_sidebar():
                         st.sidebar.error(f"エラー: {data['file_name']}")
                 
                 st.session_state.database_analyzer.save_metadata()
-                st.sidebar.success(f"✅ {added_count}個のスペクトルを追加")
                 
-                # ページを再読み込みしてメインエリアを更新
-                st.rerun()
+                # ファイルを処理済みとしてマーク
+                st.session_state.processed_pickle_files.add(file_hash)
+                
+                st.sidebar.success(f"✅ {added_count}個のスペクトルを追加")
                 
             else:
                 st.sidebar.error("❌ 無効なpickleファイル形式です")
