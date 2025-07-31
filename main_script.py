@@ -158,8 +158,9 @@ class RamanEyeApp:
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
-                height: 0px;
+                height: 400px;
                 box-sizing: border-box;
+                padding: 20px;
             }
             .login-form-wrapper {
               width: 100%;            /* 横幅いっぱい */
