@@ -698,6 +698,8 @@ class RamanEyeApp:
         
     def _render_secure_sidebar(self):
         # セキュリティ関連の表示を下側に移動
+        auth_system = self._get_auth_system()
+        UserRole = auth_system['UserRole']
         st.sidebar.markdown("---")
         
         # セキュリティ状態（元々_render_secure_authenticated_headerにあった内容）
