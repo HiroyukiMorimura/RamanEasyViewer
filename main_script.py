@@ -676,7 +676,10 @@ class RamanEyeApp:
                         st.text(f"{event['event_type']} - {event['timestamp'][:19]}")
     
     def _render_sidebar(self):
-        # セキュリティ強化された利用可能モード
+        # 利用可能モード
+        
+        st.sidebar.header("🔧 解析モード選択")
+        
         available_modes = []
         mode_permissions = {
             "スペクトル解析": "spectrum_analysis",
@@ -687,6 +690,7 @@ class RamanEyeApp:
             "検量線作成": "calibration",
             "ピークAI解析": "peak_ai_analysis"
         }
+        
         # モード選択
         analysis_mode = st.sidebar.selectbox(
             "セキュア解析モードを選択してください:",
@@ -695,9 +699,8 @@ class RamanEyeApp:
             key="mode_selector"
         )
         
-        st.sidebar.header("🔧 セキュア解析モード選択")
         
-        """セキュア強化されたサイドバー"""
+        """サイドバー"""
         auth_system = self._get_auth_system()
         AuthenticationManager = auth_system['AuthenticationManager']
         UserRole = auth_system['UserRole']
@@ -746,16 +749,6 @@ class RamanEyeApp:
         st.sidebar.subheader("📋 セキュア使用方法")
         self._render_secure_usage_instructions(analysis_mode)
         
-        # セキュアフッター情報
-        st.sidebar.markdown("---")
-        st.sidebar.markdown("""
-        **セキュリティ情報:**
-        - Version: 2.0.0 Enterprise Security
-        - Encryption: AES-256 + HTTPS
-        - Compliance: SOC2 Ready
-        - Audit: Complete Trail
-        - Last Updated: 2025-07-31
-        """)
     
     def _render_security_settings_sidebar(self):
         """サイドバーのセキュリティ設定"""
