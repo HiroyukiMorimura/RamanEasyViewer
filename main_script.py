@@ -141,7 +141,7 @@ class RamanEyeApp:
                     with col2:
                         st.image(
                             image, 
-                            width=280*3,  # ログインフォームに合わせたサイズ
+                            width=280,  # ログインフォームに合わせたサイズ
                             caption="",
                             use_container_width=False
                         )
@@ -171,7 +171,7 @@ class RamanEyeApp:
                     with col2:
                         st.image(
                             url,
-                            width=280*3,
+                            width=280,
                             caption="",
                             use_container_width=False
                         )
@@ -263,7 +263,7 @@ class RamanEyeApp:
                     # GitHubからの画像読み込み
                     st.image(
                         url,
-                        width=750,
+                        width=500,
                         caption="",
                         use_container_width=False
                     )
@@ -497,6 +497,13 @@ class RamanEyeApp:
                 border-left: 4px solid #1976d2;
                 font-size: 0.85rem;
             }
+            .demo-section {
+                margin-top: 2rem;
+                padding: 1.5rem;
+                background-color: #f8f9fa;
+                border-radius: 10px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }
             </style>
             """,
             unsafe_allow_html=True
@@ -541,19 +548,39 @@ class RamanEyeApp:
             # パスワードリセット（デモ用）
             if forgot_password:
                 st.info("管理者にお問い合わせください")
+        
+        # デモアカウント情報をロゴとログインフォームの下に配置
+        st.markdown("---")
+        
+        # 展開可能なデモアカウント情報
+        with st.expander("🔧 デモアカウント情報", expanded=False):
+            col1, col2, col3 = st.columns(3)
             
-            # デモアカウント情報（コンパクト版）
-            st.markdown(
-                """
-                <div class="demo-accounts">
-                <strong>デモアカウント:</strong><br>
-                管理者: admin / Admin123!<br>
-                分析者: analyst / Analyst123!<br>
-                閲覧者: viewer / Viewer123!
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+            with col1:
+                st.markdown("""
+                **👑 管理者**
+                - ユーザー名: `admin`
+                - パスワード: `Admin123!`
+                - 権限: 全機能アクセス可能
+                """)
+            
+            with col2:
+                st.markdown("""
+                **🔬 分析者**
+                - ユーザー名: `analyst`
+                - パスワード: `Analyst123!`
+                - 権限: 分析機能フルアクセス
+                """)
+            
+            with col3:
+                st.markdown("""
+                **👁️ 閲覧者**
+                - ユーザー名: `viewer`
+                - パスワード: `Viewer123!`
+                - 権限: 基本機能のみ
+                """)
+            
+            st.info("💡 上記のアカウント情報をコピーしてログインフォームに入力してください")
         
         st.markdown("---")
         
