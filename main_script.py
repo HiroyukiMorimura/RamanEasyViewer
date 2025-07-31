@@ -159,13 +159,6 @@ class RamanEyeApp:
                 height: 0px;
                 box-sizing: border-box;
             }
-            .login-form-wrapper {
-              width: 100%;            /* 横幅いっぱい */
-              height: 100%;           /* 親の400pxいっぱいに */
-              display: flex;
-              flex-direction: column;
-              justify-content: center;/* 中のフォームを縦方向センター */
-            }
             
             .stButton > button {
                 padding: 12px;
@@ -189,7 +182,7 @@ class RamanEyeApp:
         with col_login:
             # ログインフォーム（高さ調整用コンテナで囲む）
             st.markdown('<div class="login-container">', unsafe_allow_html=True)
-            st.markdown('<div class="login-form-wrapper">', unsafe_allow_html=True)
+            # st.markdown('<div class="login-form-wrapper">', unsafe_allow_html=True)
             with st.form("login_form"):
                 st.markdown('<h2 class="login-header"><em>RamanEye</em> Easy Viewer ログイン</h2>', unsafe_allow_html=True)
                 username = st.text_input(
@@ -207,7 +200,7 @@ class RamanEyeApp:
                     login_button = st.form_submit_button("🔐 ログイン", type="primary", use_container_width=True)
                 with col2:
                     forgot_password = st.form_submit_button("パスワード忘れ", use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            # st.markdown('</div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
         
         # ログイン処理（コンテナの外で処理）
