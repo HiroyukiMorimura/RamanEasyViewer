@@ -1,33 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-統合ラマンスペクトル解析ツール（メインスクリプト）
-RamanEye Easy Viewer (Main Script)
+統合ラマンスペクトル解析ツール
+メインスクリプト
 
 Created on Wed Jun 11 15:56:04 2025
 @author: Hiroyuki Morimura
+
 """
 
 import streamlit as st
 import pandas as pd
-import os
-import ssl
-import hashlib
 from datetime import datetime
-from pathlib import Path
-
-# セキュリティモジュールのインポート
-try:
-    from security_manager import (
-        SecurityManager,
-        get_security_manager,
-        init_security_system,
-        SecurityConfig,
-        SecurityException
-    )
-    SECURITY_AVAILABLE = True
-except ImportError:
-    SECURITY_AVAILABLE = False
-    st.error("セキュリティモジュールが利用できません。security_manager.pyを確認してください。")
 
 # 循環インポートを回避するため、必要な時にインポートする関数を定義
 def get_auth_system():
@@ -68,15 +51,9 @@ try:
     from peak_analysis_web import peak_analysis_mode
     from peak_deconvolution import peak_deconvolution_mode
     from multivariate_analysis import multivariate_analysis_mode
+    from peak_ai_analysis import peak_ai_analysis_mode
     from calibration_mode import calibration_mode
     from raman_database import database_comparison_mode
-    
-    # セキュア版AI解析モジュール
-    if SECURITY_AVAILABLE:
-        from peak_ai_analysis import peak_ai_analysis_mode  # セキュア版
-    else:
-        from peak_ai_analysis import peak_ai_analysis_mode  # 通常版
-        
     MODULES_AVAILABLE = True
 except ImportError as e:
     MODULES_AVAILABLE = False
@@ -84,71 +61,25 @@ except ImportError as e:
 
 class RamanEyeApp:
     """メインアプリケーションクラス"""
+    
     def __init__(self):
         # 遅延初期化用の変数
         self._auth_system = None
         self._ui_components = None
-        self._security_manager = None
         
-        # ページ設定（セキュリティヘッダー付き）
+        # ページ設定
         st.set_page_config(
-            page_title="RamanEye Easy Viewer",
-            page_icon="favicon.png",  # 同フォルダ内のPNGをそのまま指定
+            page_title="RamanEye Easy Viewer", 
+            page_icon="🏢",  # ロゴのマークに変更（実際のロゴがある場合は画像パスを指定可能）
             layout="wide",
             initial_sidebar_state="expanded"
         )
         
-        # セキュリティシステムの初期化
-        if SECURITY_AVAILABLE:
-            self._security_manager = init_security_system()
-        
         # セッション状態の初期化
-        self._init_secure_session_state()
-    
-    def _add_security_headers(self):
-        """セキュリティヘッダーの追加"""
-        st.markdown(
-            """
-            <script>
-            // セキュリティヘッダーの設定（可能な範囲で）
-            if (typeof window !== 'undefined') {
-                // XSS保護
-                document.addEventListener('DOMContentLoaded', function() {
-                    // CSP違反の検出
-                    document.addEventListener('securitypolicyviolation', function(e) {
-                        console.warn('CSP Violation:', e.violatedDirective);
-                    });
-                });
-            }
-            </script>
-            """,
-            unsafe_allow_html=True
-        )
-    
-    def _init_secure_session_state(self):
-        """セキュアなセッション状態の初期化"""
-        # 基本セッション状態
         if "show_profile" not in st.session_state:
             st.session_state.show_profile = False
         if "show_user_management" not in st.session_state:
             st.session_state.show_user_management = False
-        
-        # セキュリティ関連セッション状態
-        if "session_id" not in st.session_state:
-            st.session_state.session_id = self._generate_secure_session_id()
-        if "security_level" not in st.session_state:
-            st.session_state.security_level = "standard"
-        if "last_activity" not in st.session_state:
-            st.session_state.last_activity = datetime.now()
-        
-        # セキュリティイベントログ
-        if "security_events" not in st.session_state:
-            st.session_state.security_events = []
-    
-    def _generate_secure_session_id(self) -> str:
-        """セキュアなセッションIDの生成"""
-        import secrets
-        return secrets.token_urlsafe(32)
     
     def _get_auth_system(self):
         """認証システムの遅延取得"""
@@ -162,407 +93,178 @@ class RamanEyeApp:
             self._ui_components = get_ui_components()
         return self._ui_components
     
-    def _get_security_manager(self):
-        """セキュリティマネージャーの取得"""
-        if self._security_manager is None and SECURITY_AVAILABLE:
-            self._security_manager = get_security_manager()
-        return self._security_manager
-    
     def run(self):
         """メインアプリケーションの実行"""
-        try:
-            # セキュリティチェック
-            if not self._perform_security_checks():
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
+        # 認証チェック
+        if not auth_manager.is_authenticated():
+            self._render_login_page()
+        else:
+            # セッションタイムアウトチェック
+            if not auth_manager.check_session_timeout(timeout_minutes=60):
+                st.error("セッションがタイムアウトしました。再度ログインしてください")
                 st.stop()
             
-            auth_system = self._get_auth_system()
-            auth_manager = auth_system['AuthenticationManager']()
-            
-            # 認証チェック
-            if not auth_manager.is_authenticated():
-                self._render_secure_login_page()
-            else:
-                # セッションタイムアウトチェック（セキュリティ強化）
-                if not self._check_secure_session_timeout(auth_manager, timeout_minutes=60):
-                    st.error("セキュリティのため、セッションがタイムアウトしました。再度ログインしてください")
-                    self._log_security_event("SESSION_TIMEOUT", "system", {"reason": "timeout"})
-                    st.stop()
-                
-                # アクティビティトラッキング
-                self._update_activity_tracking()
-                
-                self._render_secure_main_application()
-                
-        except Exception as e:
-            import traceback
-            st.error("アプリケーション実行中にエラーが発生しました")
-            st.error(f"エラー詳細: {e}")
-            st.text("トレースバック:")
-            st.text(traceback.format_exc())  # 詳細なエラートレースを表示
-            self._handle_security_exception(e)
+            self._render_main_application()
     
-    def _perform_security_checks(self) -> bool:
-        """基本的なセキュリティチェック"""
-        try:
-            # HTTPS確認（可能な場合）
-            if hasattr(st.runtime.get_instance(), '_server'):
-                # Note: Streamlitの内部構造に依存するため、エラー処理が必要
-                pass
-            
-            # セキュリティモジュールの動作確認
-            if SECURITY_AVAILABLE:
-                security_manager = self._get_security_manager()
-                if security_manager:
-                    security_status = security_manager.get_security_status()
-                    if not security_status.get('encryption_enabled', False):
-                        st.warning("⚠️ データ暗号化が無効になっています")
-            
-            return True
-            
-        except Exception as e:
-            st.error(f"セキュリティチェックエラー: {e}")
-            return False
-    
-    def _check_secure_session_timeout(self, auth_manager, timeout_minutes: int = 60) -> bool:
-        """セキュア強化されたセッションタイムアウトチェック"""
-        try:
-            # 標準のタイムアウトチェック
-            if not auth_manager.check_session_timeout(timeout_minutes=timeout_minutes):
-                return False
-            
-            # 追加のセキュリティチェック
-            last_activity = st.session_state.get('last_activity')
-            if last_activity:
-                inactive_duration = datetime.now() - last_activity
-                if inactive_duration.total_seconds() > (timeout_minutes * 60):
-                    return False
-            
-            return True
-            
-        except Exception as e:
-            self._log_security_event("SESSION_CHECK_ERROR", "system", {"error": str(e)})
-            return False
-    
-    def _update_activity_tracking(self):
-        """アクティビティトラッキングの更新"""
-        st.session_state.last_activity = datetime.now()
-    
-    def _log_security_event(self, event_type: str, user_id: str, details: dict):
-        """セキュリティイベントのログ記録"""
-        security_manager = self._get_security_manager()
-        if security_manager:
-            security_manager.audit_logger.log_security_event(
-                event_type=event_type,
-                user_id=user_id,
-                details=details,
-                severity="INFO"
-            )
+    def _display_company_logo(self):
+        """会社ロゴを表示"""
+        import os
+        from PIL import Image
         
-        # セッション内ログも保持
-        event = {
-            'timestamp': datetime.now().isoformat(),
-            'event_type': event_type,
-            'user_id': user_id,
-            'details': details
-        }
-        st.session_state.security_events.append(event)
+        # ロゴファイルのパスを複数チェック
+        logo_paths = [
+            "logo.jpg",          # 同じフォルダ内
+            "logo.png",          # PNG形式も対応
+            "images/logo.jpg",   # imagesフォルダ内
+            "images/logo.png"    # imagesフォルダ内（PNG）
+        ]
         
-        # ログサイズ制限
-        if len(st.session_state.security_events) > 100:
-            st.session_state.security_events = st.session_state.security_events[-50:]
+        logo_displayed = False
+        
+        # ローカルファイルをチェック
+        for logo_path in logo_paths:
+            if os.path.exists(logo_path):
+                try:
+                    image = Image.open(logo_path)
+                  
+                    # ロゴを中央に配置（幅を調整）
+                    st.image(
+                        image, 
+                        width=300,  # ロゴの幅を調整
+                        caption="",
+                        use_container_width=True
+                    )
+                    
+                    logo_displayed = True
+                    break
+                    
+                except Exception as e:
+                    st.error(f"ロゴファイルの読み込みエラー ({logo_path}): {str(e)}")
+        
     
-    def _handle_security_exception(self, exception: Exception):
-        """セキュリティ例外の処理"""
-        current_user = st.session_state.get('current_user', {})
-        user_id = current_user.get('username', 'unknown')
-        
-        self._log_security_event(
-            "SECURITY_EXCEPTION",
-            user_id,
-            {"error": str(exception), "type": type(exception).__name__}
-        )
-        
-        st.error("セキュリティエラーが発生しました。管理者にお問い合わせください。")
-        st.error(f"エラー詳細: {exception}")
-    
-    def _render_secure_login_page(self):
-        """セキュア強化されたログインページの表示"""
-        # セキュリティ強化されたCSS
+    def _render_login_page(self):
+        """ログインページの表示"""
+        # カスタムCSS
         st.markdown(
             """
             <style>
-            /* セキュリティ強化されたスタイル */
-            .main-header {
-                text-align: center;
-                color: #1f77b4;
-                margin-bottom: 2rem;
-                font-size: 3rem;
-                font-weight: bold;
-            }
-            .security-badge {
-                background: linear-gradient(135deg, #28a745, #20c997);
-                color: white;
-                padding: 0.5rem 1rem;
-                border-radius: 20px;
-                font-size: 0.9rem;
-                font-weight: bold;
-                display: inline-block;
-                margin: 0.5rem 0;
-            }
             .login-header {
                 color: #1f77b4;
-                margin-top: 0rem !important;
-                margin-bottom: 0rem !important;
-                font-size: 1.8rem !important;
+                margin-bottom: 0.5rem;
+                font-size: 0.5rem !important;
                 font-weight: bold;
             }
-            .security-info {
-                background-color: #e8f5e8;
-                border-left: 4px solid #28a745;
-                padding: 1rem;
-                margin: 1rem 0;
-                border-radius: 5px;
-            }
-            .feature-card {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 1.5rem;
-                border-radius: 10px;
-                text-align: center;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                margin-bottom: 1.5rem;
-                min-height: 180px;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
+            .feature-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+                margin: 2rem 0;
             }
             .feature-icon {
                 font-size: 2rem;
                 margin-bottom: 0.5rem;
             }
+            
             </style>
             """,
             unsafe_allow_html=True
         )
         
-        # セキュリティステータス表示
-        # col_status, col_logo, col_login = st.columns([1, 2, 2])
-        col_logo, col_login = st.columns([1, 1])
-        
+        # 上部レイアウト：ロゴ（1/2）+ ログイン（1/2）
+        col_logo, col_login = st.columns([1, 1])  # 面積を半分半分に変更
         
         with col_logo:
-            # 会社ロゴ表示（セキュア版）
-            self._display_secure_company_logo()
+            # ロゴ表示（左側、1/2サイズ、中央配置）
+            self._display_company_logo()
         
         with col_login:
-            
-            
-            # セキュアなログインフォーム
-            with st.form("secure_login_form"):
-                st.markdown('<h2 class="login-header"><em>RamanEye</em> Easy Viewer ログインフォーム</h2>', unsafe_allow_html=True)
-                
-                # ログイン試行制限の表示
-                failed_attempts = st.session_state.get('failed_login_attempts', 0)
-                if failed_attempts > 0:
-                    st.warning(f"⚠️ ログイン失敗回数: {failed_attempts}/{SecurityConfig.MAX_LOGIN_ATTEMPTS}")
-                
-                username = st.text_input(
-                    "ユーザー名", 
-                    placeholder="ユーザー名を入力",
-                    help="セキュア認証によりログイン試行が記録されます"
+            # ログインフォーム
+            with st.form("login_form"):
+                st.markdown(
+                    '<h2 class="login-header"><em>RamanEye</em> Easy Viewer ログイン</h2>',
+                    unsafe_allow_html=True
                 )
-                password = st.text_input(
-                    "パスワード", 
-                    type="password", 
-                    placeholder="パスワードを入力",
-                    help="パスワードは暗号化されて送信されます"
-                )
+                
+                username = st.text_input("ユーザー名", placeholder="ユーザー名を入力")
+                password = st.text_input("パスワード", type="password", placeholder="パスワードを入力")
                 
                 col1, col2 = st.columns(2)
                 with col1:
-                    login_button = st.form_submit_button("🔐 セキュアログイン", type="primary", use_container_width=True)
+                    login_button = st.form_submit_button("ログイン", type="primary", use_container_width=True)
                 with col2:
                     forgot_password = st.form_submit_button("パスワード忘れ", use_container_width=True)
             
-            # セキュア強化されたログイン処理
+            # ログイン処理
             if login_button:
-                self._process_secure_login(username, password)
+                if username and password:
+                    ui_components = self._get_ui_components()
+                    login_ui = ui_components['LoginUI']()
+                    success, message = login_ui.auth_manager.login(username, password)
+                    if success:
+                        st.success("ログインしました")
+                        st.rerun()
+                    else:
+                        st.error(message)
+                else:
+                    st.error("ユーザー名とパスワードを入力してください")
             
-            # パスワードリセット（セキュア版）
+            # パスワードリセット（デモ用）
             if forgot_password:
-                self._handle_password_reset_request(username)
+                st.info("管理者にお問い合わせください")
         
-        # セキュリティ情報の表示
-        self._render_security_information()
-        
-        # デモアカウント情報（セキュリティ警告付き）
-        self._render_demo_accounts_with_security_warning()
-        
-        # 主要機能の表示（セキュリティ機能を含む）
-        self._render_secure_features()
-        
-        # セキュアフッター
-        self._render_secure_footer()
-    
-    def _process_secure_login(self, username: str, password: str):
-        """セキュア強化されたログイン処理"""
-        if not username or not password:
-            st.error("ユーザー名とパスワードを入力してください")
-            return
-        
-        # ログイン試行制限チェック
-        failed_attempts = st.session_state.get('failed_login_attempts', 0)
-        if failed_attempts >= SecurityConfig.MAX_LOGIN_ATTEMPTS:
-            st.error(f"ログイン試行回数が上限に達しました。{SecurityConfig.LOCKOUT_DURATION // 60}分後に再試行してください。")
-            self._log_security_event("LOGIN_BLOCKED", username, {"reason": "max_attempts_reached"})
-            return
-        
-        try:
-            ui_components = self._get_ui_components()
-            login_ui = ui_components['LoginUI']()
-            success, message = login_ui.auth_manager.login(username, password)
-            
-            if success:
-                # ログイン成功
-                st.session_state.failed_login_attempts = 0
-                self._log_security_event("LOGIN_SUCCESS", username, {"method": "password"})
-                st.success("ログインが完了しました")
-                st.rerun()
-            else:
-                # ログイン失敗
-                st.session_state.failed_login_attempts = failed_attempts + 1
-                self._log_security_event("LOGIN_FAILURE", username, {"reason": message})
-                st.error(f"ログインに失敗しました: {message}")
-                
-        except Exception as e:
-            self._log_security_event("LOGIN_ERROR", username, {"error": str(e)})
-            st.error("ログイン処理中にエラーが発生しました")
-    
-    def _handle_password_reset_request(self, username: str):
-        """パスワードリセット要求の処理"""
-        if username:
-            self._log_security_event("PASSWORD_RESET_REQUEST", username, {"method": "web_form"})
-            st.info(f"ユーザー '{username}' のパスワードリセット要求を記録しました。管理者にお問い合わせください。")
-        else:
-            st.info("パスワードリセットについては管理者にお問い合わせください")
-    
-    def _display_secure_company_logo(self):
-        st.image("logo.png", use_container_width = True)
-    
-    def _render_security_information(self):
-        """セキュリティ情報の表示"""
+        # デモアカウント情報をロゴとログインフォームの下に配置
         st.markdown("---")
         
-        with st.expander("🛡️ セキュリティ機能について", expanded=False):
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("""
-                **🔐 データ保護:**
-                - AES-256暗号化によるファイル保護
-                - データベースの完全暗号化
-                - メモリ内データの保護
-                - 自動データ消去機能
-                
-                **🔍 完全性管理:**
-                - SHA-256ハッシュによるファイル検証
-                - HMAC署名による改ざん検知
-                - リアルタイム完全性チェック
-                - 自動修復機能
-                """)
-            
-            with col2:
-                st.markdown("""
-                **🛡️ アクセス制御:**
-                - 多層認証システム
-                - 役割ベースアクセス制御
-                - セッション管理とタイムアウト
-                - IPアドレス制限（オプション）
-                
-                **📝 監査・コンプライアンス:**
-                - 全操作の完全な監査ログ
-                - リアルタイムセキュリティ監視
-                - コンプライアンスレポート
-                - インシデント対応機能
-                """)
-        
-        if SECURITY_AVAILABLE:
-            security_manager = self._get_security_manager()
-            if security_manager:
-                with st.expander("📊 現在のセキュリティ状態", expanded=False):
-                    status = security_manager.get_security_status()
-                    
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.metric("暗号化", "有効" if status['encryption_enabled'] else "無効")
-                        st.metric("完全性チェック", "有効" if status['integrity_checking_enabled'] else "無効")
-                    
-                    with col2:
-                        st.metric("アクセス制御", "有効" if status['access_control_enabled'] else "無効")
-                        st.metric("監査ログ", "有効" if status['audit_logging_enabled'] else "無効")
-                    
-                    with col3:
-                        st.metric("HTTPS通信", "有効" if status['https_enforced'] else "無効")
-                        st.metric("データベース", "初期化済" if status['databases_initialized'] else "未初期化")
-    
-    def _render_demo_accounts_with_security_warning(self):
-        """セキュリティ警告付きデモアカウント情報"""
-        st.markdown("---")
-        
-        with st.expander("🔧 デモアカウント情報（セキュリティ警告）", expanded=False):
-            st.warning("""
-            ⚠️ **セキュリティ警告**: 
-            デモアカウントは学習・評価目的のみで使用してください。
-            本番環境では必ず独自のアカウントを作成してください。
-            """)
-            
+        # 展開可能なデモアカウント情報
+        with st.expander("🔧 デモアカウント情報", expanded=False):
             col1, col2, col3 = st.columns(3)
             
             with col1:
                 st.markdown("""
-                **👑 管理者（フルアクセス）**
+                **👑 管理者**
                 - ユーザー名: `admin`
                 - パスワード: `Admin123!`
-                - 🔒 全機能・データアクセス可能
-                - 🛡️ セキュリティ設定管理
+                - 権限: 全機能アクセス可能
                 """)
             
             with col2:
                 st.markdown("""
-                **🔬 分析者（分析機能）**
+                **🔬 分析者**
                 - ユーザー名: `analyst`
                 - パスワード: `Analyst123!`
-                - 📊 分析機能フルアクセス
-                - 🔐 データ暗号化機能利用可能
+                - 権限: 分析機能フルアクセス
                 """)
             
             with col3:
                 st.markdown("""
-                **👁️ 閲覧者（基本機能）**
+                **👁️ 閲覧者**
                 - ユーザー名: `viewer`
                 - パスワード: `Viewer123!`
-                - 👀 基本閲覧機能のみ
-                - 🚫 データ編集・削除制限
+                - 権限: 基本機能のみ
                 """)
             
-            st.info("💡 セキュリティ向上のため、初回ログイン後にパスワード変更を推奨します")
-    
-    def _render_secure_features(self):
-        """セキュリティ機能を含む主要機能の表示"""
-        st.markdown("### 🌟 セキュア機能一覧")
+            st.info("💡 上記のアカウント情報をコピーしてログインフォームに入力してください")
+        
+        st.markdown("---")
+        
+        # 主要機能のアイコン群を表示
+        st.markdown("### 🌟 主要機能")
         
         features = [
-            ("📊", "スペクトル解析", "ラマンスペクトル解析"),
-            ("🔍", "ピーク分析", "ピーク検出・解析"),
-            ("⚗️", "ピーク分離", "ピーク分離"),
-            ("📈", "多変量解析", "統計解析"),
-            ("📏", "検量線作成", "定量分析"),
-            ("🤖", "AI解析", "ピークAI解析・RAG機能"),
-            ("🗄️", "DB比較", "データベース照合"),
-            ("🔒", "エンタープライズセキュリティ", "多層セキュリティ・監査・コンプライアンス")
+            ("📊", "スペクトル解析", "ラマンスペクトルの基本解析・可視化"),
+            ("🔍", "ピーク分析", "自動ピーク検出・解析・最適化"),
+            ("⚗️", "ピーク分離", "複雑なピークの分離・フィッティング"),
+            ("📈", "多変量解析", "PCA・クラスター分析等の統計解析"),
+            ("📏", "検量線作成", "定量分析用検量線の作成・評価"),
+            ("🤖", "AI解析", "機械学習によるスペクトル解釈"),
+            ("🗄️", "データベース比較", "スペクトルライブラリとの照合"),
+            ("🔒", "セキュリティ", "ユーザー管理・権限制御・監査機能")
         ]
         
-        # 2行4列のセキュアグリッド
+        # 2行4列のグリッドで機能を表示
         for row in range(2):
             cols = st.columns(4)
             for col_idx in range(4):
@@ -580,41 +282,26 @@ class RamanEyeApp:
                             """,
                             unsafe_allow_html=True
                         )
-    
-    def _render_secure_footer(self):
-        """セキュアフッター"""
+        
+        # フッター
         st.markdown("---")
         st.markdown(
             """
             <div style="text-align: center; color: #666; margin-top: 2rem;">
-            <p><strong>RamanEye Easy Viewer v1.0.0</strong></p>
+            <p>🔬 <strong>RamanEye Easy Viewer v2.0.0</strong> - Secure Edition</p>
+            <p>Advanced Raman Spectrum Analysis with Enterprise Security</p>
             <p>© 2025 Hiroyuki Morimura. All rights reserved.</p>
             </div>
             """,
             unsafe_allow_html=True
         )
     
-    def _render_secure_main_application(self):
+    def _render_main_application(self):
         """メインアプリケーションの表示"""
-        
-        # メインタイトル
-        st.markdown(
-            "<h1><span style='font-style: italic;'>RamanEye</span> Easy Viewer</h1>",
-            unsafe_allow_html=True
-        )
-        
         ui_components = self._get_ui_components()
         
-        # 認証後ヘッダー（セキュリティ情報付き）- ユーザー状態を一番上に
-        self._render_secure_authenticated_header()
-        
-        # サイドバー設定を先に実行
-        self._render_sidebar()
-        
-        # メインコンテンツエリア（セキュリティ付き）
-        if not MODULES_AVAILABLE:
-            st.error("解析モジュールが利用できません。管理者にお問い合わせください。")
-            return
+        # 認証後ヘッダー
+        ui_components['render_authenticated_header']()
         
         # プロファイル表示チェック
         if st.session_state.get("show_profile", False):
@@ -634,228 +321,455 @@ class RamanEyeApp:
                 st.rerun()
             return
         
-        # 解析モード実行
-        self._execute_analysis_mode()
-    
-    def _render_secure_authenticated_header(self):
-        """セキュア強化された認証後ヘッダー"""
-        ui_components = self._get_ui_components()
+        # メインタイトル
+        st.markdown(
+            "<h1>📊 <span style='font-style: italic;'>RamanEye</span> Easy Viewer</h1>",
+            unsafe_allow_html=True
+        )
         
-        # 基本の認証ヘッダー
-        ui_components['render_authenticated_header']()
+        # サイドバー設定（メインアプリケーションでも表示）
+        self._render_sidebar()
         
-        # セキュリティ情報は_render_sidebar()内で下側に表示
+        # メインコンテンツエリア
+        if not MODULES_AVAILABLE:
+            st.error("解析モジュールが利用できません。管理者にお問い合わせください。")
+            return
+        
+        # 選択されたモードに応じて適切な関数を呼び出す
+        analysis_mode = st.session_state.get("mode_selector", "スペクトル解析")
+        
+        try:
+            if analysis_mode == "スペクトル解析":
+                self._render_spectrum_analysis()
+            elif analysis_mode == "データベース比較":
+                self._render_database_comparison()
+            elif analysis_mode == "多変量解析":
+                self._render_multivariate_analysis()
+            elif analysis_mode == "ラマンピーク分離":
+                self._render_peak_deconvolution()
+            elif analysis_mode == "ラマンピークファインダー":
+                self._render_peak_analysis()
+            elif analysis_mode == "検量線作成":
+                self._render_calibration()
+            elif analysis_mode == "ピークAI解析":
+                self._render_peak_ai_analysis()
+            elif analysis_mode == "電子署名管理":
+                self._render_signature_management()
+            elif analysis_mode == "電子署名統合デモ":
+                self._render_signature_integration_demo()
+            elif analysis_mode == "ユーザー管理":
+                st.session_state.show_user_management = True
+                st.rerun()
+            else:
+                # デフォルトはスペクトル解析
+                self._render_spectrum_analysis()
+        except Exception as e:
+            st.error(f"機能の実行中にエラーが発生しました: {e}")
+            st.error("管理者にお問い合わせください。")
     
     def _render_sidebar(self):
-        """サイドバー"""
-        # 解析モード選択を一番上に
-        st.sidebar.header("🔧 解析モード選択")
-        
+        """サイドバーの設定"""
         auth_system = self._get_auth_system()
         AuthenticationManager = auth_system['AuthenticationManager']
         UserRole = auth_system['UserRole']
         
         auth_manager = AuthenticationManager()
         
+        st.sidebar.header("🔧 解析モード選択")
+        
         # 現在のユーザーの権限を取得
         current_role = auth_manager.get_current_role()
         permissions = UserRole.get_role_permissions(current_role)
         
+        # 利用可能なモードを権限に基づいて決定（スペクトル解析を最初に配置）
+        available_modes = []
         mode_permissions = {
-            "スペクトル解析": "spectrum_analysis",
-            "データベース比較": "database_comparison",
-            "ピークファインダー": "peak_analysis", 
-            "ピーク分離": "peak_deconvolution",
+            "スペクトル解析": "spectrum_analysis",           # 全ユーザー利用可能
+            "データベース比較": "database_comparison",       # 全ユーザー利用可能  
+            "ラマンピークファインダー": "peak_analysis", 
+            "ラマンピーク分離": "peak_deconvolution",
             "多変量解析": "multivariate_analysis",
             "検量線作成": "calibration",
             "ピークAI解析": "peak_ai_analysis"
         }
-            
-        # 権限チェックして available_modes を作る
-        available_modes = [
-            mode for mode, perm in mode_permissions.items()
-            if permissions.get(perm, False)
-        ]
         
-        # 管理者・分析者向けセキュリティ管理機能
+        # 全ユーザーが使用可能な機能を最初に追加
+        for mode, permission in mode_permissions.items():
+            if permissions.get(permission, False):
+                available_modes.append(mode)
+        
+        # 管理者・分析者は電子署名管理も利用可能
         if permissions.get("user_management", False) or current_role == "analyst":
-            available_modes.append("セキュリティ管理")
+            available_modes.append("電子署名管理")
         
-        # 管理者向けセキュリティ監査
+        # 管理者は電子署名統合デモも利用可能
         if permissions.get("user_management", False):
-            available_modes.append("セキュリティ監査")
+            available_modes.append("電子署名統合デモ")
+        
+        # 管理者はユーザー管理も利用可能（最後に追加）
+        if permissions.get("user_management", False):
             available_modes.append("ユーザー管理")
         
-        # 必ず最低１つ入れる
-        if not available_modes:
-            available_modes = ["スペクトル解析"]
-            
-        # 解析モード選択のselectbox
+        # モード選択
         analysis_mode = st.sidebar.selectbox(
-            "セキュア解析モードを選択してください:",
+            "解析モードを選択してください:",
             available_modes,
-            index=0,
+            index=0,  # 常に最初の利用可能なモード（スペクトル解析）をデフォルトに
             key="mode_selector"
         )
         
-        # セキュリティ関連の表示を下側に移動
+        # 権限情報表示
         st.sidebar.markdown("---")
-        
-        # セキュリティ状態（元々_render_secure_authenticated_headerにあった内容）
-        st.sidebar.subheader("🔒 セキュリティ状態")
-        
-        current_user = st.session_state.get('current_user', {})
-        user_id = current_user.get('username', 'unknown')
-        
-        # セッション情報
-        st.sidebar.info(f"セッションID: {st.session_state.session_id[:8]}...")
-        st.sidebar.info(f"セキュリティレベル: {st.session_state.security_level.upper()}")
-        
-        # セキュリティメトリクス
-        if SECURITY_AVAILABLE:
-            security_manager = self._get_security_manager()
-            if security_manager:
-                status = security_manager.get_security_status()
-                
-                security_score = sum([
-                    status.get('encryption_enabled', False),
-                    status.get('integrity_checking_enabled', False),
-                    status.get('access_control_enabled', False),
-                    status.get('audit_logging_enabled', False),
-                    status.get('https_enforced', False)
-                ])
-                
-                st.sidebar.metric("セキュリティスコア", f"{security_score}/5", f"{security_score * 20}%")
-        
-        # 最近のセキュリティイベント
-        recent_events = st.session_state.security_events[-3:] if st.session_state.security_events else []
-        if recent_events:
-            with st.sidebar.expander("📋 最近のアクティビティ", expanded=False):
-                for event in reversed(recent_events):
-                    st.text(f"{event['event_type']} - {event['timestamp'][:19]}")
-        
-        # セキュリティ権限情報表示
-        st.sidebar.markdown("---")
-        st.sidebar.header("🛡️ セキュリティ権限")
+        st.sidebar.header("👤 アクセス権限")
         
         role_descriptions = {
-            "admin": "🔧 全機能・セキュリティ管理可能",
-            "analyst": "📊 分析・暗号化機能利用可能", 
-            "viewer": "👁️ 閲覧・基本分析のみ"
+            UserRole.ADMIN: "🔧 すべての機能にアクセス可能",
+            UserRole.ANALYST: "📊 分析機能にフルアクセス可能", 
+            UserRole.VIEWER: "👁️ 閲覧・基本分析のみ可能"
         }
         
         st.sidebar.info(role_descriptions.get(current_role, "権限情報なし"))
         
-        # セキュリティ設定
-        self._render_security_settings_sidebar()
-        
-        # 使用方法の説明（セキュリティ版）
+        # 使用方法の説明
         st.sidebar.markdown("---")
-        st.sidebar.subheader("📋 セキュア使用方法")
-        analysis_mode = st.session_state.get("mode_selector", "スペクトル解析")
-        self._render_secure_usage_instructions(analysis_mode)
+        st.sidebar.subheader("📋 使用方法")
         
+        self._render_usage_instructions(analysis_mode)
+        
+        # フッター情報
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("""
+        **バージョン情報:**
+        - Version: 1.0.0 Secure Edition
+        - Last Updated: 2025-07-31
+        - Author: METASENSING
+        """)
     
-    def _render_security_settings_sidebar(self):
-        """サイドバーのセキュリティ設定"""
-        if SECURITY_AVAILABLE:
-            with st.sidebar.expander("⚙️ セキュリティ設定", expanded=False):
-                security_manager = self._get_security_manager()
-                
-                if security_manager:
-                    # 暗号化レベル設定
-                    encryption_level = st.selectbox(
-                        "暗号化レベル",
-                        ["Standard", "High", "Maximum"],
-                        index=1,
-                        help="データ暗号化の強度を選択"
-                    )
-                    
-                    # セッション設定
-                    auto_logout = st.checkbox(
-                        "自動ログアウト",
-                        value=True,
-                        help="一定時間非アクティブ時の自動ログアウト"
-                    )
-                    
-                    # 監査ログレベル
-                    audit_level = st.selectbox(
-                        "監査ログレベル",
-                        ["Basic", "Detailed", "Verbose"],
-                        index=1,
-                        help="記録する監査情報の詳細度"
-                    )
-                    
-                    # 完全性チェック頻度
-                    integrity_check = st.selectbox(
-                        "完全性チェック",
-                        ["Access時", "定期的", "リアルタイム"],
-                        index=0,
-                        help="ファイル完全性の検証頻度"
-                    )
-                    
-                    # 設定保存ボタン
-                    if st.button("設定保存", key="security_settings_save"):
-                        # セキュリティ設定の保存処理
-                        current_user = st.session_state.get('current_user', {})
-                        user_id = current_user.get('username', 'unknown')
-                        
-                        self._log_security_event(
-                            "SECURITY_SETTINGS_CHANGED",
-                            user_id,
-                            {
-                                'encryption_level': encryption_level,
-                                'auto_logout': auto_logout,
-                                'audit_level': audit_level,
-                                'integrity_check': integrity_check
-                            }
-                        )
-                        
-                        st.success("セキュリティ設定が保存されました")
-    
-    def _render_secure_usage_instructions(self, analysis_mode):
-        """セキュリティ強化された使用方法の説明"""
+    def _render_mode_parameters(self, analysis_mode):
+        """選択されたモードに応じたパラメータ設定を表示"""
+        if analysis_mode == "スペクトル解析":
+            st.sidebar.number_input("波数範囲 開始", value=200, min_value=0, max_value=4000, key="start_wavenum")
+            st.sidebar.number_input("波数範囲 終了", value=2000, min_value=0, max_value=4000, key="end_wavenum")
+            st.sidebar.slider("ベースライン閾値", 0.001, 0.1, 0.01, key="dssn_th")
+            st.sidebar.selectbox("平滑化窓サイズ", [3, 5, 7, 9, 11], index=2, key="savgol_wsize")
+            
+        elif analysis_mode == "ラマンピークファインダー":
+            st.sidebar.slider("ピーク検出閾値", 0.01, 1.0, 0.1, key="peak_threshold")
+            st.sidebar.number_input("最小ピーク高さ", value=0.05, min_value=0.01, max_value=1.0, key="min_height")
+            st.sidebar.number_input("最小ピーク距離", value=10, min_value=1, max_value=100, key="min_distance")
+            
+        elif analysis_mode == "ラマンピーク分離":
+            st.sidebar.number_input("フィッティング開始", value=800, min_value=0, max_value=4000, key="fit_start")
+            st.sidebar.number_input("フィッティング終了", value=1200, min_value=0, max_value=4000, key="fit_end")
+            st.sidebar.selectbox("最大ピーク数", [1, 2, 3, 4, 5, 6], index=2, key="max_peaks")
+            
+        elif analysis_mode == "多変量解析":
+            st.sidebar.selectbox("コンポーネント数", [2, 3, 4, 5], index=1, key="n_components")
+            st.sidebar.selectbox("解析手法", ["PCA", "K-means", "階層クラスター"], key="analysis_method")
+            st.sidebar.checkbox("標準化", value=True, key="normalize")
+            
+        elif analysis_mode == "検量線作成":
+            st.sidebar.selectbox("検量線タイプ", ["ピーク面積", "PLS回帰"], key="calibration_type")
+            st.sidebar.number_input("解析波数範囲 開始", value=800, min_value=0, max_value=4000, key="cal_start")
+            st.sidebar.number_input("解析波数範囲 終了", value=1200, min_value=0, max_value=4000, key="cal_end")
+            
+        elif analysis_mode == "ピークAI解析":
+            st.sidebar.selectbox("AI モデル", ["GPT-4", "Claude", "ローカルモデル"], key="ai_model")
+            st.sidebar.checkbox("RAG機能を使用", value=True, key="use_rag")
+            st.sidebar.slider("応答の詳細度", 1, 5, 3, key="detail_level")
+            
+        elif analysis_mode == "データベース比較":
+            st.sidebar.selectbox("比較手法", ["相関係数", "コサイン類似度", "ユークリッド距離"], key="comparison_method")
+            st.sidebar.number_input("上位N個表示", value=10, min_value=1, max_value=50, key="top_n")
+            st.sidebar.checkbox("プーリング計算", value=True, key="use_pooling")
+            
+        elif analysis_mode == "電子署名管理":
+            st.sidebar.selectbox("表示フィルター", ["すべて", "完了", "待機中", "拒否"], key="signature_filter")
+            st.sidebar.number_input("表示件数", value=50, min_value=10, max_value=500, key="signature_limit")
+            
+        elif analysis_mode == "電子署名統合デモ":
+            st.sidebar.info("デモ用パラメータ")
+            st.sidebar.checkbox("デバッグモード", value=False, key="debug_mode")
+            st.sidebar.selectbox("デモレベル", ["基本", "詳細"], key="demo_level")
+            
+        elif analysis_mode == "ユーザー管理":
+            st.sidebar.selectbox("表示フィルター", ["すべて", "アクティブ", "ロック中"], key="user_filter")
+            st.sidebar.checkbox("詳細表示", value=True, key="detailed_view")
+        
+        else:
+            st.sidebar.info("パラメータはありません")
+        """使用方法の説明"""
         instructions = {
             "スペクトル解析": """
-            **スペクトル解析:**
-            1. CSVファイルをアップロード
-            2. 解析パラメータを調整
-            3. スペクトル解析実行
-            4. 結果をダウンロード
+            **スペクトル解析モード:**
+            1. 解析したいCSVファイルをアップロード
+            2. パラメータを調整
+            3. スペクトルの表示と解析結果を確認
+            4. 結果をCSVファイルでダウンロード
             """,
             
-            "セキュアピークAI解析": """
-            **🤖 セキュアピークAI解析:**
-            1. セキュアHTTPS通信でAPI接続
-            2. 暗号化された論文データベース構築
-            3. プロンプトインジェクション対策付きAI解析
-            4. 完全な監査証跡付きで結果生成
+            "多変量解析": """
+            **多変量解析モード:**
+            1. 複数のCSVファイルをアップロード
+            2. パラメータを調整
+            3. 「データプロセス実効」をクリック
+            4. 「多変量解析実効」をクリック
+            5. 解析結果を確認・ダウンロード
             
-            **セキュリティ機能:**
-            - HTTPS強制通信
-            - プロンプトサニタイズ
-            - API通信ログ記録
-            - 暗号化データベース
+            - コンポーネント数: 2-5
             """,
             
-            "セキュリティ管理": """
-            **🛡️ セキュリティ管理:**
-            1. セキュリティ状態の監視・管理
-            2. 暗号化キーの管理・ローテーション
-            3. アクセス権限の設定・変更
-            4. 監査ログの確認・エクスポート
-            5. インシデント対応・復旧処理
-            
-            **⚠️ 管理者・分析者専用機能**
+            "ラマンピーク分離": """
+            **ピーク分離モード:**
+            1. 解析したいCSVファイルをアップロード
+            2. パラメータを調整
+            3. フィッティング範囲を設定
+            4. ピーク数最適化によりピーク数決定（n=1～6）
+            5. 必要であれば波数固定
+            6. フィッティングを実効
             """,
             
-            "セキュリティ監査": """
-            **📊 セキュリティ監査:**
-            1. 全ユーザーアクティビティの監査
-            2. セキュリティイベントの分析
-            3. コンプライアンスレポート生成
-            4. 異常行動の検出・アラート
-            5. セキュリティメトリクスの可視化
+            "ラマンピークファインダー": """
+            **ラマンピーク解析モード:**
+            1. 解析したいCSVファイルをアップロード
+            2. パラメータを調整
+            3. 「ピーク検出を実行」をクリック
+            4. インタラクティブプロットでピークを調整
+            5. 手動ピークの追加・除外が可能
+            6. グリッドサーチで最適化
+            7. 結果をCSVファイルでダウンロード
+            
+            **インタラクティブ機能:**
+            - グラフをクリックして手動ピーク追加
+            - 自動検出ピークをクリックして除外
+            - グリッドサーチで閾値最適化
+            """,
+            
+            "検量線作成": """
+            **検量線作成モード:**
+            1. **複数ファイルアップロード**: 異なる濃度のスペクトルファイルをアップロード
+            2. **濃度データ入力**: 各サンプルの濃度を入力
+            3. **検量線タイプ選択**: ピーク面積またはPLS回帰を選択
+            4. **波数範囲設定**: 解析に使用する波数範囲を指定
+            5. **検量線作成実行**: 統計解析により検量線を作成
+            6. **結果確認**: R²、RMSE等の統計指標を確認
+            7. **結果エクスポート**: 検量線データをCSVでダウンロード
+            """,
+            
+            "データベース比較": """
+            **データベース比較モード:**
+            1. **ファイルアップロード**: 複数のスペクトルファイル（CSV/TXT）をアップロード
+            2. **前処理パラメータ設定**: ベースライン補正や波数範囲を設定
+            3. **スペクトル処理**: 全ファイルを一括処理してデータベース化
+            4. **比較計算**: 比較マトリックスを計算
+            5. **効率化機能**: プーリングと上位N個選択で高速化
+            6. **結果確認**: 統計サマリーと比較マトリックスを表示
+            7. **最高一致ペア**: 最も一致したスペクトルペアを自動検出・表示
+            8. **エクスポート**: 結果をCSV形式でダウンロード
+            """,
+            
+            "ピークAI解析": """
+            **ピークAI解析モード:**
+            1. **LLM設定**: APIキーを入力するかオフラインモデルを起動
+            2. **論文アップロード**: RAG機能用の論文PDFをアップロード
+            3. **データベース構築**: 論文から検索用データベースを作成
+            4. **スペクトルアップロード**: 解析するラマンスペクトルをアップロード
+            5. **ピーク検出**: 自動検出 + 手動調整でピークを確定
+            6. **AI解析実行**: 確定ピークを基にAIが考察を生成
+            7. **質問機能**: 解析結果について追加質問が可能
+            """,
+            
+            "電子署名管理": """
+            **電子署名管理モード:**
+            1. **ペンディング署名確認**: 署名待ちの操作を確認・実行
+            2. **署名実行**: パスワード再入力＋署名理由入力で電子署名
+            3. **署名履歴確認**: 過去の署名記録を確認・監査
+            4. **署名統計**: 署名の完了率・拒否率などの統計情報
+            5. **署名設定**: 署名ポリシー・セキュリティ設定の管理
+            
+            **署名レベル:**
+            - **一段階署名**: 一人の承認で完了
+            - **二段階署名**: 二人の承認が必要（重要な操作）
+            
+            **署名情報記録:**
+            - 署名者氏名（印字名）・日時・理由・UserID
+            - タイムスタンプ付きで改ざん防止
+            - 完全な監査証跡を提供
+            
+            **⚠️ 管理者・分析者が利用可能**
+            """,
+            
+            "電子署名統合デモ": """
+            **電子署名統合デモモード:**
+            1. **セキュア操作デモ**: 署名が必要な操作の実例
+            2. **データエクスポート**: 一段階署名が必要なデータ出力
+            3. **レポート確定**: 二段階署名が必要な重要操作
+            4. **データベース更新**: セキュリティ機能付きDB操作
+            5. **システム設定変更**: 高セキュリティ設定操作
+            6. **統合ガイド**: 既存機能への署名統合方法
+            
+            **デモ機能:**
+            - **一段階署名**: パスワード再入力＋理由記録
+            - **二段階署名**: 二人の承認が必要な重要操作
+            - **署名記録**: 完全な監査証跡の提供
+            - **統合例**: 実際の機能への適用方法
+            
+            **学習内容:**
+            - 電子署名の実装方法
+            - セキュリティポリシーの設定
+            - コンプライアンス対応
+            - ベストプラクティス
+            
+            **⚠️ 管理者専用デモ機能**
+            """,
+            
+            "ユーザー管理": """
+            **ユーザー管理モード:**
+            1. **ユーザー一覧**: 全ユーザーの状態確認
+            2. **新規作成**: 新しいユーザーアカウントの作成
+            3. **権限管理**: ロール変更・アクセス制御
+            4. **アカウント管理**: ロック・解除・削除
+            5. **パスワード管理**: 強制リセット・ポリシー設定
+            6. **監査機能**: ログイン履歴・活動記録の確認
+            
+            **⚠️ 管理者専用機能**
+            """
+        }
+        
+    def _render_usage_instructions(self, analysis_mode):
+        """使用方法の説明"""
+        instructions = {
+            "スペクトル解析": """
+            **スペクトル解析モード:**
+            1. 解析したいCSVファイルをアップロード
+            2. パラメータを調整
+            3. スペクトルの表示と解析結果を確認
+            4. 結果をCSVファイルでダウンロード
+            """,
+            
+            "多変量解析": """
+            **多変量解析モード:**
+            1. 複数のCSVファイルをアップロード
+            2. パラメータを調整
+            3. 「データプロセス実効」をクリック
+            4. 「多変量解析実効」をクリック
+            5. 解析結果を確認・ダウンロード
+            
+            - コンポーネント数: 2-5
+            """,
+            
+            "ラマンピーク分離": """
+            **ピーク分離モード:**
+            1. 解析したいCSVファイルをアップロード
+            2. パラメータを調整
+            3. フィッティング範囲を設定
+            4. ピーク数最適化によりピーク数決定（n=1～6）
+            5. 必要であれば波数固定
+            6. フィッティングを実効
+            """,
+            
+            "ラマンピークファインダー": """
+            **ラマンピーク解析モード:**
+            1. 解析したいCSVファイルをアップロード
+            2. パラメータを調整
+            3. 「ピーク検出を実行」をクリック
+            4. インタラクティブプロットでピークを調整
+            5. 手動ピークの追加・除外が可能
+            6. グリッドサーチで最適化
+            7. 結果をCSVファイルでダウンロード
+            
+            **インタラクティブ機能:**
+            - グラフをクリックして手動ピーク追加
+            - 自動検出ピークをクリックして除外
+            - グリッドサーチで閾値最適化
+            """,
+            
+            "検量線作成": """
+            **検量線作成モード:**
+            1. **複数ファイルアップロード**: 異なる濃度のスペクトルファイルをアップロード
+            2. **濃度データ入力**: 各サンプルの濃度を入力
+            3. **検量線タイプ選択**: ピーク面積またはPLS回帰を選択
+            4. **波数範囲設定**: 解析に使用する波数範囲を指定
+            5. **検量線作成実行**: 統計解析により検量線を作成
+            6. **結果確認**: R²、RMSE等の統計指標を確認
+            7. **結果エクスポート**: 検量線データをCSVでダウンロード
+            """,
+            
+            "データベース比較": """
+            **データベース比較モード:**
+            1. **ファイルアップロード**: 複数のスペクトルファイル（CSV/TXT）をアップロード
+            2. **前処理パラメータ設定**: ベースライン補正や波数範囲を設定
+            3. **スペクトル処理**: 全ファイルを一括処理してデータベース化
+            4. **比較計算**: 比較マトリックスを計算
+            5. **効率化機能**: プーリングと上位N個選択で高速化
+            6. **結果確認**: 統計サマリーと比較マトリックスを表示
+            7. **最高一致ペア**: 最も一致したスペクトルペアを自動検出・表示
+            8. **エクスポート**: 結果をCSV形式でダウンロード
+            """,
+            
+            "ピークAI解析": """
+            **ピークAI解析モード:**
+            1. **LLM設定**: APIキーを入力するかオフラインモデルを起動
+            2. **論文アップロード**: RAG機能用の論文PDFをアップロード
+            3. **データベース構築**: 論文から検索用データベースを作成
+            4. **スペクトルアップロード**: 解析するラマンスペクトルをアップロード
+            5. **ピーク検出**: 自動検出 + 手動調整でピークを確定
+            6. **AI解析実行**: 確定ピークを基にAIが考察を生成
+            7. **質問機能**: 解析結果について追加質問が可能
+            """,
+            
+            "電子署名管理": """
+            **電子署名管理モード:**
+            1. **ペンディング署名確認**: 署名待ちの操作を確認・実行
+            2. **署名実行**: パスワード再入力＋署名理由入力で電子署名
+            3. **署名履歴確認**: 過去の署名記録を確認・監査
+            4. **署名統計**: 署名の完了率・拒否率などの統計情報
+            5. **署名設定**: 署名ポリシー・セキュリティ設定の管理
+            
+            **署名レベル:**
+            - **一段階署名**: 一人の承認で完了
+            - **二段階署名**: 二人の承認が必要（重要な操作）
+            
+            **署名情報記録:**
+            - 署名者氏名（印字名）・日時・理由・UserID
+            - タイムスタンプ付きで改ざん防止
+            - 完全な監査証跡を提供
+            
+            **⚠️ 管理者・分析者が利用可能**
+            """,
+            
+            "電子署名統合デモ": """
+            **電子署名統合デモモード:**
+            1. **セキュア操作デモ**: 署名が必要な操作の実例
+            2. **データエクスポート**: 一段階署名が必要なデータ出力
+            3. **レポート確定**: 二段階署名が必要な重要操作
+            4. **データベース更新**: セキュリティ機能付きDB操作
+            5. **システム設定変更**: 高セキュリティ設定操作
+            6. **統合ガイド**: 既存機能への署名統合方法
+            
+            **デモ機能:**
+            - **一段階署名**: パスワード再入力＋理由記録
+            - **二段階署名**: 二人の承認が必要な重要操作
+            - **署名記録**: 完全な監査証跡の提供
+            - **統合例**: 実際の機能への適用方法
+            
+            **学習内容:**
+            - 電子署名の実装方法
+            - セキュリティポリシーの設定
+            - コンプライアンス対応
+            - ベストプラクティス
+            
+            **⚠️ 管理者専用デモ機能**
+            """,
+            
+            "ユーザー管理": """
+            **ユーザー管理モード:**
+            1. **ユーザー一覧**: 全ユーザーの状態確認
+            2. **新規作成**: 新しいユーザーアカウントの作成
+            3. **権限管理**: ロール変更・アクセス制御
+            4. **アカウント管理**: ロック・解除・削除
+            5. **パスワード管理**: 強制リセット・ポリシー設定
+            6. **監査機能**: ログイン履歴・活動記録の確認
             
             **⚠️ 管理者専用機能**
             """
@@ -864,79 +778,9 @@ class RamanEyeApp:
         instruction = instructions.get(analysis_mode, "使用方法情報なし")
         st.sidebar.markdown(instruction)
     
-    def _execute_analysis_mode(self):
-        """解析モードの実行"""
-        analysis_mode = st.session_state.get("mode_selector", "スペクトル解析")
-        
-        # セキュリティログ記録
-        current_user = st.session_state.get('current_user', {})
-        user_id = current_user.get('username', 'unknown')
-        
-        self._log_security_event(
-            "ANALYSIS_MODE_ACCESS",
-            user_id,
-            {'mode': analysis_mode}
-        )
-        
-        try:
-            if analysis_mode == "スペクトル解析":
-                self._render_spectrum_analysis()
-            elif analysis_mode == "データベース比較":
-                self._render_secure_database_comparison()
-            elif analysis_mode == "多変量解析":
-                self._render_secure_multivariate_analysis()
-            elif analysis_mode == "ピーク分離":
-                self._render_secure_peak_deconvolution()
-            elif analysis_mode == "ピークファインダー":
-                self._render_secure_peak_analysis()
-            elif analysis_mode == "検量線作成":
-                self._render_secure_calibration()
-            elif analysis_mode == "ピークAI解析":
-                self._render_secure_peak_ai_analysis()
-            elif analysis_mode == "セキュリティ管理":
-                self._render_security_management()
-            elif analysis_mode == "セキュリティ監査":
-                self._render_security_audit()
-            elif analysis_mode == "ユーザー管理":
-                st.session_state.show_user_management = True
-                st.rerun()
-            else:
-                self._render_spectrum_analysis()
-                
-        except Exception as e:
-            self._handle_analysis_security_exception(analysis_mode, e)
-    
-    def _handle_analysis_security_exception(self, mode: str, exception: Exception):
-        """解析モードでのセキュリティ例外処理"""
-        current_user = st.session_state.get('current_user', {})
-        user_id = current_user.get('username', 'unknown')
-        
-        self._log_security_event(
-            "ANALYSIS_ERROR",
-            user_id,
-            {
-                'mode': mode,
-                'error': str(exception),
-                'type': type(exception).__name__
-            }
-        )
-        
-        st.error(f"セキュア解析モード '{mode}' の実行中にエラーが発生しました。")
-        st.error("管理者にお問い合わせください。")
-        
-        # 詳細なエラー情報（管理者のみ）
-        auth_system = self._get_auth_system()
-        auth_manager = auth_system['AuthenticationManager']()
-        current_role = auth_manager.get_current_role()
-        
-        if current_role == "admin":
-            with st.expander("🔍 エラー詳細（管理者専用）", expanded=False):
-                st.error(f"エラータイプ: {type(exception).__name__}")
-                st.error(f"エラーメッセージ: {str(exception)}")
-    
-    # セキュア強化された各解析モードのラッパー関数
+    # 各解析モードのラッパー関数（権限チェック付き）
     def _render_spectrum_analysis(self):
-        """スペクトル解析モード"""
+        """スペクトル解析モード（権限チェック付き）"""
         auth_system = self._get_auth_system()
         auth_manager = auth_system['AuthenticationManager']()
         
@@ -946,8 +790,63 @@ class RamanEyeApp:
         
         spectrum_analysis_mode()
     
-    def _render_secure_peak_ai_analysis(self):
-        """セキュア強化されたAI解析モード"""
+    def _render_multivariate_analysis(self):
+        """多変量解析モード（権限チェック付き）"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
+        if not auth_manager.has_permission("multivariate_analysis"):
+            st.error("この機能を使用する権限がありません")
+            st.stop()
+        
+        multivariate_analysis_mode()
+    
+    def _render_peak_deconvolution(self):
+        """ピーク分離モード（権限チェック付き）"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
+        if not auth_manager.has_permission("peak_deconvolution"):
+            st.error("この機能を使用する権限がありません")
+            st.stop()
+        
+        peak_deconvolution_mode()
+    
+    def _render_peak_analysis(self):
+        """ピーク解析モード（権限チェック付き）"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
+        if not auth_manager.has_permission("peak_analysis"):
+            st.error("この機能を使用する権限がありません")
+            st.stop()
+        
+        peak_analysis_mode()
+    
+    def _render_calibration(self):
+        """検量線作成モード（権限チェック付き）"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
+        if not auth_manager.has_permission("calibration"):
+            st.error("この機能を使用する権限がありません")
+            st.stop()
+        
+        calibration_mode()
+    
+    def _render_database_comparison(self):
+        """データベース比較モード（権限チェック付き）"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
+        if not auth_manager.has_permission("database_comparison"):
+            st.error("この機能を使用する権限がありません")
+            st.stop()
+        
+        database_comparison_mode()
+    
+    def _render_peak_ai_analysis(self):
+        """AI解析モード（権限チェック付き）"""
         auth_system = self._get_auth_system()
         auth_manager = auth_system['AuthenticationManager']()
         
@@ -955,14 +854,10 @@ class RamanEyeApp:
             st.error("この機能を使用する権限がありません")
             st.stop()
         
-        # セキュリティヘッダー追加
-        st.markdown("### 🤖 セキュアピークAI解析")
-        st.info("このモードでは、AI通信がHTTPS暗号化され、全てのAPI呼び出しが監査されます。")
-        
         peak_ai_analysis_mode()
     
-    def _render_security_management(self):
-        """セキュリティ管理モード"""
+    def _render_signature_management(self):
+        """電子署名管理モード"""
         auth_system = self._get_auth_system()
         auth_manager = auth_system['AuthenticationManager']()
         
@@ -972,147 +867,15 @@ class RamanEyeApp:
             st.error("この機能を使用する権限がありません")
             st.stop()
         
-        st.header("🛡️ セキュリティ管理")
-        
-        if not SECURITY_AVAILABLE:
-            st.error("セキュリティモジュールが利用できません")
-            return
-        
-        security_manager = self._get_security_manager()
-        if not security_manager:
-            st.error("セキュリティマネージャーを初期化できません")
-            return
-        
-        # タブで機能を分割
-        tab1, tab2, tab3, tab4 = st.tabs(["🔍 監視", "🔐 暗号化", "🔑 アクセス制御", "📊 統計"])
-        
-        with tab1:
-            st.subheader("🔍 リアルタイム監視")
-            self._render_security_monitoring(security_manager)
-        
-        with tab2:
-            st.subheader("🔐 暗号化管理")
-            self._render_encryption_management(security_manager)
-        
-        with tab3:
-            st.subheader("🔑 アクセス制御管理")
-            self._render_access_control_management(security_manager)
-        
-        with tab4:
-            st.subheader("📊 セキュリティ統計")
-            self._render_security_statistics(security_manager)
+        try:
+            from signature_management_ui import render_signature_demo_page
+            render_signature_demo_page()
+        except ImportError:
+            st.error("電子署名管理機能がインストールされていません")
+            st.info("電子署名機能を使用するには、追加のモジュールをインストールしてください")
     
-    def _render_security_monitoring(self, security_manager):
-        """セキュリティ監視画面"""
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**システム状態:**")
-            status = security_manager.get_security_status()
-            
-            for key, value in status.items():
-                if isinstance(value, bool):
-                    icon = "✅" if value else "❌"
-                    st.write(f"{icon} {key.replace('_', ' ').title()}: {'有効' if value else '無効'}")
-        
-        with col2:
-            st.markdown("**最近のセキュリティイベント:**")
-            recent_events = st.session_state.security_events[-5:] if st.session_state.security_events else []
-            
-            for event in reversed(recent_events):
-                severity_icon = {"INFO": "ℹ️", "WARNING": "⚠️", "ERROR": "❌", "CRITICAL": "🚨"}.get(event.get('severity', 'INFO'), "ℹ️")
-                st.write(f"{severity_icon} {event['event_type']} - {event['timestamp'][:19]}")
-    
-    def _render_encryption_management(self, security_manager):
-        """暗号化管理画面"""
-        st.markdown("**現在の暗号化設定:**")
-        st.write(f"- アルゴリズム: {SecurityConfig.ENCRYPTION_ALGORITHM}")
-        st.write(f"- キー長: 256-bit")
-        st.write(f"- 反復回数: {SecurityConfig.KEY_DERIVATION_ITERATIONS:,}")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("🔄 マスターキー再生成", help="セキュリティ強化のためキーを再生成"):
-                current_user = st.session_state.get('current_user', {})
-                user_id = current_user.get('username', 'unknown')
-                
-                self._log_security_event(
-                    "MASTER_KEY_REGENERATION",
-                    user_id,
-                    {"requested": True}
-                )
-                
-                st.warning("⚠️ マスターキー再生成は既存の暗号化データに影響します")
-                st.info("この操作は管理者の確認が必要です")
-        
-        with col2:
-            if st.button("🔍 暗号化統計", help="暗号化されたファイルの統計情報"):
-                # 暗号化統計の表示（実装例）
-                st.info("暗号化ファイル数: 検索中...")
-                st.info("総暗号化データサイズ: 計算中...")
-    
-    def _render_access_control_management(self, security_manager):
-        """アクセス制御管理画面"""
-        current_user = st.session_state.get('current_user', {})
-        user_id = current_user.get('username', 'unknown')
-        
-        st.markdown("**現在のアクセス権限:**")
-        permissions = security_manager.access_control_manager.get_user_file_permissions(user_id)
-        
-        if permissions:
-            df = pd.DataFrame(permissions)
-            st.dataframe(df)
-        else:
-            st.info("現在のユーザーに特別なファイル権限は設定されていません")
-        
-        # アクセス制御の設定
-        with st.expander("🔧 新しいアクセス権限の設定", expanded=False):
-            target_user = st.text_input("対象ユーザー")
-            file_path = st.text_input("ファイルパス")
-            permission_type = st.selectbox("権限タイプ", ["read", "write", "delete"])
-            
-            if st.button("権限付与"):
-                if target_user and file_path:
-                    result = security_manager.access_control_manager.grant_file_permission(
-                        file_path, target_user, permission_type, user_id
-                    )
-                    if result:
-                        st.success("権限を付与しました")
-                    else:
-                        st.error("権限付与に失敗しました")
-    
-    def _render_security_statistics(self, security_manager):
-        """セキュリティ統計画面"""
-        col1, col2, col3 = st.columns(3)
-        
-        # セッション内統計
-        total_events = len(st.session_state.security_events)
-        
-        with col1:
-            st.metric("セキュリティイベント", total_events)
-        
-        with col2:
-            login_events = len([e for e in st.session_state.security_events if 'LOGIN' in e['event_type']])
-            st.metric("ログインイベント", login_events)
-        
-        with col3:
-            error_events = len([e for e in st.session_state.security_events if e.get('severity') in ['ERROR', 'CRITICAL']])
-            st.metric("エラーイベント", error_events)
-        
-        # イベントタイプ別統計
-        if st.session_state.security_events:
-            event_types = {}
-            for event in st.session_state.security_events:
-                event_type = event['event_type']
-                event_types[event_type] = event_types.get(event_type, 0) + 1
-            
-            st.markdown("**イベントタイプ別統計:**")
-            df_stats = pd.DataFrame(list(event_types.items()), columns=['イベントタイプ', '回数'])
-            st.bar_chart(df_stats.set_index('イベントタイプ'))
-    
-    def _render_security_audit(self):
-        """セキュリティ監査モード"""
+    def _render_signature_integration_demo(self):
+        """電子署名統合デモモード"""
         auth_system = self._get_auth_system()
         auth_manager = auth_system['AuthenticationManager']()
         
@@ -1120,153 +883,81 @@ class RamanEyeApp:
         current_role = auth_manager.get_current_role()
         if current_role != "admin":
             st.error("この機能を使用する権限がありません")
-            st.info("セキュリティ監査は管理者専用機能です")
+            st.info("電子署名統合デモは管理者専用機能です")
             st.stop()
         
-        st.header("📊 セキュリティ監査")
-        
-        # 完全な監査情報の表示
-        if st.session_state.security_events:
-            st.subheader("🔍 詳細監査ログ")
+        try:
+            from signature_integration_example import demo_secure_operations, signature_integration_guide
             
-            # フィルタリングオプション
-            col1, col2, col3 = st.columns(3)
+            st.header("🔐 電子署名統合デモ")
             
-            with col1:
-                event_filter = st.selectbox("イベントフィルター", ["すべて", "LOGIN", "FILE_ACCESS", "SECURITY", "ERROR"])
+            st.markdown("""
+            このページでは、電子署名システムの実装例と統合方法をデモンストレーションします。
+            管理者として、重要な操作に電子署名を統合する方法を学習できます。
+            """)
             
-            with col2:
-                user_filter = st.text_input("ユーザーフィルター")
+            # 電子署名システムの状態表示
+            try:
+                from electronic_signature import SignatureLevel
+                st.success("✅ 電子署名システムが正常に動作しています")
+            except ImportError:
+                st.warning("⚠️ 電子署名システムが利用できません（デモモードで動作）")
+                st.info("electronic_signature.py モジュールをインストールすると完全な機能が利用できます")
             
-            with col3:
-                date_filter = st.date_input("日付フィルター")
+            # タブで機能を分離
+            tab1, tab2 = st.tabs(["セキュア操作デモ", "統合ガイド"])
             
-            # フィルタリング適用
-            filtered_events = st.session_state.security_events
+            with tab1:
+                st.markdown("### 🎯 署名が必要な操作の実例")
+                st.info("以下の操作を実行すると、電子署名のプロセスを体験できます")
+                demo_secure_operations()
             
-            if event_filter != "すべて":
-                filtered_events = [e for e in filtered_events if event_filter in e['event_type']]
-            
-            if user_filter:
-                filtered_events = [e for e in filtered_events if user_filter in e['user_id']]
-            
-            # 監査ログテーブル
-            if filtered_events:
-                audit_data = []
-                for event in filtered_events:
-                    audit_data.append({
-                        'タイムスタンプ': event['timestamp'],
-                        'イベントタイプ': event['event_type'],
-                        'ユーザー': event['user_id'],
-                        '詳細': str(event['details'])[:100] + "..." if len(str(event['details'])) > 100 else str(event['details'])
-                    })
+            with tab2:
+                st.markdown("### 📚 電子署名統合ガイド")
+                signature_integration_guide()
                 
-                df_audit = pd.DataFrame(audit_data)
-                st.dataframe(df_audit, use_container_width=True)
-                
-                # 監査レポートのダウンロード
-                if st.button("📥 監査レポートをダウンロード"):
-                    csv = df_audit.to_csv(index=False)
-                    st.download_button(
-                        label="CSV形式でダウンロード",
-                        data=csv,
-                        file_name=f"security_audit_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv"
-                    )
+        except ImportError as e:
+            st.error("電子署名統合デモ機能がインストールされていません")
+            st.error(f"エラー詳細: {e}")
+            st.info("signature_integration_example.py ファイルが必要です")
             
-            else:
-                st.info("フィルター条件に一致するイベントがありません")
+            # フォールバック：基本的な説明を表示
+            st.markdown("---")
+            st.subheader("📋 電子署名統合について")
+            st.markdown("""
+            電子署名統合デモでは、以下の機能を提供します：
+            
+            **🔐 セキュア操作例**:
+            - データエクスポート（一段階署名）
+            - レポート確定（二段階署名）
+            - データベース更新（一段階署名）
+            - システム設定変更（二段階署名）
+            
+            **📚 統合ガイド**:
+            - デコレータベースの実装方法
+            - 署名レベルの選択基準
+            - セキュリティ考慮事項
+            - コンプライアンス対応
+            
+            **実装方法**:
+            ```python
+            @require_signature(
+                operation_type="重要操作",
+                signature_level=SignatureLevel.DUAL
+            )
+            def secure_operation():
+                # 実際の処理
+            ```
+            """)
         
-        else:
-            st.info("監査ログがありません")
-    
-    # その他のセキュア解析モード（スペース制限により省略）
-    def _render_secure_database_comparison(self):
-        """セキュア強化されたデータベース比較モード"""
-        auth_system = self._get_auth_system()
-        auth_manager = auth_system['AuthenticationManager']()
-        
-        if not auth_manager.has_permission("database_comparison"):
-            st.error("この機能を使用する権限がありません")
-            st.stop()
-        
-        st.markdown("### 🔒 セキュアデータベース比較")
-        st.info("このモードでは、データベース操作が暗号化・監査されます。")
-        
-        database_comparison_mode()
-    
-    def _render_secure_multivariate_analysis(self):
-        """セキュア強化された多変量解析モード"""
-        auth_system = self._get_auth_system()
-        auth_manager = auth_system['AuthenticationManager']()
-        
-        if not auth_manager.has_permission("multivariate_analysis"):
-            st.error("この機能を使用する権限がありません")
-            st.stop()
-        
-        st.markdown("### 🔒 セキュア多変量解析")
-        st.info("このモードでは、統計処理が暗号化環境で実行されます。")
-        
-        multivariate_analysis_mode()
-    
-    def _render_secure_peak_deconvolution(self):
-        """セキュア強化されたピーク分離モード"""
-        auth_system = self._get_auth_system()
-        auth_manager = auth_system['AuthenticationManager']()
-        
-        if not auth_manager.has_permission("peak_deconvolution"):
-            st.error("この機能を使用する権限がありません")
-            st.stop()
-        
-        st.markdown("### 🔒 セキュアピーク分離")
-        st.info("このモードでは、ピーク分離処理がセキュアに実行されます。")
-        
-        peak_deconvolution_mode()
-    
-    def _render_secure_peak_analysis(self):
-        """セキュア強化されたピーク解析モード"""
-        auth_system = self._get_auth_system()
-        auth_manager = auth_system['AuthenticationManager']()
-        
-        if not auth_manager.has_permission("peak_analysis"):
-            st.error("この機能を使用する権限がありません")
-            st.stop()
-        
-        st.markdown("### 🔒 セキュアピーク解析")
-        st.info("このモードでは、ピーク検出がセキュアに実行されます。")
-        
-        peak_analysis_mode()
-    
-    def _render_secure_calibration(self):
-        """セキュア強化された検量線作成モード"""
-        auth_system = self._get_auth_system()
-        auth_manager = auth_system['AuthenticationManager']()
-        
-        if not auth_manager.has_permission("calibration"):
-            st.error("この機能を使用する権限がありません")
-            st.stop()
-        
-        st.markdown("### 🔒 セキュア検量線作成")
-        st.info("このモードでは、検量線データがセキュアに処理されます。")
-        
-        calibration_mode()
+        except Exception as e:
+            st.error(f"電子署名統合デモの実行中にエラーが発生しました: {e}")
+            st.info("管理者にお問い合わせください")
 
 def main():
     """メイン関数"""
-    try:
-        app = RamanEyeApp()
-        app.run()
-        
-    except Exception as e:
-        st.error("アプリケーションの初期化中にエラーが発生しました")
-        st.error(f"エラー詳細: {e}")
-        
-        # 緊急時のフォールバック
-        st.markdown("---")
-        st.info("通常モードで起動しますか？")
-        if st.button("🔄 通常モードで再起動"):
-            st.session_state.clear()
-            st.rerun()
+    app = RamanEyeApp()
+    app.run()
 
 if __name__ == "__main__":
     main()
