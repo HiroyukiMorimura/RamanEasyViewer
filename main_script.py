@@ -140,7 +140,6 @@ class RamanEyeApp:
                 justify-content: center;
                 height: 400px;       /* ← ここで「高さ 400px」を指定 */
                 box-sizing: border-box;
-                padding: 20px;
             }
             .logo-container img {
               max-height: 100%;       /* 親400pxの高さいっぱい */
@@ -160,11 +159,10 @@ class RamanEyeApp:
                 justify-content: center;
                 height: 400px;
                 box-sizing: border-box;
-                padding: 20px;
             }
             .login-form-wrapper {
               width: 100%;            /* 横幅いっぱい */
-              height: 70%;           /* 親の400pxいっぱいに */
+              height: 100%;           /* 親の400pxいっぱいに */
               display: flex;
               flex-direction: column;
               justify-content: center;/* 中のフォームを縦方向センター */
