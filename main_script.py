@@ -697,13 +697,13 @@ class SecureRamanEyeApp:
         # セキュリティ強化された利用可能モード
         available_modes = []
         mode_permissions = {
-            "セキュアスペクトル解析": "spectrum_analysis",
-            "セキュアデータベース比較": "database_comparison",
-            "セキュアピークファインダー": "peak_analysis", 
-            "セキュアピーク分離": "peak_deconvolution",
-            "セキュア多変量解析": "multivariate_analysis",
-            "セキュア検量線作成": "calibration",
-            "セキュアピークAI解析": "peak_ai_analysis"
+            "スペクトル解析": "spectrum_analysis",
+            "データベース比較": "database_comparison",
+            "ピークファインダー": "peak_analysis", 
+            "ピーク分離": "peak_deconvolution",
+            "多変量解析": "multivariate_analysis",
+            "検量線作成": "calibration",
+            "ピークAI解析": "peak_ai_analysis"
         }
         
         # 権限チェック付きモード追加
