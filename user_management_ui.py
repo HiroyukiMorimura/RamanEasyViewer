@@ -88,7 +88,7 @@ class LoginUI:
             unsafe_allow_html=True
         )
         
-        st.markdown('<div class="login-container">', unsafe_allow_html=True)
+        # st.markdown('<div class="login-container">', unsafe_allow_html=True)
         
         # ヘッダー
         st.markdown(
