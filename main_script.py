@@ -628,7 +628,7 @@ class SecureRamanEyeApp:
         )
         
         # サイドバー設定
-        self._render_secure_sidebar()
+        self._render_sidebar()
         
         # メインコンテンツエリア（セキュリティ付き）
         if not MODULES_AVAILABLE:
@@ -680,15 +680,23 @@ class SecureRamanEyeApp:
                     for event in reversed(recent_events):
                         st.text(f"{event['event_type']} - {event['timestamp'][:19]}")
     
-    def _render_secure_sidebar(self):
+    def _render_sidebar(self):
+        # モード選択
+        analysis_mode = st.sidebar.selectbox(
+            "セキュア解析モードを選択してください:",
+            available_modes,
+            index=0,
+            key="mode_selector"
+        )
+        
+        st.sidebar.header("🔧 セキュア解析モード選択")
+        
         """セキュア強化されたサイドバー"""
         auth_system = self._get_auth_system()
         AuthenticationManager = auth_system['AuthenticationManager']
         UserRole = auth_system['UserRole']
         
         auth_manager = AuthenticationManager()
-        
-        st.sidebar.header("🔧 セキュア解析モード選択")
         
         # 現在のユーザーの権限を取得
         current_role = auth_manager.get_current_role()
@@ -720,13 +728,7 @@ class SecureRamanEyeApp:
             available_modes.append("セキュリティ監査")
             available_modes.append("ユーザー管理")
         
-        # モード選択
-        analysis_mode = st.sidebar.selectbox(
-            "セキュア解析モードを選択してください:",
-            available_modes,
-            index=0,
-            key="mode_selector"
-        )
+
         
         # セキュリティ権限情報表示
         st.sidebar.markdown("---")
