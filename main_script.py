@@ -110,6 +110,11 @@ class RamanEyeApp:
                 border-radius: 10px;
                 text-align: center;
                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                margin-bottom: 1.5rem;
+                min-height: 180px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
             }
             .feature-icon {
                 font-size: 2rem;
@@ -144,20 +149,24 @@ class RamanEyeApp:
             ("🔒", "セキュリティ", "ユーザー管理・権限制御・監査機能")
         ]
         
-        # 4列のグリッドで機能を表示
-        cols = st.columns(4)
-        for i, (icon, title, desc) in enumerate(features):
-            with cols[i % 4]:
-                st.markdown(
-                    f"""
-                    <div class="feature-card">
-                        <div class="feature-icon">{icon}</div>
-                        <h4>{title}</h4>
-                        <p style="font-size: 0.9rem;">{desc}</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+        # 2行4列のグリッドで機能を表示（重なりを防ぐ）
+        for row in range(2):
+            cols = st.columns(4)
+            for col_idx in range(4):
+                feature_idx = row * 4 + col_idx
+                if feature_idx < len(features):
+                    icon, title, desc = features[feature_idx]
+                    with cols[col_idx]:
+                        st.markdown(
+                            f"""
+                            <div class="feature-card">
+                                <div class="feature-icon">{icon}</div>
+                                <h4 style="margin: 0.5rem 0;">{title}</h4>
+                                <p style="font-size: 0.85rem; margin: 0; line-height: 1.3;">{desc}</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
         
         st.markdown("---")
         
@@ -218,6 +227,8 @@ class RamanEyeApp:
         try:
             if analysis_mode == "スペクトル解析":
                 self._render_spectrum_analysis()
+            elif analysis_mode == "データベース比較":
+                self._render_database_comparison()
             elif analysis_mode == "多変量解析":
                 self._render_multivariate_analysis()
             elif analysis_mode == "ラマンピーク分離":
@@ -226,13 +237,14 @@ class RamanEyeApp:
                 self._render_peak_analysis()
             elif analysis_mode == "検量線作成":
                 self._render_calibration()
-            elif analysis_mode == "データベース比較":
-                self._render_database_comparison()
             elif analysis_mode == "ピークAI解析":
                 self._render_peak_ai_analysis()
             elif analysis_mode == "ユーザー管理":
                 st.session_state.show_user_management = True
                 st.rerun()
+            else:
+                # デフォルトはスペクトル解析
+                self._render_spectrum_analysis()
         except Exception as e:
             st.error(f"機能の実行中にエラーが発生しました: {e}")
             st.error("管理者にお問い合わせください。")
@@ -245,23 +257,24 @@ class RamanEyeApp:
         current_role = self.auth_manager.get_current_role()
         permissions = UserRole.get_role_permissions(current_role)
         
-        # 利用可能なモードを権限に基づいて決定
+        # 利用可能なモードを権限に基づいて決定（スペクトル解析を最初に配置）
         available_modes = []
         mode_permissions = {
-            "スペクトル解析": "spectrum_analysis",
+            "スペクトル解析": "spectrum_analysis",           # 全ユーザー利用可能
+            "データベース比較": "database_comparison",       # 全ユーザー利用可能  
             "ラマンピークファインダー": "peak_analysis", 
             "ラマンピーク分離": "peak_deconvolution",
             "多変量解析": "multivariate_analysis",
             "検量線作成": "calibration",
-            "ピークAI解析": "peak_ai_analysis",
-            "データベース比較": "database_comparison"
+            "ピークAI解析": "peak_ai_analysis"
         }
         
+        # 全ユーザーが使用可能な機能を最初に追加
         for mode, permission in mode_permissions.items():
             if permissions.get(permission, False):
                 available_modes.append(mode)
         
-        # 管理者はユーザー管理も利用可能
+        # 管理者はユーザー管理も利用可能（最後に追加）
         if permissions.get("user_management", False):
             available_modes.append("ユーザー管理")
         
@@ -269,6 +282,7 @@ class RamanEyeApp:
         analysis_mode = st.sidebar.selectbox(
             "解析モードを選択してください:",
             available_modes,
+            index=0,  # 常に最初の利用可能なモード（スペクトル解析）をデフォルトに
             key="mode_selector"
         )
         
