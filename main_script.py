@@ -426,6 +426,7 @@ class RamanEyeApp:
         auth_system = self._get_auth_system()
         AuthenticationManager = auth_system['AuthenticationManager']
         UserRole = auth_system['UserRole']
+        auth_manager = AuthenticationManager()
         
         # 権限情報表示
         st.sidebar.markdown("---")
