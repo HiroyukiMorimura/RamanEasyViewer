@@ -447,8 +447,6 @@ class RamanEyeApp:
         st.sidebar.markdown("---")
         st.sidebar.subheader("📋 使用方法")
         
-        self._render_usage_instructions(analysis_mode)
-        
         # フッター情報
         st.sidebar.markdown("---")
         st.sidebar.markdown("""
