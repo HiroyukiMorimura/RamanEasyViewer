@@ -385,34 +385,34 @@ class SecureElectronicSignatureManager:
         return base64.urlsafe_b64encode(salt + password_hash).decode()
     
     def verify_user_password_secure(self, username: str, password: str) -> bool:
-        """セキュア強化ユーザーパスワード検証"""
-        try:
-            from auth_system import SecureUserDatabase
-            db = SecureUserDatabase()
-            success, _ = db.authenticate_user(username, password)
-            
-            # セキュリティログ記録
-            if self.security_manager:
-                self.security_manager.audit_logger.log_security_event(
-                    event_type="SIGNATURE_PASSWORD_VERIFICATION",
-                    user_id=username,
-                    details={'success': success},
-                    severity="INFO" if success else "WARNING"
-                )
-            
-            return success
-            
-        except Exception as e:
-            # セキュリティログ記録（エラー）
-            if self.security_manager:
-                self.security_manager.audit_logger.log_security_event(
-                    event_type="SIGNATURE_PASSWORD_VERIFICATION_ERROR",
-                    user_id=username,
-                    details={'error': str(e)},
-                    severity="ERROR"
-                )
-            
-            return False
+    """セキュア強化ユーザーパスワード検証"""
+    try:
+        from auth_system import UserDatabase  # SecureUserDatabase → UserDatabase に変更
+        db = UserDatabase()
+        success, _ = db.authenticate_user(username, password)
+        
+        # セキュリティログ記録
+        if self.security_manager:
+            self.security_manager.audit_logger.log_security_event(
+                event_type="SIGNATURE_PASSWORD_VERIFICATION",
+                user_id=username,
+                details={'success': success},
+                severity="INFO" if success else "WARNING"
+            )
+        
+        return success
+        
+    except Exception as e:
+        # セキュリティログ記録（エラー）
+        if self.security_manager:
+            self.security_manager.audit_logger.log_security_event(
+                event_type="SIGNATURE_PASSWORD_VERIFICATION_ERROR",
+                user_id=username,
+                details={'error': str(e)},
+                severity="ERROR"
+            )
+        
+        return False
     
     def add_secure_signature(self, 
                            signature_id: str, 
@@ -1122,9 +1122,9 @@ def require_secure_signature(operation_type: str,
     """セキュア電子署名が必要な操作に使用するデコレータ"""
     def decorator(func):
         def wrapper(*args, **kwargs):
-            from auth_system import SecureAuthenticationManager
+            from auth_system import AuthenticationManager  # SecureAuthenticationManager → AuthenticationManager
             
-            auth_manager = SecureAuthenticationManager()
+            auth_manager = AuthenticationManager()
             if not auth_manager.is_authenticated():
                 st.error("この機能を使用するにはログインが必要です")
                 st.stop()
