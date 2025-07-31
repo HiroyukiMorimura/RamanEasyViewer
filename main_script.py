@@ -421,7 +421,7 @@ class RamanEyeApp:
             index=0,  # 常に最初の利用可能なモード（スペクトル解析）をデフォルトに
             key="mode_selector"
         )
-    def _render_secure_sidebar(self)
+    def _render_secure_sidebar(self):
         # 権限情報表示
         st.sidebar.markdown("---")
         st.sidebar.header("👤 アクセス権限")
