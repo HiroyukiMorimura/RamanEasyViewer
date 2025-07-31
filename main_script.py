@@ -149,12 +149,34 @@ class RamanEyeApp:
                 height: 400px;
                 padding: 20px;
             }
+            .logo-container img {
+                max-height: 360px;
+                width: auto;
+                object-fit: contain;
+            }
             .login-container {
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
                 height: 400px;
                 padding: 20px;
+                box-sizing: border-box;
+            }
+            .login-form-wrapper {
+                background-color: #f8f9fa;
+                border-radius: 10px;
+                padding: 30px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                border: 1px solid #e9ecef;
+            }
+            .stTextInput > div > div > input {
+                padding: 12px;
+                font-size: 16px;
+            }
+            .stButton > button {
+                padding: 12px;
+                font-size: 16px;
+                font-weight: bold;
             }
             </style>
             """,
@@ -173,6 +195,7 @@ class RamanEyeApp:
         with col_login:
             # ログインフォーム（高さ調整用コンテナで囲む）
             st.markdown('<div class="login-container">', unsafe_allow_html=True)
+            st.markdown('<div class="login-form-wrapper">', unsafe_allow_html=True)
             with st.form("login_form"):
                 st.markdown('<h2 class="login-header"><em>RamanEye</em> Easy Viewer ログイン</h2>', unsafe_allow_html=True)
                 username = st.text_input(
@@ -191,14 +214,15 @@ class RamanEyeApp:
                 with col2:
                     forgot_password = st.form_submit_button("パスワード忘れ", use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
-            
-            # ログイン処理
-            if login_button:
-                self._process_login(username, password)
-            
-            # パスワードリセット
-            if forgot_password:
-                st.info("パスワードリセットについては管理者にお問い合わせください")
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        # ログイン処理（コンテナの外で処理）
+        if 'login_button' in locals() and login_button:
+            self._process_login(username, password)
+        
+        # パスワードリセット（コンテナの外で処理）
+        if 'forgot_password' in locals() and forgot_password:
+            st.info("パスワードリセットについては管理者にお問い合わせください")
         
         # セキュリティ機能表示（折りたたみ）
         self._render_security_features_collapsible()
