@@ -258,10 +258,14 @@ class RamanEyeApp:
         
         with col_login:
             # ログインセクション（右側、1/2サイズ）
-            st.markdown('<h2 class="login-header"><em>RamanEye</em> Easy Viewer ログイン</h2>', unsafe_allow_html=True)
-            
+            st.markdown('<div class="login-section">', unsafe_allow_html=True)
             # ログインフォーム
             with st.form("login_form"):
+                st.markdown(
+                    '<h2 class="login-header"><em>RamanEye</em> Easy Viewer ログイン</h2>',
+                    unsafe_allow_html=True
+                )
+                
                 username = st.text_input("ユーザー名", placeholder="ユーザー名を入力")
                 password = st.text_input("パスワード", type="password", placeholder="パスワードを入力")
                 
