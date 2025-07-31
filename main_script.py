@@ -194,6 +194,11 @@ class RamanEyeApp:
                 self._render_secure_main_application()
                 
         except Exception as e:
+            import traceback
+            st.error("アプリケーション実行中にエラーが発生しました")
+            st.error(f"エラー詳細: {e}")
+            st.text("トレースバック:")
+            st.text(traceback.format_exc())  # 詳細なエラートレースを表示
             self._handle_security_exception(e)
     
     def _perform_security_checks(self) -> bool:
