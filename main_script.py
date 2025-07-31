@@ -112,8 +112,8 @@ class RamanEyeApp:
             <style>
             .login-header {
                 color: #1f77b4;
-                margin-bottom: 1rem !important;
-                font-size: 1.8rem  !important;
+                margin-bottom: 0.5rem !important;
+                font-size: 1.8rem !important;
                 font-weight: bold;
             }
             .logo-container {
@@ -165,7 +165,7 @@ class RamanEyeApp:
             
             # ログインフォーム
             with st.form("login_form"):
-                st.markdown('<h2 class="login-header"><em>RamanEye</em> Login</h2>', unsafe_allow_html=True)
+                st.markdown('<h2 class="login-header"><em>RamanEye</em> Easy Viwer ログイン</h2>', unsafe_allow_html=True)
                 username = st.text_input(
                     "ユーザー名", 
                     placeholder="ユーザー名を入力"
