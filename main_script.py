@@ -4,13 +4,7 @@
 Enhanced Integrated Raman Spectrum Analysis Tool with Advanced Security Features
 
 Created on Wed Jun 11 15:56:04 2025
-@author: Enhanced Security System
-Enhanced with comprehensive security features including:
-- Data encryption (At-Rest and In-Transit)
-- File integrity verification
-- Advanced access control
-- Security audit logging
-- HTTPS enforcement
+@author: Hiroyuki Morimura
 """
 
 import streamlit as st
@@ -76,14 +70,9 @@ try:
     from multivariate_analysis import multivariate_analysis_mode
     from calibration_mode import calibration_mode
     from raman_database import database_comparison_mode
-    
-    # セキュア版AI解析モジュール
-    if SECURITY_AVAILABLE:
-        from peak_ai_analysis import peak_ai_analysis_mode  # セキュア版
-    else:
-        from peak_ai_analysis import peak_ai_analysis_mode  # 通常版
-        
+    from peak_ai_analysis import peak_ai_analysis_mode
     MODULES_AVAILABLE = True
+    
 except ImportError as e:
     MODULES_AVAILABLE = False
     st.error(f"解析モジュールのインポートエラー: {e}")
@@ -99,7 +88,7 @@ class SecureRamanEyeApp:
         
         # ページ設定（セキュリティヘッダー付き）
         st.set_page_config(
-            page_title="RamanEye Easy Viewer - Secure Enterprise Edition", 
+            page_title="RamanEye Easy Viewer", 
             page_icon="🔒",
             layout="wide",
             initial_sidebar_state="expanded"
