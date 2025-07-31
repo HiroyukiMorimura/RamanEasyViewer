@@ -151,7 +151,7 @@ class RamanEyeApp:
                 color: #1f77b4;
                 margin-bottom: 0rem !important;
                 margin-top: 0rem !important;
-                font-size: 1.5rem !important;
+                font-size: 2.0rem !important;
                 font-weight: bold;
             }
             .login-container {
@@ -164,7 +164,7 @@ class RamanEyeApp:
             }
             .login-form-wrapper {
               width: 100%;            /* 横幅いっぱい */
-              height: 100%;           /* 親の400pxいっぱいに */
+              height: 70%;           /* 親の400pxいっぱいに */
               display: flex;
               flex-direction: column;
               justify-content: center;/* 中のフォームを縦方向センター */
