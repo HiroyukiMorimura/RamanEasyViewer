@@ -346,35 +346,7 @@ class SecureRamanEyeApp:
         # セキュリティステータス表示
         # col_status, col_logo, col_login = st.columns([1, 2, 2])
         col_logo, col_login = st.columns([1, 1])
-        """
-        with col_status:
-            st.markdown(
-        """
-                """
-                <div class="security-info">
-                    <h4>🔒 セキュリティ機能</h4>
-                    <div class="security-badge">Enterprise Security</div>
-                </div>
-                """,
-                """
-                unsafe_allow_html=True
-            )
-        """
-        """
-            if SECURITY_AVAILABLE:
-                security_manager = self._get_security_manager()
-                if security_manager:
-                    status = security_manager.get_security_status()
-                    
-                    st.markdown("**アクティブなセキュリティ機能:**")
-                    st.write(f"🔐 データ暗号化: {'✅' if status['encryption_enabled'] else '❌'}")
-                    st.write(f"🔍 ファイル完全性: {'✅' if status['integrity_checking_enabled'] else '❌'}")
-                    st.write(f"🛡️ アクセス制御: {'✅' if status['access_control_enabled'] else '❌'}")
-                    st.write(f"📝 監査ログ: {'✅' if status['audit_logging_enabled'] else '❌'}")
-                    st.write(f"🌐 HTTPS通信: {'✅' if status['https_enforced'] else '❌'}")
-            else:
-                st.warning("セキュリティモジュール無効")
-        """
+        
         
         with col_logo:
             # 会社ロゴ表示（セキュア版）
