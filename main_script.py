@@ -328,7 +328,7 @@ class RamanEyeApp:
         )
         
         # サイドバー設定（メインアプリケーションでも表示）
-        self._render_sidebar()
+        self._render_mode_sidebar()
         
         # メインコンテンツエリア
         if not MODULES_AVAILABLE:
@@ -363,11 +363,13 @@ class RamanEyeApp:
             else:
                 # デフォルトはスペクトル解析
                 self._render_spectrum_analysis()
+            self._render_secure_sidebar()
+        
         except Exception as e:
             st.error(f"機能の実行中にエラーが発生しました: {e}")
             st.error("管理者にお問い合わせください。")
     
-    def _render_sidebar(self):
+    def _render_mode_sidebar(self):
         """サイドバーの設定"""
         auth_system = self._get_auth_system()
         AuthenticationManager = auth_system['AuthenticationManager']
@@ -417,7 +419,7 @@ class RamanEyeApp:
             index=0,  # 常に最初の利用可能なモード（スペクトル解析）をデフォルトに
             key="mode_selector"
         )
-        
+    def _render_secure_sidebar(self)
         # 権限情報表示
         st.sidebar.markdown("---")
         st.sidebar.header("👤 アクセス権限")
