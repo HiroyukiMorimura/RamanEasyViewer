@@ -70,7 +70,7 @@ class RamanEyeApp:
         
         # ページ設定
         st.set_page_config(
-            page_title="RamanEye Easy Viewer - Secure", 
+            page_title="RamanEye Easy Viewer", 
             page_icon="🏢",  # ロゴのマークに変更（実際のロゴがある場合は画像パスを指定可能）
             layout="wide",
             initial_sidebar_state="expanded"
@@ -130,9 +130,8 @@ class RamanEyeApp:
             if os.path.exists(logo_path):
                 try:
                     image = Image.open(logo_path)
-                    
+                    st.markdown("")
                     # ロゴを中央に配置（幅を調整）
-
                     st.image(
                         image, 
                         width=300,  # ロゴの幅を調整
