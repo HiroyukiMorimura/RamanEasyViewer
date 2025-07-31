@@ -78,6 +78,114 @@ class RamanEyeApp:
             
             self._render_main_application()
     
+    def _display_company_logo(self):
+        """会社ロゴを表示"""
+        import os
+        from PIL import Image
+        
+        # ロゴファイルのパスを複数チェック
+        logo_paths = [
+            "logo.jpg",          # 同じフォルダ内
+            "logo.png",          # PNG形式も対応
+            "assets/logo.jpg",   # assetsフォルダ内
+            "assets/logo.png",   # assetsフォルダ内（PNG）
+            "images/logo.jpg",   # imagesフォルダ内
+            "images/logo.png"    # imagesフォルダ内（PNG）
+        ]
+        
+        logo_displayed = False
+        
+        # ローカルファイルをチェック
+        for logo_path in logo_paths:
+            if os.path.exists(logo_path):
+                try:
+                    image = Image.open(logo_path)
+                    
+                    # ロゴを中央に配置（幅を調整）
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col2:
+                        st.image(
+                            image, 
+                            width=300,  # ロゴの幅を調整
+                            caption="",
+                            use_column_width=False
+                        )
+                    
+                    logo_displayed = True
+                    break
+                    
+                except Exception as e:
+                    st.error(f"ロゴファイルの読み込みエラー ({logo_path}): {str(e)}")
+        
+        # ローカルファイルが見つからない場合、GitHubからの読み込みを試行
+        if not logo_displayed:
+            github_logo_urls = [
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/logo.jpg",
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/logo.png",
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/assets/logo.jpg",
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/assets/logo.png"
+            ]
+            
+            for url in github_logo_urls:
+                try:
+                    # GitHubからの画像読み込み
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col2:
+                        st.image(
+                            url,
+                            width=300,
+                            caption="",
+                            use_column_width=False
+                        )
+                    
+                    logo_displayed = True
+                    break
+                    
+                except Exception:
+                    continue
+        
+        # ロゴが見つからない場合のフォールバック
+        if not logo_displayed:
+            # テキストベースのロゴを表示
+            st.markdown(
+                """
+                <div style="text-align: center; margin: 1rem 0;">
+                    <div style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        padding: 1rem 2rem;
+                        border-radius: 10px;
+                        font-size: 1.5rem;
+                        font-weight: bold;
+                        display: inline-block;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    ">
+                        🏢 Your Company Name
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            
+            # ロゴファイルの配置に関する情報を表示（開発用）
+            with st.expander("ℹ️ ロゴファイルの配置について"):
+                st.info("""
+                **ロゴを表示するには、以下のいずれかの場所にlogo.jpgまたはlogo.pngを配置してください:**
+                
+                📁 **同じフォルダ内**:
+                - `logo.jpg` または `logo.png`
+                
+                📁 **サブフォルダ内**:
+                - `assets/logo.jpg` または `assets/logo.png`
+                - `images/logo.jpg` または `images/logo.png`
+                
+                🌐 **GitHub Repository**:
+                - GitHubのraw URLを使用する場合は、`_display_company_logo()`メソッド内のURLを実際のリポジトリURLに変更してください
+                
+                **サポート形式**: JPG, PNG
+                **推奨サイズ**: 300px幅程度
+                """)
+    
     def _render_login_page(self):
         """ログインページの表示"""
         # カスタムCSS
@@ -124,6 +232,9 @@ class RamanEyeApp:
             """,
             unsafe_allow_html=True
         )
+        
+        # 会社ロゴの表示
+        self._display_company_logo()
         
         # ヘッダー
         st.markdown(
@@ -191,6 +302,9 @@ class RamanEyeApp:
         # 認証後ヘッダー
         render_authenticated_header()
         
+        # 会社ロゴの表示
+        self._display_company_logo()
+        
         # プロファイル表示チェック
         if st.session_state.get("show_profile", False):
             self.profile_ui.render_profile_page()
@@ -239,6 +353,8 @@ class RamanEyeApp:
                 self._render_calibration()
             elif analysis_mode == "ピークAI解析":
                 self._render_peak_ai_analysis()
+            elif analysis_mode == "電子署名管理":
+                self._render_signature_management()
             elif analysis_mode == "ユーザー管理":
                 st.session_state.show_user_management = True
                 st.rerun()
@@ -273,6 +389,10 @@ class RamanEyeApp:
         for mode, permission in mode_permissions.items():
             if permissions.get(permission, False):
                 available_modes.append(mode)
+        
+        # 管理者・分析者は電子署名管理も利用可能
+        if permissions.get("user_management", False) or current_role == "analyst":
+            available_modes.append("電子署名管理")
         
         # 管理者はユーザー管理も利用可能（最後に追加）
         if permissions.get("user_management", False):
@@ -396,6 +516,26 @@ class RamanEyeApp:
             7. **質問機能**: 解析結果について追加質問が可能
             """,
             
+            "電子署名管理": """
+            **電子署名管理モード:**
+            1. **ペンディング署名確認**: 署名待ちの操作を確認・実行
+            2. **署名実行**: パスワード再入力＋署名理由入力で電子署名
+            3. **署名履歴確認**: 過去の署名記録を確認・監査
+            4. **署名統計**: 署名の完了率・拒否率などの統計情報
+            5. **署名設定**: 署名ポリシー・セキュリティ設定の管理
+            
+            **署名レベル:**
+            - **一段階署名**: 一人の承認で完了
+            - **二段階署名**: 二人の承認が必要（重要な操作）
+            
+            **署名情報記録:**
+            - 署名者氏名（印字名）・日時・理由・UserID
+            - タイムスタンプ付きで改ざん防止
+            - 完全な監査証跡を提供
+            
+            **⚠️ 管理者・分析者が利用可能**
+            """,
+            
             "ユーザー管理": """
             **ユーザー管理モード:**
             1. **ユーザー一覧**: 全ユーザーの状態確認
@@ -447,6 +587,17 @@ class RamanEyeApp:
     def _render_peak_ai_analysis(self):
         """AI解析モード（権限チェック付き）"""
         peak_ai_analysis_mode()
+    
+    def _render_signature_management(self):
+        """電子署名管理モード"""
+        # 管理者または分析者のみアクセス可能
+        current_role = self.auth_manager.get_current_role()
+        if current_role not in ["admin", "analyst"]:
+            st.error("この機能を使用する権限がありません")
+            st.stop()
+        
+        from signature_management_ui import render_signature_demo_page
+        render_signature_demo_page()
 
 def main():
     """メイン関数"""
