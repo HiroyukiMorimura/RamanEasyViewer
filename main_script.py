@@ -950,10 +950,6 @@ class SecureRamanEyeApp:
             st.error("この機能を使用する権限がありません")
             st.stop()
         
-        # セキュリティヘッダー追加
-        # st.markdown("### 🔒スペクトル解析")
-        # st.info("このモードでは、全てのファイル操作が暗号化・監査されます。")
-        
         spectrum_analysis_mode()
     
     def _render_secure_peak_ai_analysis(self):
