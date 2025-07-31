@@ -170,7 +170,7 @@ class RamanEyeApp:
     
     def run(self):
         """メインアプリケーションの実行"""
-        # try:
+        try:
             # セキュリティチェック
             if not self._perform_security_checks():
                 st.stop()
@@ -193,8 +193,8 @@ class RamanEyeApp:
                 
                 self._render_secure_main_application()
                 
-        # except Exception as e:
-        #     self._handle_security_exception(e)
+        except Exception as e:
+            self._handle_security_exception(e)
     
     def _perform_security_checks(self) -> bool:
         """基本的なセキュリティチェック"""
@@ -265,9 +265,9 @@ class RamanEyeApp:
         # ログサイズ制限
         if len(st.session_state.security_events) > 100:
             st.session_state.security_events = st.session_state.security_events[-50:]
-    """
+    
     def _handle_security_exception(self, exception: Exception):
-        # セキュリティ例外の処理
+        """セキュリティ例外の処理"""
         current_user = st.session_state.get('current_user', {})
         user_id = current_user.get('username', 'unknown')
         
@@ -279,7 +279,7 @@ class RamanEyeApp:
         
         st.error("セキュリティエラーが発生しました。管理者にお問い合わせください。")
         st.error(f"エラー詳細: {exception}")
-    """
+    
     def _render_secure_login_page(self):
         """セキュア強化されたログインページの表示"""
         # セキュリティ強化されたCSS
@@ -600,17 +600,11 @@ class RamanEyeApp:
         
         ui_components = self._get_ui_components()
         
-        # 認証後ヘッダー（セキュリティ情報付き
+        # 認証後ヘッダー（セキュリティ情報付き）- ユーザー状態を一番上に
         self._render_secure_authenticated_header()
         
         # サイドバー設定を先に実行
-        self._render_mode_sidebar()
-        
-        # 解析モード実行
-        self._execute_analysis_mode()
-        
-        # サイドバー設定を先に実行
-        self._render_secure_sidebar()
+        self._render_sidebar()
         
         # メインコンテンツエリア（セキュリティ付き）
         if not MODULES_AVAILABLE:
@@ -635,7 +629,8 @@ class RamanEyeApp:
                 st.rerun()
             return
         
-        
+        # 解析モード実行
+        self._execute_analysis_mode()
     
     def _render_secure_authenticated_header(self):
         """セキュア強化された認証後ヘッダー"""
@@ -646,20 +641,21 @@ class RamanEyeApp:
         
         # セキュリティ情報は_render_sidebar()内で下側に表示
     
-    def _render_mode_sidebar(self):
+    def _render_sidebar(self):
         """サイドバー"""
+        # 解析モード選択を一番上に
+        st.sidebar.header("🔧 解析モード選択")
+        
         auth_system = self._get_auth_system()
         AuthenticationManager = auth_system['AuthenticationManager']
         UserRole = auth_system['UserRole']
-        st.write("I'm here")
+        
         auth_manager = AuthenticationManager()
         
         # 現在のユーザーの権限を取得
         current_role = auth_manager.get_current_role()
         permissions = UserRole.get_role_permissions(current_role)
         
-        # 解析モード選択
-        st.sidebar.header("🔧 解析モード選択")
         mode_permissions = {
             "スペクトル解析": "spectrum_analysis",
             "データベース比較": "database_comparison",
@@ -697,11 +693,7 @@ class RamanEyeApp:
             key="mode_selector"
         )
         
-    def _render_secure_sidebar(self):
         # セキュリティ関連の表示を下側に移動
-        auth_system = self._get_auth_system()
-        AuthenticationManager = auth_system['AuthenticationManager']
-        UserRole = auth_system['UserRole']
         st.sidebar.markdown("---")
         
         # セキュリティ状態（元々_render_secure_authenticated_headerにあった内容）
@@ -755,6 +747,7 @@ class RamanEyeApp:
         # 使用方法の説明（セキュリティ版）
         st.sidebar.markdown("---")
         st.sidebar.subheader("📋 セキュア使用方法")
+        analysis_mode = st.session_state.get("mode_selector", "スペクトル解析")
         self._render_secure_usage_instructions(analysis_mode)
         
     
