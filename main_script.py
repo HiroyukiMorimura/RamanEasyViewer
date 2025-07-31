@@ -140,7 +140,7 @@ class RamanEyeApp:
                             image, 
                             width=300,  # ロゴの幅を調整
                             caption="",
-                            use_column_width=False
+                            use_container_width=False
                         )
                     
                     logo_displayed = True
@@ -167,7 +167,7 @@ class RamanEyeApp:
                             url,
                             width=300,
                             caption="",
-                            use_column_width=False
+                            use_container_width=False
                         )
                     
                     logo_displayed = True
