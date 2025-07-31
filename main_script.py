@@ -110,22 +110,7 @@ class RamanEyeApp:
         st.markdown(
             """
             <style>
-            .logo-container,
-            .login-container {
-              height: 400px;
-              display: flex;
-              align-items: center;    /* 子要素を縦方向センター */
-              justify-content: center;/* 子要素を横方向センター */
-              box-sizing: border-box;
-              padding: 20px;
-            }
-            .login-header {
-                color: #1f77b4;
-                margin-bottom: 0rem !important;
-                margin-top: 0rem !important;
-                font-size: 1.3rem !important;
-                font-weight: bold;
-            }
+            
             .security-info {
                 background-color: #e8f5e8;
                 border-left: 4px solid #28a745;
@@ -155,7 +140,6 @@ class RamanEyeApp:
                 align-items: center;
                 justify-content: center;
                 height: 400px;
-                padding: 20px;
             }
             .logo-container img {
               max-height: 100%;       /* 親400pxの高さいっぱい */
@@ -167,7 +151,6 @@ class RamanEyeApp:
                 flex-direction: column;
                 justify-content: center;
                 height: 400px;
-                padding: 20px;
                 box-sizing: border-box;
             }
             .login-form-wrapper {
@@ -178,7 +161,6 @@ class RamanEyeApp:
               justify-content: center;/* 中のフォームを縦方向センター */
               background-color: #f8f9fa;
               border-radius: 10px;
-              padding: 30px;
               box-shadow: 0 4px 6px rgba(0,0,0,0.1);
               border: 1px solid #e9ecef;
             }
