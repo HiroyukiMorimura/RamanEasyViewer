@@ -744,6 +744,14 @@ class RamanEyeApp:
             管理者として、重要な操作に電子署名を統合する方法を学習できます。
             """)
             
+            # 電子署名システムの状態表示
+            try:
+                from electronic_signature import SignatureLevel
+                st.success("✅ 電子署名システムが正常に動作しています")
+            except ImportError:
+                st.warning("⚠️ 電子署名システムが利用できません（デモモードで動作）")
+                st.info("electronic_signature.py モジュールをインストールすると完全な機能が利用できます")
+            
             # タブで機能を分離
             tab1, tab2 = st.tabs(["セキュア操作デモ", "統合ガイド"])
             
