@@ -138,7 +138,7 @@ class RamanEyeApp:
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                height: 400px;
+                height: 0px;
             }
             .logo-container img {
               max-height: 100%;       /* 親400pxの高さいっぱい */
@@ -156,7 +156,7 @@ class RamanEyeApp:
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
-                height: 300px;
+                height: 0px;
                 box-sizing: border-box;
             }
             .login-form-wrapper {
