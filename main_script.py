@@ -602,6 +602,7 @@ class RamanEyeApp:
         
         # 認証後ヘッダー（セキュリティ情報付き
         self._render_secure_authenticated_header()
+        
         # サイドバー設定を先に実行
         self._render_mode_sidebar()
         
@@ -650,7 +651,7 @@ class RamanEyeApp:
         auth_system = self._get_auth_system()
         AuthenticationManager = auth_system['AuthenticationManager']
         UserRole = auth_system['UserRole']
-        
+        st.write("I'm here")
         auth_manager = AuthenticationManager()
         
         # 現在のユーザーの権限を取得
