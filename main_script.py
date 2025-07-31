@@ -159,10 +159,6 @@ class RamanEyeApp:
               display: flex;
               flex-direction: column;
               justify-content: center;/* 中のフォームを縦方向センター */
-              background-color: #f8f9fa;
-              border-radius: 10px;
-              box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-              border: 1px solid #e9ecef;
             }
             .stTextInput > div > div > input {
                 padding: 12px;
