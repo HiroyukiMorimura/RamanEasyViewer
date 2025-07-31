@@ -597,6 +597,20 @@ class SecureRamanEyeApp:
         """セキュア強化されたメインアプリケーションの表示"""
         ui_components = self._get_ui_components()
         
+        # メインタイトル
+        st.markdown(
+            "<h1><span style='font-style: italic;'>RamanEye</span> Easy Viewer</h1>",
+            unsafe_allow_html=True
+        )
+        
+        # メインコンテンツエリア（セキュリティ付き）
+        if not MODULES_AVAILABLE:
+            st.error("解析モジュールが利用できません。管理者にお問い合わせください。")
+            return
+        
+        # 強化された解析モード実行
+        self._execute_secure_analysis_mode()
+        
         # 認証後ヘッダー（セキュリティ情報付き）
         self._render_secure_authenticated_header()
 
@@ -617,23 +631,6 @@ class SecureRamanEyeApp:
                 st.session_state.show_user_management = False
                 st.rerun()
             return
-        
-        # メインタイトル
-        st.markdown(
-            "<h1><span style='font-style: italic;'>RamanEye</span> Easy Viewer</h1>",
-            unsafe_allow_html=True
-        )
-        
-
-        
-        # メインコンテンツエリア（セキュリティ付き）
-        if not MODULES_AVAILABLE:
-            st.error("解析モジュールが利用できません。管理者にお問い合わせください。")
-            return
-        
-        # 強化された解析モード実行
-        self._execute_secure_analysis_mode()
-
         # サイドバー設定
         self._render_sidebar()
     
