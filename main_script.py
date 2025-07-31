@@ -162,7 +162,7 @@ class RamanEyeApp:
             .login-header {
                 color: #1f77b4;
                 margin-bottom: 1rem;
-                font-size: 1.8rem;
+                font-size: 1rem;
                 font-weight: bold;
             }
             .subtitle {
@@ -255,8 +255,6 @@ class RamanEyeApp:
             self._display_company_logo()
         
         with col_login:
-            # ログインセクション（右側、1/2サイズ）
-            # st.markdown('<div class="login-section">', unsafe_allow_html=True)
             # ログインフォーム
             with st.form("login_form"):
                 st.markdown(
