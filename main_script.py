@@ -200,35 +200,6 @@ class RamanEyeApp:
                 border-radius: 10px;
                 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             }
-            .logo-container {
-                text-align: center;
-                width: 100%;
-                display: flex;
-                flex-direction: column;
-                justify-content: flex-start;
-                align-items: center;
-                height: 100%;
-                padding-top: 0;
-            }
-            .logo-content {
-                margin-top: 0;
-                margin-bottom: 0;
-            }
-            .demo-accounts {
-                background-color: #e3f2fd;
-                padding: 1rem;
-                border-radius: 5px;
-                margin-top: 1rem;
-                border-left: 4px solid #1976d2;
-                font-size: 0.85rem;
-            }
-            .demo-section {
-                margin-top: 2rem;
-                padding: 1.5rem;
-                background-color: #f8f9fa;
-                border-radius: 10px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            }
             </style>
             """,
             unsafe_allow_html=True
