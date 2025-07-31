@@ -392,8 +392,10 @@ class RamanEyeApp:
         
         st.session_state.analysis_mode = analysis_mode
         
-        # パラメーター選択エリア（各解析モードで実装される内容の表示場所）
-        # この部分は各解析モードの関数内で実装されます
+        # 使用方法の説明
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("📋 使用方法")
+        self._render_usage_instructions(analysis_mode)
         
         # フッター情報
         st.sidebar.markdown("---")
@@ -403,11 +405,6 @@ class RamanEyeApp:
         - Author: Hiroyuki Morimura
         - Last Updated: 2025-07-31
         """)
-        
-        # 使用方法の説明
-        st.sidebar.markdown("---")
-        st.sidebar.subheader("📋 使用方法")
-        self._render_usage_instructions(analysis_mode)
     
     def _render_usage_instructions(self, analysis_mode):
         """使用方法の説明"""
