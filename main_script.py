@@ -110,7 +110,15 @@ class RamanEyeApp:
         st.markdown(
             """
             <style>
-            
+            .logo-container,
+            .login-container {
+              height: 400px;
+              display: flex;
+              align-items: center;    /* 子要素を縦方向センター */
+              justify-content: center;/* 子要素を横方向センター */
+              box-sizing: border-box;
+              padding: 20px;
+            }
             .login-header {
                 color: #1f77b4;
                 margin-bottom: 0rem !important;
@@ -150,9 +158,9 @@ class RamanEyeApp:
                 padding: 20px;
             }
             .logo-container img {
-                max-height: 360px;
-                width: auto;
-                object-fit: contain;
+              max-height: 100%;       /* 親400pxの高さいっぱい */
+              width: auto;
+              object-fit: contain;
             }
             .login-container {
                 display: flex;
@@ -163,11 +171,16 @@ class RamanEyeApp:
                 box-sizing: border-box;
             }
             .login-form-wrapper {
-                background-color: #f8f9fa;
-                border-radius: 10px;
-                padding: 30px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                border: 1px solid #e9ecef;
+              width: 100%;            /* 横幅いっぱい */
+              height: 100%;           /* 親の400pxいっぱいに */
+              display: flex;
+              flex-direction: column;
+              justify-content: center;/* 中のフォームを縦方向センター */
+              background-color: #f8f9fa;
+              border-radius: 10px;
+              padding: 30px;
+              box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+              border: 1px solid #e9ecef;
             }
             .stTextInput > div > div > input {
                 padding: 12px;
