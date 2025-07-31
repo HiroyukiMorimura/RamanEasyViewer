@@ -11,7 +11,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from electronic_signature import (
-    ElectronicSignatureManager,
+    SecureElectronicSignatureManager,
     SignatureUI,
     SignatureLevel,
     SignatureStatus
