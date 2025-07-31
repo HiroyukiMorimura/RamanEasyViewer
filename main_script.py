@@ -143,7 +143,7 @@ class RamanEyeApp:
                             image, 
                             width=560,  # ログインフォームに合わせたサイズ
                             caption="",
-                            use_container_width=True
+                            use_container_width=False
                         )
                     
                     st.markdown('</div>', unsafe_allow_html=True)
@@ -173,7 +173,7 @@ class RamanEyeApp:
                             url,
                             width=560,
                             caption="",
-                            use_container_width=True
+                            use_container_width=False
                         )
                     
                     st.markdown('</div>', unsafe_allow_html=True)
