@@ -111,7 +111,7 @@ class RamanEyeApp:
             self._render_main_application()
     
     def _display_company_logo_centered(self):
-        """会社ロゴを中央配置で表示（左側レイアウト用）"""
+        """会社ロゴを中央配置で表示（ログインフォームと同じ高さ）"""
         import os
         from PIL import Image
         
@@ -127,25 +127,26 @@ class RamanEyeApp:
         
         logo_displayed = False
         
-        # 中央配置用のコンテナ
-        st.markdown('<div class="logo-container">', unsafe_allow_html=True)
-        
         # ローカルファイルをチェック
         for logo_path in logo_paths:
             if os.path.exists(logo_path):
                 try:
                     image = Image.open(logo_path)
                     
-                    # ロゴを中央に配置（適切なサイズ）
+                    # ロゴを中央に配置（ログインフォームと同じ高さから開始）
+                    st.markdown('<div class="logo-content">', unsafe_allow_html=True)
+                    
+                    # 中央配置のためのカラム
                     col1, col2, col3 = st.columns([1, 2, 1])
                     with col2:
                         st.image(
                             image, 
-                            width=350,  # 半分のスペースに適したサイズ
+                            width=280,  # ログインフォームに合わせたサイズ
                             caption="",
                             use_container_width=False
                         )
                     
+                    st.markdown('</div>', unsafe_allow_html=True)
                     logo_displayed = True
                     break
                     
@@ -164,49 +165,52 @@ class RamanEyeApp:
             for url in github_logo_urls:
                 try:
                     # GitHubからの画像読み込み（中央配置）
+                    st.markdown('<div class="logo-content">', unsafe_allow_html=True)
+                    
                     col1, col2, col3 = st.columns([1, 2, 1])
                     with col2:
                         st.image(
                             url,
-                            width=350,
+                            width=280,
                             caption="",
                             use_container_width=False
                         )
                     
+                    st.markdown('</div>', unsafe_allow_html=True)
                     logo_displayed = True
                     break
                     
                 except Exception:
                     continue
         
-        # ロゴが見つからない場合のフォールバック（中央配置）
+        # ロゴが見つからない場合のフォールバック（ログインフォームと同じ高さ）
         if not logo_displayed:
-            # テキストベースのロゴを中央に表示
+            # テキストベースのロゴを表示
             st.markdown(
                 """
-                <div style="text-align: center; margin: 2rem 0;">
-                    <div style="
-                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                        color: white;
-                        padding: 2rem 2.5rem;
-                        border-radius: 15px;
-                        font-size: 2rem;
-                        font-weight: bold;
-                        display: inline-block;
-                        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-                        margin-bottom: 1rem;
-                    ">
-                        🏢 Your Company Name
-                    </div>
-                    <div style="font-size: 1.1rem; color: #666; text-align: center;">
-                        Advanced Scientific Solutions
+                <div class="logo-content">
+                    <div style="text-align: center; margin: 0;">
+                        <div style="
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            padding: 1.5rem 2rem;
+                            border-radius: 12px;
+                            font-size: 1.8rem;
+                            font-weight: bold;
+                            display: inline-block;
+                            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+                            margin-bottom: 0.8rem;
+                        ">
+                            🏢 Your Company Name
+                        </div>
+                        <div style="font-size: 1rem; color: #666; text-align: center; margin: 0;">
+                            Advanced Scientific Solutions
+                        </div>
                     </div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
-        
-        st.markdown('</div>', unsafe_allow_html=True)
     
     def _display_company_logo_inline(self):
         """会社ロゴをインライン表示（左側レイアウト用）"""
@@ -476,9 +480,14 @@ class RamanEyeApp:
                 width: 100%;
                 display: flex;
                 flex-direction: column;
-                justify-content: center;
+                justify-content: flex-start;
                 align-items: center;
-                min-height: 300px;
+                height: 100%;
+                padding-top: 0;
+            }
+            .logo-content {
+                margin-top: 0;
+                margin-bottom: 0;
             }
             .demo-accounts {
                 background-color: #e3f2fd;
@@ -502,7 +511,7 @@ class RamanEyeApp:
         
         with col_login:
             # ログインセクション（右側、1/2サイズ）
-            st.markdown('<h2 class="login-header">RamanEye Easy Viewer Login</h2>', unsafe_allow_html=True)
+            st.markdown('<h2 class="login-header"><em>RamanEye</em> Easy Viewer ログイン</h2>', unsafe_allow_html=True)
             
             # ログインフォーム
             with st.form("login_form"):
