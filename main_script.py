@@ -164,42 +164,11 @@ class RamanEyeApp:
                 gap: 1rem;
                 margin: 2rem 0;
             }
-            .feature-card {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 1.5rem;
-                border-radius: 10px;
-                text-align: center;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                margin-bottom: 1.5rem;
-                min-height: 180px;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-            }
             .feature-icon {
                 font-size: 2rem;
                 margin-bottom: 0.5rem;
             }
-            .top-layout {
-                display: flex;
-                align-items: flex-start;
-                margin-bottom: 2rem;
-            }
-            .logo-section {
-                flex: 1;
-                padding-right: 2rem;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-            }
-            .login-section {
-                flex: 1;
-                background-color: #f8f9fa;
-                padding: 1.5rem;
-                border-radius: 10px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            }
+            
             </style>
             """,
             unsafe_allow_html=True
