@@ -141,7 +141,7 @@ class RamanEyeApp:
                     with col2:
                         st.image(
                             image, 
-                            width=280,  # ログインフォームに合わせたサイズ
+                            width=280*2,  # ログインフォームに合わせたサイズ
                             caption="",
                             use_container_width=False
                         )
@@ -171,7 +171,7 @@ class RamanEyeApp:
                     with col2:
                         st.image(
                             url,
-                            width=280,
+                            width=280*2,
                             caption="",
                             use_container_width=False
                         )
