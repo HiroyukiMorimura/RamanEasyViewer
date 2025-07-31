@@ -363,12 +363,13 @@ class RamanEyeApp:
             else:
                 # デフォルトはスペクトル解析
                 self._render_spectrum_analysis()
-                
-            self._render_secure_sidebar()
         
         except Exception as e:
             st.error(f"機能の実行中にエラーが発生しました: {e}")
             st.error("管理者にお問い合わせください。")
+        
+        # サイドバー設定（メインアプリケーションでも表示）
+        self._render_secure_sidebar()    
     
     def _render_mode_sidebar(self):
         """サイドバーの設定"""
