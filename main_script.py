@@ -599,10 +599,7 @@ class SecureRamanEyeApp:
         
         # 認証後ヘッダー（セキュリティ情報付き）
         self._render_secure_authenticated_header()
-        
-        # セキュア版会社ロゴ
-        # self._display_secure_company_logo()
-        
+
         # プロファイル表示チェック
         if st.session_state.get("show_profile", False):
             profile_ui = ui_components['ProfileUI']()
@@ -623,12 +620,11 @@ class SecureRamanEyeApp:
         
         # メインタイトル
         st.markdown(
-            "<h1><span style='font-style: italic;'>RamanEye</span> Secure Viewer</h1>",
+            "<h1><span style='font-style: italic;'>RamanEye</span> Easy Viewer</h1>",
             unsafe_allow_html=True
         )
         
-        # サイドバー設定
-        self._render_sidebar()
+
         
         # メインコンテンツエリア（セキュリティ付き）
         if not MODULES_AVAILABLE:
@@ -637,6 +633,9 @@ class SecureRamanEyeApp:
         
         # 強化された解析モード実行
         self._execute_secure_analysis_mode()
+
+        # サイドバー設定
+        self._render_sidebar()
     
     def _render_secure_authenticated_header(self):
         """セキュア強化された認証後ヘッダー"""
