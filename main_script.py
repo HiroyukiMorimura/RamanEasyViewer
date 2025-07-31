@@ -425,7 +425,7 @@ class SecureRamanEyeApp:
                 # ログイン成功
                 st.session_state.failed_login_attempts = 0
                 self._log_security_event("LOGIN_SUCCESS", username, {"method": "password"})
-                st.success("セキュアログインが完了しました")
+                st.success("ログインが完了しました")
                 st.rerun()
             else:
                 # ログイン失敗
@@ -551,13 +551,13 @@ class SecureRamanEyeApp:
         st.markdown("### 🌟 セキュア機能一覧")
         
         features = [
-            ("📊", "セキュアスペクトル解析", "暗号化保護されたラマンスペクトル解析"),
-            ("🔍", "セキュアピーク分析", "完全性保証されたピーク検出・解析"),
-            ("⚗️", "セキュアピーク分離", "アクセス制御付きピーク分離"),
-            ("📈", "セキュア多変量解析", "暗号化データでの統計解析"),
-            ("📏", "セキュア検量線作成", "監査証跡付き定量分析"),
-            ("🤖", "セキュアAI解析", "HTTPS強制のAI解析・RAG機能"),
-            ("🗄️", "セキュアDB比較", "暗号化データベース照合"),
+            ("📊", "スペクトル解析", "ラマンスペクトル解析"),
+            ("🔍", "ピーク分析", "ピーク検出・解析"),
+            ("⚗️", "ピーク分離", "ピーク分離"),
+            ("📈", "多変量解析", "統計解析"),
+            ("📏", "検量線作成", "定量分析"),
+            ("🤖", "AI解析", "ピークAI解析・RAG機能"),
+            ("🗄️", "DB比較", "データベース照合"),
             ("🔒", "エンタープライズセキュリティ", "多層セキュリティ・監査・コンプライアンス")
         ]
         
@@ -586,12 +586,8 @@ class SecureRamanEyeApp:
         st.markdown(
             """
             <div style="text-align: center; color: #666; margin-top: 2rem;">
-            <p>🔒 <strong>RamanEye Easy Viewer v2.0.0</strong> - Enterprise Security Edition</p>
-            <p>🛡️ Bank-Grade Security • 🔐 End-to-End Encryption • 📝 Complete Audit Trail</p>
+            <p><strong>RamanEye Easy Viewer v1.0.0</strong></p>
             <p>© 2025 Hiroyuki Morimura. All rights reserved.</p>
-            <p style="font-size: 0.8rem; color: #999;">
-                Security Level: Enterprise • Compliance: SOC2, ISO27001 Ready • Encryption: AES-256
-            </p>
             </div>
             """,
             unsafe_allow_html=True
