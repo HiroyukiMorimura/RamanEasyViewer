@@ -333,9 +333,6 @@ class RamanEyeApp:
         # 認証後ヘッダー
         self._render_authenticated_header()
         
-        # 会社ロゴの表示
-        self._display_company_logo()
-        
         # メインタイトル
         st.markdown(
             "<h1>📊 <span style='font-style: italic;'>RamanEye</span> Easy Viewer</h1>",
@@ -368,36 +365,7 @@ class RamanEyeApp:
             if st.button("🚪 ログアウト", use_container_width=True):
                 self.auth_manager.logout()
                 st.rerun()
-    
-    def _display_company_logo(self):
-        """会社ロゴ表示"""
-        st.markdown(
-            """
-            <div style="text-align: center; margin: 2rem 0;">
-                <div style="
-                    background: linear-gradient(135deg, #1f77b4 0%, #17a2b8 100%);
-                    color: white;
-                    padding: 2rem 3rem;
-                    border-radius: 15px;
-                    font-size: 2.5rem;
-                    font-weight: bold;
-                    display: inline-block;
-                    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-                    margin-bottom: 1rem;
-                ">
-                    📊 RamanEye
-                </div>
-                <div style="font-size: 1.2rem; color: #666; text-align: center; margin: 0;">
-                    Easy Viewer
-                </div>
-                <div style="font-size: 0.9rem; color: #1f77b4; text-align: center; margin-top: 0.5rem;">
-                    統合ラマンスペクトル解析ツール
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    
+                
     def _render_sidebar(self):
         """サイドバーの表示"""
         st.sidebar.header("🔧 解析モード選択")
