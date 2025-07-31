@@ -734,9 +734,9 @@ class RamanEyeApp:
         st.sidebar.header("🛡️ セキュリティ権限")
         
         role_descriptions = {
-            UserRole.ADMIN: "🔧 全機能・セキュリティ管理可能",
-            UserRole.ANALYST: "📊 分析・暗号化機能利用可能", 
-            UserRole.VIEWER: "👁️ 閲覧・基本分析のみ"
+            "admin": "🔧 全機能・セキュリティ管理可能",
+            "analyst": "📊 分析・暗号化機能利用可能", 
+            "viewer": "👁️ 閲覧・基本分析のみ"
         }
         
         st.sidebar.info(role_descriptions.get(current_role, "権限情報なし"))
