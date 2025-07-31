@@ -600,18 +600,17 @@ class RamanEyeApp:
         
         ui_components = self._get_ui_components()
         
-        # 解析モード実行
-        self._execute_analysis_mode()
+        # 認証後ヘッダー（セキュリティ情報付き）- ユーザー状態を一番上に
+        self._render_secure_authenticated_header()
         
+        # サイドバー設定を先に実行
+        self._render_sidebar()
         
         # メインコンテンツエリア（セキュリティ付き）
         if not MODULES_AVAILABLE:
             st.error("解析モジュールが利用できません。管理者にお問い合わせください。")
             return
         
-        # 認証後ヘッダー（セキュリティ情報付き）
-        self._render_secure_authenticated_header()
-
         # プロファイル表示チェック
         if st.session_state.get("show_profile", False):
             profile_ui = ui_components['ProfileUI']()
@@ -630,8 +629,8 @@ class RamanEyeApp:
                 st.rerun()
             return
         
-        # サイドバー設定
-        self._render_sidebar()
+        # 解析モード実行
+        self._execute_analysis_mode()
     
     def _render_secure_authenticated_header(self):
         """セキュア強化された認証後ヘッダー"""
@@ -676,7 +675,20 @@ class RamanEyeApp:
                         st.text(f"{event['event_type']} - {event['timestamp'][:19]}")
     
     def _render_sidebar(self):
+        """サイドバー"""
+        # 解析モード選択を一番上に
         st.sidebar.header("🔧 解析モード選択")
+        
+        auth_system = self._get_auth_system()
+        AuthenticationManager = auth_system['AuthenticationManager']
+        UserRole = auth_system['UserRole']
+        
+        auth_manager = AuthenticationManager()
+        
+        # 現在のユーザーの権限を取得
+        current_role = auth_manager.get_current_role()
+        permissions = UserRole.get_role_permissions(current_role)
+        
         mode_permissions = {
             "スペクトル解析": "spectrum_analysis",
             "データベース比較": "database_comparison",
@@ -687,39 +699,11 @@ class RamanEyeApp:
             "ピークAI解析": "peak_ai_analysis"
         }
             
-        # ここで権限チェックして available_modes を作る
-        auth_system = self._get_auth_system()
-        perms = auth_system['UserRole'].get_role_permissions(auth_system['AuthenticationManager']().get_current_role())
+        # 権限チェックして available_modes を作る
         available_modes = [
             mode for mode, perm in mode_permissions.items()
-            if perms.get(perm, False)
+            if permissions.get(perm, False)
         ]
-        # 必ず最低１つ入れる
-        if not available_modes:
-            available_modes = ["セキュアスペクトル解析"]
-        # そして初めて selectbox
-        analysis_mode = st.sidebar.selectbox(
-            "セキュア解析モードを選択してください:",
-            available_modes,
-            index=0,
-            key="mode_selector"
-        )
-        
-        """サイドバー"""
-        auth_system = self._get_auth_system()
-        AuthenticationManager = auth_system['AuthenticationManager']
-        UserRole = auth_system['UserRole']
-        
-        auth_manager = AuthenticationManager()
-        
-        # 現在のユーザーの権限を取得
-        current_role = auth_manager.get_current_role()
-        permissions = UserRole.get_role_permissions(current_role)
-    
-        # 権限チェック付きモード追加
-        for mode, permission in mode_permissions.items():
-            if permissions.get(permission, False):
-                available_modes.append(mode)
         
         # 管理者・分析者向けセキュリティ管理機能
         if permissions.get("user_management", False) or current_role == "analyst":
@@ -730,7 +714,17 @@ class RamanEyeApp:
             available_modes.append("セキュリティ監査")
             available_modes.append("ユーザー管理")
         
-
+        # 必ず最低１つ入れる
+        if not available_modes:
+            available_modes = ["スペクトル解析"]
+            
+        # 解析モード選択のselectbox
+        analysis_mode = st.sidebar.selectbox(
+            "セキュア解析モードを選択してください:",
+            available_modes,
+            index=0,
+            key="mode_selector"
+        )
         
         # セキュリティ権限情報表示
         st.sidebar.markdown("---")
@@ -878,17 +872,17 @@ class RamanEyeApp:
         try:
             if analysis_mode == "スペクトル解析":
                 self._render_spectrum_analysis()
-            elif analysis_mode == "セキュアデータベース比較":
+            elif analysis_mode == "データベース比較":
                 self._render_secure_database_comparison()
-            elif analysis_mode == "セキュア多変量解析":
+            elif analysis_mode == "多変量解析":
                 self._render_secure_multivariate_analysis()
-            elif analysis_mode == "セキュアピーク分離":
+            elif analysis_mode == "ピーク分離":
                 self._render_secure_peak_deconvolution()
-            elif analysis_mode == "セキュアピークファインダー":
+            elif analysis_mode == "ピークファインダー":
                 self._render_secure_peak_analysis()
-            elif analysis_mode == "セキュア検量線作成":
+            elif analysis_mode == "検量線作成":
                 self._render_secure_calibration()
-            elif analysis_mode == "セキュアピークAI解析":
+            elif analysis_mode == "ピークAI解析":
                 self._render_secure_peak_ai_analysis()
             elif analysis_mode == "セキュリティ管理":
                 self._render_security_management()
