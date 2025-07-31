@@ -517,10 +517,9 @@ class RamanEyeApp:
         st.sidebar.markdown("---")
         st.sidebar.markdown("""
         **バージョン情報:**
-        - Version: 2.0.0 Secure Edition
+        - Version: 1.0.0 Secure Edition
         - Last Updated: 2025-07-31
-        - Author: Hiroyuki Morimura
-        - Security: Enterprise Grade
+        - Author: METASENSING
         """)
     
     def _render_mode_parameters(self, analysis_mode):
