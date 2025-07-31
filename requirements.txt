@@ -36,7 +36,6 @@ requests>=2.31.0
 # =============================================================================
 # Security & Authentication
 # =============================================================================
-hashlib  # Built-in Python module
 cryptography>=41.0.0  # Enhanced encryption
 passlib>=1.7.4  # Password hashing utilities
 bcrypt>=4.0.1  # Secure password hashing
