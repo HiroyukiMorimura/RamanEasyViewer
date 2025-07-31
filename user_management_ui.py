@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-ユーザー管理UI
-ログイン、ユーザー管理、権限管理のUIコンポーネント
+ユーザー管理UI - 完全修正版
+循環インポートを完全に排除したバージョン
 
 Created for RamanEye Easy Viewer
 @author: User Management UI System
@@ -28,34 +28,13 @@ def safe_datetime_format(date_value, format_str="%Y-%m-%d %H:%M", default="不�
     except (ValueError, TypeError, AttributeError):
         return default
 
-# 循環インポートを避けるため、必要な時にインポート
-def get_auth_components():
-    """認証関連コンポーネントを遅延インポート"""
-    from auth_system import (
-        AuthenticationManager, 
-        UserDatabase, 
-        UserRole, 
-        PasswordPolicy,
-        require_auth,
-        require_permission,
-        require_role
-    )
-    return {
-        'AuthenticationManager': AuthenticationManager,
-        'UserDatabase': UserDatabase,
-        'UserRole': UserRole,
-        'PasswordPolicy': PasswordPolicy,
-        'require_auth': require_auth,
-        'require_permission': require_permission,
-        'require_role': require_role
-    }
-
 class LoginUI:
     """ログインUIクラス"""
     
     def __init__(self):
-        auth_components = get_auth_components()
-        self.auth_manager = auth_components['AuthenticationManager']()
+        # 遅延インポートで認証システムを取得
+        from auth_system import AuthenticationManager
+        self.auth_manager = AuthenticationManager()
     
     def render_login_page(self):
         """ログインページをレンダリング"""
@@ -142,12 +121,12 @@ class UserManagementUI:
     """ユーザー管理UIクラス"""
     
     def __init__(self):
-        auth_components = get_auth_components()
-        self.auth_manager = auth_components['AuthenticationManager']()
-        self.db = auth_components['UserDatabase']()
-        self.require_permission = auth_components['require_permission']
-        self.UserRole = auth_components['UserRole']
-        self.PasswordPolicy = auth_components['PasswordPolicy']
+        # 遅延インポートで認証システムを取得
+        from auth_system import AuthenticationManager, UserDatabase, UserRole, PasswordPolicy
+        self.auth_manager = AuthenticationManager()
+        self.db = UserDatabase()
+        self.UserRole = UserRole
+        self.PasswordPolicy = PasswordPolicy
     
     def render_user_management_page(self):
         """ユーザー管理ページをレンダリング"""
@@ -159,7 +138,11 @@ class UserManagementUI:
         st.header("👥 ユーザー管理")
         
         # タブで機能を分割
-        tab1, tab2, tab3 = st.tabs(["ユーザー一覧", "新規ユーザー作成", "一括操作"])
+        tab1, tab2, tab3 = st.tabs([
+            "ユーザー一覧", 
+            "新規ユーザー作成", 
+            "一括操作"
+        ])
         
         with tab1:
             self._render_user_list()
@@ -265,11 +248,11 @@ class UserManagementUI:
             with col2:
                 full_name = st.text_input("フルネーム *", placeholder="氏名を入力")
                 email = st.text_input("メールアドレス *", placeholder="example@company.com")
-                role = st.selectbox("ロール *", UserRole.get_all_roles())
+                role = st.selectbox("ロール *", self.UserRole.get_all_roles())
             
             # パスワード強度表示
             if password:
-                is_valid, errors = PasswordPolicy.validate_password(password)
+                is_valid, errors = self.PasswordPolicy.validate_password(password)
                 if is_valid:
                     st.success("✅ パスワード強度: 良好")
                 else:
@@ -330,11 +313,11 @@ class ProfileUI:
     """プロファイルUIクラス"""
     
     def __init__(self):
-        auth_components = get_auth_components()
-        self.auth_manager = auth_components['AuthenticationManager']()
-        self.db = auth_components['UserDatabase']()
-        self.require_auth = auth_components['require_auth']
-        self.PasswordPolicy = auth_components['PasswordPolicy']
+        # 遅延インポートで認証システムを取得
+        from auth_system import AuthenticationManager, UserDatabase, PasswordPolicy
+        self.auth_manager = AuthenticationManager()
+        self.db = UserDatabase()
+        self.PasswordPolicy = PasswordPolicy
     
     def render_profile_page(self):
         """プロファイルページをレンダリング"""
@@ -434,8 +417,9 @@ class ProfileUI:
 # ヘッダーコンポーネント
 def render_authenticated_header():
     """認証後のヘッダー"""
-    auth_components = get_auth_components()
-    auth_manager = auth_components['AuthenticationManager']()
+    # 遅延インポートで認証システムを取得
+    from auth_system import AuthenticationManager
+    auth_manager = AuthenticationManager()
     
     if auth_manager.is_authenticated():
         current_user = auth_manager.get_current_user()
@@ -458,5 +442,3 @@ def render_authenticated_header():
                 st.rerun()
         
         st.divider()
-
-import re
