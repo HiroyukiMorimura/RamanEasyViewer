@@ -135,7 +135,6 @@ class RamanEyeApp:
             }
             .logo-container {
                 text-align: center;
-                padding: 2rem;
                 background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
                 border-radius: 15px;
                 box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
