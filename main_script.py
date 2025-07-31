@@ -676,8 +676,6 @@ class RamanEyeApp:
                         st.text(f"{event['event_type']} - {event['timestamp'][:19]}")
     
     def _render_sidebar(self):
-        # 利用可能モード
-        
         st.sidebar.header("🔧 解析モード選択")
         mode_permissions = {
             "スペクトル解析": "spectrum_analysis",
@@ -688,8 +686,18 @@ class RamanEyeApp:
             "検量線作成": "calibration",
             "ピークAI解析": "peak_ai_analysis"
         }
-        available_modes = list(mode_permissions.keys())
-        # モード選択
+            
+        # ここで権限チェックして available_modes を作る
+        auth_system = self._get_auth_system()
+        perms = auth_system['UserRole'].get_role_permissions(auth_system['AuthenticationManager']().get_current_role())
+        available_modes = [
+            mode for mode, perm in mode_permissions.items()
+            if perms.get(perm, False)
+        ]
+        # 必ず最低１つ入れる
+        if not available_modes:
+            available_modes = ["セキュアスペクトル解析"]
+        # そして初めて selectbox
         analysis_mode = st.sidebar.selectbox(
             "セキュア解析モードを選択してください:",
             available_modes,
@@ -707,9 +715,7 @@ class RamanEyeApp:
         # 現在のユーザーの権限を取得
         current_role = auth_manager.get_current_role()
         permissions = UserRole.get_role_permissions(current_role)
-        
-        
-        
+    
         # 権限チェック付きモード追加
         for mode, permission in mode_permissions.items():
             if permissions.get(permission, False):
