@@ -130,7 +130,7 @@ class RamanEyeApp:
             if os.path.exists(logo_path):
                 try:
                     image = Image.open(logo_path)
-                    st.markdown("RamanEye Easy Viewer ログイン")
+                    st.markdown('<h2 class="login-header"><em>RamanEye</em> Easy Viewer ログイン</h2>', unsafe_allow_html=True)
                     # ロゴを中央に配置（幅を調整）
                     st.image(
                         image, 
