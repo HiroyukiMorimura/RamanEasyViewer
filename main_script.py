@@ -13,20 +13,38 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# 認証システムのインポート
-from auth_system import (
-    AuthenticationManager, 
-    UserRole, 
-    require_auth, 
-    require_permission,
-    require_role
-)
-from user_management_ui import (
-    LoginUI, 
-    UserManagementUI, 
-    ProfileUI, 
-    render_authenticated_header
-)
+# 循環インポートを回避するため、必要な時にインポートする関数を定義
+def get_auth_system():
+    """認証システムを遅延インポート"""
+    from auth_system import (
+        AuthenticationManager, 
+        UserRole, 
+        require_auth, 
+        require_permission,
+        require_role
+    )
+    return {
+        'AuthenticationManager': AuthenticationManager,
+        'UserRole': UserRole,
+        'require_auth': require_auth,
+        'require_permission': require_permission,
+        'require_role': require_role
+    }
+
+def get_ui_components():
+    """UIコンポーネントを遅延インポート"""
+    from user_management_ui import (
+        LoginUI, 
+        UserManagementUI, 
+        ProfileUI, 
+        render_authenticated_header
+    )
+    return {
+        'LoginUI': LoginUI,
+        'UserManagementUI': UserManagementUI,
+        'ProfileUI': ProfileUI,
+        'render_authenticated_header': render_authenticated_header
+    }
 
 # 既存の解析モジュールのインポート（権限チェック付きでラップ）
 try:
@@ -46,10 +64,9 @@ class RamanEyeApp:
     """メインアプリケーションクラス"""
     
     def __init__(self):
-        self.auth_manager = AuthenticationManager()
-        self.login_ui = LoginUI()
-        self.user_management_ui = UserManagementUI()
-        self.profile_ui = ProfileUI()
+        # 遅延初期化用の変数
+        self._auth_system = None
+        self._ui_components = None
         
         # ページ設定
         st.set_page_config(
@@ -65,14 +82,29 @@ class RamanEyeApp:
         if "show_user_management" not in st.session_state:
             st.session_state.show_user_management = False
     
+    def _get_auth_system(self):
+        """認証システムの遅延取得"""
+        if self._auth_system is None:
+            self._auth_system = get_auth_system()
+        return self._auth_system
+    
+    def _get_ui_components(self):
+        """UIコンポーネントの遅延取得"""
+        if self._ui_components is None:
+            self._ui_components = get_ui_components()
+        return self._ui_components
+    
     def run(self):
         """メインアプリケーションの実行"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
         # 認証チェック
-        if not self.auth_manager.is_authenticated():
+        if not auth_manager.is_authenticated():
             self._render_login_page()
         else:
             # セッションタイムアウトチェック
-            if not self.auth_manager.check_session_timeout(timeout_minutes=60):
+            if not auth_manager.check_session_timeout(timeout_minutes=60):
                 st.error("セッションがタイムアウトしました。再度ログインしてください")
                 st.stop()
             
@@ -282,7 +314,9 @@ class RamanEyeApp:
         st.markdown("---")
         
         # ログインフォーム
-        self.login_ui.render_login_page()
+        ui_components = self._get_ui_components()
+        login_ui = ui_components['LoginUI']()
+        login_ui.render_login_page()
         
         # フッター
         st.markdown("---")
@@ -299,15 +333,18 @@ class RamanEyeApp:
     
     def _render_main_application(self):
         """メインアプリケーションの表示"""
+        ui_components = self._get_ui_components()
+        
         # 認証後ヘッダー
-        render_authenticated_header()
+        ui_components['render_authenticated_header']()
         
         # 会社ロゴの表示
         self._display_company_logo()
         
         # プロファイル表示チェック
         if st.session_state.get("show_profile", False):
-            self.profile_ui.render_profile_page()
+            profile_ui = ui_components['ProfileUI']()
+            profile_ui.render_profile_page()
             if st.button("⬅️ メインメニューに戻る"):
                 st.session_state.show_profile = False
                 st.rerun()
@@ -315,7 +352,8 @@ class RamanEyeApp:
         
         # ユーザー管理表示チェック
         if st.session_state.get("show_user_management", False):
-            self.user_management_ui.render_user_management_page()
+            user_management_ui = ui_components['UserManagementUI']()
+            user_management_ui.render_user_management_page()
             if st.button("⬅️ メインメニューに戻る"):
                 st.session_state.show_user_management = False
                 st.rerun()
@@ -355,6 +393,8 @@ class RamanEyeApp:
                 self._render_peak_ai_analysis()
             elif analysis_mode == "電子署名管理":
                 self._render_signature_management()
+            elif analysis_mode == "電子署名統合デモ":
+                self._render_signature_integration_demo()
             elif analysis_mode == "ユーザー管理":
                 st.session_state.show_user_management = True
                 st.rerun()
@@ -367,10 +407,16 @@ class RamanEyeApp:
     
     def _render_sidebar(self):
         """サイドバーの設定"""
+        auth_system = self._get_auth_system()
+        AuthenticationManager = auth_system['AuthenticationManager']
+        UserRole = auth_system['UserRole']
+        
+        auth_manager = AuthenticationManager()
+        
         st.sidebar.header("🔧 解析モード選択")
         
         # 現在のユーザーの権限を取得
-        current_role = self.auth_manager.get_current_role()
+        current_role = auth_manager.get_current_role()
         permissions = UserRole.get_role_permissions(current_role)
         
         # 利用可能なモードを権限に基づいて決定（スペクトル解析を最初に配置）
@@ -393,6 +439,10 @@ class RamanEyeApp:
         # 管理者・分析者は電子署名管理も利用可能
         if permissions.get("user_management", False) or current_role == "analyst":
             available_modes.append("電子署名管理")
+        
+        # 管理者は電子署名統合デモも利用可能
+        if permissions.get("user_management", False):
+            available_modes.append("電子署名統合デモ")
         
         # 管理者はユーザー管理も利用可能（最後に追加）
         if permissions.get("user_management", False):
@@ -536,6 +586,30 @@ class RamanEyeApp:
             **⚠️ 管理者・分析者が利用可能**
             """,
             
+            "電子署名統合デモ": """
+            **電子署名統合デモモード:**
+            1. **セキュア操作デモ**: 署名が必要な操作の実例
+            2. **データエクスポート**: 一段階署名が必要なデータ出力
+            3. **レポート確定**: 二段階署名が必要な重要操作
+            4. **データベース更新**: セキュリティ機能付きDB操作
+            5. **システム設定変更**: 高セキュリティ設定操作
+            6. **統合ガイド**: 既存機能への署名統合方法
+            
+            **デモ機能:**
+            - **一段階署名**: パスワード再入力＋理由記録
+            - **二段階署名**: 二人の承認が必要な重要操作
+            - **署名記録**: 完全な監査証跡の提供
+            - **統合例**: 実際の機能への適用方法
+            
+            **学習内容:**
+            - 電子署名の実装方法
+            - セキュリティポリシーの設定
+            - コンプライアンス対応
+            - ベストプラクティス
+            
+            **⚠️ 管理者専用デモ機能**
+            """,
+            
             "ユーザー管理": """
             **ユーザー管理モード:**
             1. **ユーザー一覧**: 全ユーザーの状態確認
@@ -553,51 +627,172 @@ class RamanEyeApp:
         st.sidebar.markdown(instruction)
     
     # 各解析モードのラッパー関数（権限チェック付き）
-    @require_permission("spectrum_analysis")
     def _render_spectrum_analysis(self):
         """スペクトル解析モード（権限チェック付き）"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
+        if not auth_manager.has_permission("spectrum_analysis"):
+            st.error("この機能を使用する権限がありません")
+            st.stop()
+        
         spectrum_analysis_mode()
     
-    @require_permission("multivariate_analysis")
     def _render_multivariate_analysis(self):
         """多変量解析モード（権限チェック付き）"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
+        if not auth_manager.has_permission("multivariate_analysis"):
+            st.error("この機能を使用する権限がありません")
+            st.stop()
+        
         multivariate_analysis_mode()
     
-    @require_permission("peak_deconvolution")
     def _render_peak_deconvolution(self):
         """ピーク分離モード（権限チェック付き）"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
+        if not auth_manager.has_permission("peak_deconvolution"):
+            st.error("この機能を使用する権限がありません")
+            st.stop()
+        
         peak_deconvolution_mode()
     
-    @require_permission("peak_analysis")
     def _render_peak_analysis(self):
         """ピーク解析モード（権限チェック付き）"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
+        if not auth_manager.has_permission("peak_analysis"):
+            st.error("この機能を使用する権限がありません")
+            st.stop()
+        
         peak_analysis_mode()
     
-    @require_permission("calibration")
     def _render_calibration(self):
         """検量線作成モード（権限チェック付き）"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
+        if not auth_manager.has_permission("calibration"):
+            st.error("この機能を使用する権限がありません")
+            st.stop()
+        
         calibration_mode()
     
-    @require_permission("database_comparison")
     def _render_database_comparison(self):
         """データベース比較モード（権限チェック付き）"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
+        if not auth_manager.has_permission("database_comparison"):
+            st.error("この機能を使用する権限がありません")
+            st.stop()
+        
         database_comparison_mode()
     
-    @require_permission("peak_ai_analysis")
     def _render_peak_ai_analysis(self):
         """AI解析モード（権限チェック付き）"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
+        if not auth_manager.has_permission("peak_ai_analysis"):
+            st.error("この機能を使用する権限がありません")
+            st.stop()
+        
         peak_ai_analysis_mode()
     
     def _render_signature_management(self):
         """電子署名管理モード"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
         # 管理者または分析者のみアクセス可能
-        current_role = self.auth_manager.get_current_role()
+        current_role = auth_manager.get_current_role()
         if current_role not in ["admin", "analyst"]:
             st.error("この機能を使用する権限がありません")
             st.stop()
         
-        from signature_management_ui import render_signature_demo_page
-        render_signature_demo_page()
+        try:
+            from signature_management_ui import render_signature_demo_page
+            render_signature_demo_page()
+        except ImportError:
+            st.error("電子署名管理機能がインストールされていません")
+            st.info("電子署名機能を使用するには、追加のモジュールをインストールしてください")
+    
+    def _render_signature_integration_demo(self):
+        """電子署名統合デモモード"""
+        auth_system = self._get_auth_system()
+        auth_manager = auth_system['AuthenticationManager']()
+        
+        # 管理者のみアクセス可能
+        current_role = auth_manager.get_current_role()
+        if current_role != "admin":
+            st.error("この機能を使用する権限がありません")
+            st.info("電子署名統合デモは管理者専用機能です")
+            st.stop()
+        
+        try:
+            from signature_integration_example import demo_secure_operations, signature_integration_guide
+            
+            st.header("🔐 電子署名統合デモ")
+            
+            st.markdown("""
+            このページでは、電子署名システムの実装例と統合方法をデモンストレーションします。
+            管理者として、重要な操作に電子署名を統合する方法を学習できます。
+            """)
+            
+            # タブで機能を分離
+            tab1, tab2 = st.tabs(["セキュア操作デモ", "統合ガイド"])
+            
+            with tab1:
+                st.markdown("### 🎯 署名が必要な操作の実例")
+                st.info("以下の操作を実行すると、電子署名のプロセスを体験できます")
+                demo_secure_operations()
+            
+            with tab2:
+                st.markdown("### 📚 電子署名統合ガイド")
+                signature_integration_guide()
+                
+        except ImportError as e:
+            st.error("電子署名統合デモ機能がインストールされていません")
+            st.error(f"エラー詳細: {e}")
+            st.info("signature_integration_example.py ファイルが必要です")
+            
+            # フォールバック：基本的な説明を表示
+            st.markdown("---")
+            st.subheader("📋 電子署名統合について")
+            st.markdown("""
+            電子署名統合デモでは、以下の機能を提供します：
+            
+            **🔐 セキュア操作例**:
+            - データエクスポート（一段階署名）
+            - レポート確定（二段階署名）
+            - データベース更新（一段階署名）
+            - システム設定変更（二段階署名）
+            
+            **📚 統合ガイド**:
+            - デコレータベースの実装方法
+            - 署名レベルの選択基準
+            - セキュリティ考慮事項
+            - コンプライアンス対応
+            
+            **実装方法**:
+            ```python
+            @require_signature(
+                operation_type="重要操作",
+                signature_level=SignatureLevel.DUAL
+            )
+            def secure_operation():
+                # 実際の処理
+            ```
+            """)
+        
+        except Exception as e:
+            st.error(f"電子署名統合デモの実行中にエラーが発生しました: {e}")
+            st.info("管理者にお問い合わせください")
 
 def main():
     """メイン関数"""
