@@ -110,6 +110,22 @@ class RamanEyeApp:
         st.markdown(
             """
             <style>
+            .top-layout {
+              display: flex;
+              align-items: stretch;  /* 子要素を等高にする */
+            }
+            /* logo と login を等高に */
+            .logo-section, .login-section {
+              display: flex;
+              flex-direction: column;
+              flex: 1;
+            }
+            /* フォームだけさらに高さいっぱいに */
+            .login-section form {
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+            }
             .login-header {
                 color: #1f77b4;
                 margin-bottom: 0rem !important;
@@ -163,7 +179,7 @@ class RamanEyeApp:
         with col_login:
             # ログインフォーム
             with st.form("login_form"):
-                st.markdown('<h2 class="login-header"><em>RamanEye</em> Easy Viwer ログイン</h2>', unsafe_allow_html=True)
+                st.markdown('<h2 class="login-header"><em>RamanEye</em> Easy Viewer ログイン</h2>', unsafe_allow_html=True)
                 username = st.text_input(
                     "ユーザー名", 
                     placeholder="ユーザー名を入力"
