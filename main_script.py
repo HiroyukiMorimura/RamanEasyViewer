@@ -639,40 +639,7 @@ class RamanEyeApp:
         # 基本の認証ヘッダー
         ui_components['render_authenticated_header']()
         
-        # セキュリティ情報の追加表示
-        with st.sidebar:
-            st.markdown("---")
-            st.subheader("🔒 セキュリティ状態")
-            
-            current_user = st.session_state.get('current_user', {})
-            user_id = current_user.get('username', 'unknown')
-            
-            # セッション情報
-            st.info(f"セッションID: {st.session_state.session_id[:8]}...")
-            st.info(f"セキュリティレベル: {st.session_state.security_level.upper()}")
-            
-            # セキュリティメトリクス
-            if SECURITY_AVAILABLE:
-                security_manager = self._get_security_manager()
-                if security_manager:
-                    status = security_manager.get_security_status()
-                    
-                    security_score = sum([
-                        status.get('encryption_enabled', False),
-                        status.get('integrity_checking_enabled', False),
-                        status.get('access_control_enabled', False),
-                        status.get('audit_logging_enabled', False),
-                        status.get('https_enforced', False)
-                    ])
-                    
-                    st.metric("セキュリティスコア", f"{security_score}/5", f"{security_score * 20}%")
-            
-            # 最近のセキュリティイベント
-            recent_events = st.session_state.security_events[-3:] if st.session_state.security_events else []
-            if recent_events:
-                with st.expander("📋 最近のアクティビティ", expanded=False):
-                    for event in reversed(recent_events):
-                        st.text(f"{event['event_type']} - {event['timestamp'][:19]}")
+        # セキュリティ情報は_render_sidebar()内で下側に表示
     
     def _render_sidebar(self):
         """サイドバー"""
@@ -725,6 +692,42 @@ class RamanEyeApp:
             index=0,
             key="mode_selector"
         )
+        
+        # セキュリティ関連の表示を下側に移動
+        st.sidebar.markdown("---")
+        
+        # セキュリティ状態（元々_render_secure_authenticated_headerにあった内容）
+        st.sidebar.subheader("🔒 セキュリティ状態")
+        
+        current_user = st.session_state.get('current_user', {})
+        user_id = current_user.get('username', 'unknown')
+        
+        # セッション情報
+        st.sidebar.info(f"セッションID: {st.session_state.session_id[:8]}...")
+        st.sidebar.info(f"セキュリティレベル: {st.session_state.security_level.upper()}")
+        
+        # セキュリティメトリクス
+        if SECURITY_AVAILABLE:
+            security_manager = self._get_security_manager()
+            if security_manager:
+                status = security_manager.get_security_status()
+                
+                security_score = sum([
+                    status.get('encryption_enabled', False),
+                    status.get('integrity_checking_enabled', False),
+                    status.get('access_control_enabled', False),
+                    status.get('audit_logging_enabled', False),
+                    status.get('https_enforced', False)
+                ])
+                
+                st.sidebar.metric("セキュリティスコア", f"{security_score}/5", f"{security_score * 20}%")
+        
+        # 最近のセキュリティイベント
+        recent_events = st.session_state.security_events[-3:] if st.session_state.security_events else []
+        if recent_events:
+            with st.sidebar.expander("📋 最近のアクティビティ", expanded=False):
+                for event in reversed(recent_events):
+                    st.text(f"{event['event_type']} - {event['timestamp'][:19]}")
         
         # セキュリティ権限情報表示
         st.sidebar.markdown("---")
