@@ -258,7 +258,7 @@ class RamanEyeApp:
         
         with col_login:
             # ログインセクション（右側、1/2サイズ）
-            st.markdown('<div class="login-section">', unsafe_allow_html=True)
+            # st.markdown('<div class="login-section">', unsafe_allow_html=True)
             # ログインフォーム
             with st.form("login_form"):
                 st.markdown(
