@@ -156,7 +156,7 @@ class RamanEyeApp:
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
-                height: 0px;
+                height: 200px;
                 box-sizing: border-box;
             }
             
