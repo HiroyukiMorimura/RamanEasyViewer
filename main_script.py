@@ -93,14 +93,14 @@ class SecureRamanEyeApp:
         
         # ページ設定（セキュリティヘッダー付き）
         st.set_page_config(
-            page_title="RamanEye Easy Viewer - Secure Enterprise Edition", 
-            page_icon="🔒",
+            page_title="RamanEye Easy Viewer",
+            page_icon="favicon.png",  # 同フォルダ内のPNGをそのまま指定
             layout="wide",
             initial_sidebar_state="expanded"
         )
         
         # セキュリティヘッダーの追加
-        self._add_security_headers()
+        # self._add_security_headers()
         
         # セキュリティシステムの初期化
         if SECURITY_AVAILABLE:
