@@ -603,6 +603,9 @@ class RamanEyeApp:
         # 認証後ヘッダー（セキュリティ情報付き）- ユーザー状態を一番上に
         self._render_secure_authenticated_header()
         
+        # 解析モード実行
+        self._execute_analysis_mode()
+        
         # サイドバー設定を先に実行
         self._render_sidebar()
         
@@ -629,8 +632,7 @@ class RamanEyeApp:
                 st.rerun()
             return
         
-        # 解析モード実行
-        self._execute_analysis_mode()
+        
     
     def _render_secure_authenticated_header(self):
         """セキュア強化された認証後ヘッダー"""
