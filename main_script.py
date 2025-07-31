@@ -198,9 +198,7 @@ class RamanEyeApp:
        st.image("logo.png", use_container_width = True)
         
     def _render_security_features_collapsible(self):
-        """セキュリティ機能の折りたたみ表示"""
-        st.markdown("---")
-        
+        """セキュリティ機能の折りたたみ表示"""        
         with st.expander("🔒 セキュリティ機能の詳細", expanded=False):
             st.markdown("**基本セキュリティ機能:**")
             
@@ -230,12 +228,8 @@ class RamanEyeApp:
             st.error(f"ログインに失敗しました: {message}")
     
     def _render_demo_accounts(self):
-        """デモアカウント情報の表示"""
-        st.markdown("---")
-        
+        """デモアカウント情報の表示"""        
         with st.expander("🔧 デモアカウント情報", expanded=False):
-            st.info("学習・評価目的のデモアカウントです")
-            
             col1, col2, col3 = st.columns(3)
             
             with col1:
