@@ -265,9 +265,9 @@ class RamanEyeApp:
         # ログサイズ制限
         if len(st.session_state.security_events) > 100:
             st.session_state.security_events = st.session_state.security_events[-50:]
-    
+    """
     def _handle_security_exception(self, exception: Exception):
-        """セキュリティ例外の処理"""
+        # セキュリティ例外の処理
         current_user = st.session_state.get('current_user', {})
         user_id = current_user.get('username', 'unknown')
         
@@ -279,7 +279,7 @@ class RamanEyeApp:
         
         st.error("セキュリティエラーが発生しました。管理者にお問い合わせください。")
         st.error(f"エラー詳細: {exception}")
-    
+    """
     def _render_secure_login_page(self):
         """セキュア強化されたログインページの表示"""
         # セキュリティ強化されたCSS
