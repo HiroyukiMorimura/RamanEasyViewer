@@ -1,192 +1,315 @@
-# -*- coding: utf-8 -*-
-"""
-統合ラマンスペクトル解析ツール
-メインスクリプト
+# requirements.txt
+streamlit>=1.28.0
+pandas>=1.5.0
+numpy>=1.24.0
+scipy>=1.10.0
+matplotlib>=3.6.0
+plotly>=5.15.0
+scikit-learn>=1.3.0
+seaborn>=0.12.0
+openpyxl>=3.1.0
+xlsxwriter>=3.1.0
 
-Created on Wed Jun 11 15:56:04 2025
-@author: hiroy
+# Optional for production
+# psycopg2-binary>=2.9.0  # PostgreSQL support
+# mysql-connector-python>=8.1.0  # MySQL support
+# redis>=4.6.0  # Session storage
+# cryptography>=41.0.0  # Enhanced encryption
 
-Enhanced Integrated Raman Spectrum Analysis Tool with Peak Analysis and Q&A Feature
-"""
+# =============================================================================
+# config.py - Production Configuration
+# =============================================================================
 
-import streamlit as st
+import os
+from datetime import timedelta
 
-# 各モジュールのインポート
-from spectrum_analysis import spectrum_analysis_mode
-from peak_analysis_web import peak_analysis_mode
-from peak_deconvolution import peak_deconvolution_mode
-from multivariate_analysis import multivariate_analysis_mode
-from peak_ai_analysis import peak_ai_analysis_mode
-from calibration_mode import calibration_mode
-from raman_database import database_comparison_mode
+class SecurityConfig:
+    """セキュリティ設定"""
+    
+    # パスワードポリシー
+    PASSWORD_MIN_LENGTH = int(os.getenv('PASSWORD_MIN_LENGTH', '8'))
+    PASSWORD_MAX_LENGTH = int(os.getenv('PASSWORD_MAX_LENGTH', '128'))
+    PASSWORD_REQUIRE_UPPERCASE = os.getenv('PASSWORD_REQUIRE_UPPERCASE', 'True').lower() == 'true'
+    PASSWORD_REQUIRE_LOWERCASE = os.getenv('PASSWORD_REQUIRE_LOWERCASE', 'True').lower() == 'true'
+    PASSWORD_REQUIRE_DIGITS = os.getenv('PASSWORD_REQUIRE_DIGITS', 'True').lower() == 'true'
+    PASSWORD_REQUIRE_SPECIAL = os.getenv('PASSWORD_REQUIRE_SPECIAL', 'False').lower() == 'true'
+    
+    # アカウントロックアウト
+    MAX_LOGIN_ATTEMPTS = int(os.getenv('MAX_LOGIN_ATTEMPTS', '5'))
+    LOCKOUT_DURATION_MINUTES = int(os.getenv('LOCKOUT_DURATION_MINUTES', '30'))
+    
+    # セッション管理
+    SESSION_TIMEOUT_MINUTES = int(os.getenv('SESSION_TIMEOUT_MINUTES', '60'))
+    SESSION_REFRESH_MINUTES = int(os.getenv('SESSION_REFRESH_MINUTES', '15'))
+    
+    # 暗号化
+    SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')
+    HASH_ALGORITHM = os.getenv('HASH_ALGORITHM', 'sha256')
 
-def main():
-    """
-    メイン関数
-    """
-    # ページ設定
-    st.set_page_config(
-        page_title="RamanEye Easy Viewer", 
-        page_icon="📊", 
-        layout="wide"
-    )
+class DatabaseConfig:
+    """データベース設定"""
     
-    # タイトル
-    st.markdown(
-    "<h1>📊 <span style='font-style: italic;'>RamanEye</span> Easy Viewer</h1>",
-    unsafe_allow_html=True
-)
-    # サイドバーにモード選択を配置
-    st.sidebar.header("🔧 解析モード選択")
-    analysis_mode = st.sidebar.selectbox(
-        "解析モードを選択してください:",
-        ["スペクトル解析", "ラマンピークファインダー", "ラマンピーク分離", "多変量解析",  "検量線作成", "ピークAI解析", "データベース比較"],
-        key="mode_selector"
-    )
+    # データベースタイプ
+    DB_TYPE = os.getenv('DB_TYPE', 'session')  # session, postgresql, mysql
     
-    st.sidebar.markdown("---")
-    st.sidebar.header("📋 パラメータ設定")
+    # PostgreSQL設定
+    POSTGRES_HOST = os.getenv('POSTGRES_HOST', 'localhost')
+    POSTGRES_PORT = int(os.getenv('POSTGRES_PORT', '5432'))
+    POSTGRES_DB = os.getenv('POSTGRES_DB', 'ramaneye')
+    POSTGRES_USER = os.getenv('POSTGRES_USER', 'postgres')
+    POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD', '')
     
-    # 選択されたモードに応じて適切な関数を呼び出す
-    if analysis_mode == "スペクトル解析":
-        spectrum_analysis_mode()
-    elif analysis_mode == "多変量解析":
-        multivariate_analysis_mode()
-    elif analysis_mode == "ラマンピーク分離":
-        peak_deconvolution_mode()
-    elif analysis_mode == "ラマンピークファインダー":
-        peak_analysis_mode()
-    elif analysis_mode == "検量線作成":
-        calibration_mode()
-    elif analysis_mode == "データベース比較":
-        database_comparison_mode()
-    else:  # ピークAI解析
-        peak_ai_analysis_mode()
-    
-    # 使用方法の説明
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("📋 使用方法")
-    
-    if analysis_mode == "スペクトル解析":
-        st.sidebar.markdown("""
-        **スペクトル解析モード:**
-        1. 解析したいCSVファイルをアップロード
-        2. パラメータを調整
-        3. スペクトルの表示と解析結果を確認
-        4. 結果をCSVファイルでダウンロード
-        """)
-    elif analysis_mode == "多変量解析":
-        st.sidebar.markdown("""
-        **多変量解析モード:**
-        1. 複数のCSVファイルをアップロード
-        2. パラメータを調整
-        3. 「データプロセス実効」をクリック
-        4. 「多変量解析実効」をクリック
-        5. 解析結果を確認・ダウンロード
-        
-        - コンポーネント数: 2-5
-        """)
-    elif analysis_mode == "ラマンピーク分離":
-        st.sidebar.markdown("""
-        **ピーク分離モード:**
-        1. 解析したいCSVファイルをアップロード
-        2. パラメータを調整
-        3. フィッテング範囲を設定
-        4. ピーク数最適化によりピーク数決定（n=1～6）
-        5. 必要であれば波数固定
-        6. フィッティングを実効
-        
-        """)
-    elif analysis_mode == "ラマンピークファインダー":
-        st.sidebar.markdown("""
-        **ラマンピーク解析モード:**
-        1. 解析したいCSVファイルをアップロード
-        2. パラメータを調整
-        3. 「ピーク検出を実行」をクリック
-        4. インタラクティブプロットでピークを調整
-        5. 手動ピークの追加・除外が可能
-        6. グリッドサーチで最適化
-        7. 結果をCSVファイルでダウンロード
-        
-        **インタラクティブ機能:**
-        - グラフをクリックして手動ピーク追加
-        - 自動検出ピークをクリックして除外
-        - グリッドサーチで閾値最適化
-        """)
-    elif analysis_mode == "検量線作成":
-        st.sidebar.markdown("""
-        **検量線作成モード:**
-        1. **複数ファイルアップロード**: 異なる濃度のスペクトルファイルをアップロード
-        2. **濃度データ入力**: 各サンプルの濃度を入力
-        3. **検量線タイプ選択**: ピーク面積またはPLS回帰を選択
-        4. **波数範囲設定**: 解析に使用する波数範囲を指定
-        5. **検量線作成実行**: 統計解析により検量線を作成
-        6. **結果確認**: R²、RMSE等の統計指標を確認
-        7. **結果エクスポート**: 検量線データをCSVでダウンロード
-        
-        **ピーク面積モード:**
-        - 指定範囲の単一ピークをローレンツ関数でフィッティング
-        - ピーク面積と濃度の線形関係を構築
-        - ピーク中心波数の固定が可能
-        
-        **PLS回帰モード:**
-        - 指定波数範囲の全スペクトルデータを使用
-        - 部分最小二乗回帰による多変量解析
-        - クロスバリデーションによる予測精度評価
-        - 成分数の最適化が可能
-        
-        **統計指標:**
-        - R²（決定係数）
-        - RMSE（平均二乗誤差の平方根）
-        - クロスバリデーションR²（PLS回帰のみ）
-        """)
-    elif analysis_mode == "データベース比較":  # データベース比較の説明を追加
-        st.sidebar.markdown("""
-        **データベース比較モード:**
-        1. **ファイルアップロード**: 複数のスペクトルファイル（CSV/TXT）をアップロード
-        2. **前処理パラメータ設定**: ベースライン補正や波数範囲を設定
-        3. **スペクトル処理**: 全ファイルを一括処理してデータベース化
-        4. **比較計算**: 比較マトリックスを計算
-        5. **効率化機能**: プーリングと上位N個選択で高速化
-        6. **結果確認**: 統計サマリーと比較マトリックスを表示
-        7. **最高一致ペア**: 最も一致したスペクトルペアを自動検出・表示
-        8. **エクスポート**: 結果をCSV形式でダウンロード
-        
-        **効率化機能:**
-        - **プーリング計算**: 4点平均で初期スクリーニング（計算時間短縮）
-        - **段階的計算**: 粗い計算→詳細計算の2段階処理
-        - **上位選択**: 大量データから代表的なスペクトルを自動選択
-        
-        """)
-    
-    else:  # ピークAI解析
-        st.sidebar.markdown("""
-        **ピークAI解析モード:**
-        1. **LLM設定**: APIキーを入力するかオフラインモデルを起動
-        2. **論文アップロード**: RAG機能用の論文PDFをアップロード
-        3. **データベース構築**: 論文から検索用データベースを作成
-        4. **スペクトルアップロード**: 解析するラマンスペクトルをアップロード
-        5. **ピーク検出**: 自動検出 + 手動調整でピークを確定
-        6. **AI解析実行**: 確定ピークを基にAIが考察を生成
-        7. **質問機能**: 解析結果について追加質問が可能
-        
-        **サポートファイル形式:**
-        - **スペクトル**: CSV, TXT (RamanEye, Wasatch, Eagle対応)
-        - **論文**: PDF, DOCX, TXT
-        
-        **AI解析について:**
-        - 論文データベースと組み合わせて高精度な解析を実現
-        - 解析後に追加質問で詳細な情報を取得可能
-        """)
-    
-    # フッター情報
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("""
-    **バージョン情報:**
-    - Version: 2.0.0
-    - Last Updated: 2025-07-13
-    - Author: Hiroyuki Moirmura
-    """)
+    # MySQL設定
+    MYSQL_HOST = os.getenv('MYSQL_HOST', 'localhost')
+    MYSQL_PORT = int(os.getenv('MYSQL_PORT', '3306'))
+    MYSQL_DB = os.getenv('MYSQL_DB', 'ramaneye')
+    MYSQL_USER = os.getenv('MYSQL_USER', 'root')
+    MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD', '')
 
-if __name__ == "__main__":
-    main()
+class ApplicationConfig:
+    """アプリケーション設定"""
+    
+    # アプリケーション基本設定
+    APP_NAME = os.getenv('APP_NAME', 'RamanEye Easy Viewer')
+    APP_VERSION = os.getenv('APP_VERSION', '2.0.0')
+    DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+    
+    # ログ設定
+    LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+    LOG_FILE = os.getenv('LOG_FILE', 'ramaneye.log')
+    
+    # ファイルアップロード制限
+    MAX_UPLOAD_SIZE_MB = int(os.getenv('MAX_UPLOAD_SIZE_MB', '100'))
+    ALLOWED_FILE_EXTENSIONS = os.getenv('ALLOWED_FILE_EXTENSIONS', 'csv,txt,xlsx,pdf,docx').split(',')
+    
+    # UI設定
+    THEME = os.getenv('THEME', 'light')
+    SIDEBAR_STATE = os.getenv('SIDEBAR_STATE', 'expanded')
+
+class LDAPConfig:
+    """LDAP統合設定（企業向け）"""
+    
+    LDAP_ENABLED = os.getenv('LDAP_ENABLED', 'False').lower() == 'true'
+    LDAP_SERVER = os.getenv('LDAP_SERVER', 'ldap://localhost:389')
+    LDAP_BASE_DN = os.getenv('LDAP_BASE_DN', 'dc=company,dc=com')
+    LDAP_USER_DN = os.getenv('LDAP_USER_DN', 'cn=admin,dc=company,dc=com')
+    LDAP_PASSWORD = os.getenv('LDAP_PASSWORD', '')
+    LDAP_USER_SEARCH = os.getenv('LDAP_USER_SEARCH', '(uid={username})')
+
+# =============================================================================
+# production_database.py - Production Database Integration
+# =============================================================================
+
+import psycopg2
+import mysql.connector
+from typing import Dict, List, Optional, Any
+import json
+import hashlib
+from datetime import datetime
+
+class ProductionUserDatabase:
+    """本番環境向けデータベース"""
+    
+    def __init__(self):
+        self.config = DatabaseConfig()
+        self.connection = None
+        self._connect()
+    
+    def _connect(self):
+        """データベース接続"""
+        if self.config.DB_TYPE == 'postgresql':
+            self.connection = psycopg2.connect(
+                host=self.config.POSTGRES_HOST,
+                port=self.config.POSTGRES_PORT,
+                database=self.config.POSTGRES_DB,
+                user=self.config.POSTGRES_USER,
+                password=self.config.POSTGRES_PASSWORD
+            )
+        elif self.config.DB_TYPE == 'mysql':
+            self.connection = mysql.connector.connect(
+                host=self.config.MYSQL_HOST,
+                port=self.config.MYSQL_PORT,
+                database=self.config.MYSQL_DB,
+                user=self.config.MYSQL_USER,
+                password=self.config.MYSQL_PASSWORD
+            )
+    
+    def create_tables(self):
+        """テーブル作成"""
+        cursor = self.connection.cursor()
+        
+        # ユーザーテーブル
+        user_table_sql = """
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(50) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            role VARCHAR(20) NOT NULL,
+            email VARCHAR(255),
+            full_name VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_login TIMESTAMP,
+            failed_attempts INTEGER DEFAULT 0,
+            locked_until TIMESTAMP,
+            is_active BOOLEAN DEFAULT TRUE
+        )
+        """
+        
+        # セッションテーブル
+        session_table_sql = """
+        CREATE TABLE IF NOT EXISTS user_sessions (
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(50) NOT NULL,
+            session_id VARCHAR(255) UNIQUE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            ip_address VARCHAR(45),
+            user_agent TEXT,
+            is_active BOOLEAN DEFAULT TRUE
+        )
+        """
+        
+        # 監査ログテーブル
+        audit_table_sql = """
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(50),
+            action VARCHAR(100) NOT NULL,
+            resource VARCHAR(100),
+            ip_address VARCHAR(45),
+            user_agent TEXT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            success BOOLEAN DEFAULT TRUE,
+            details TEXT
+        )
+        """
+        
+        cursor.execute(user_table_sql)
+        cursor.execute(session_table_sql)
+        cursor.execute(audit_table_sql)
+        
+        self.connection.commit()
+        cursor.close()
+    
+    def create_user(self, username: str, password: str, role: str, email: str, full_name: str) -> tuple[bool, str]:
+        """ユーザー作成"""
+        cursor = self.connection.cursor()
+        
+        try:
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
+            
+            insert_sql = """
+            INSERT INTO users (username, password_hash, role, email, full_name)
+            VALUES (%s, %s, %s, %s, %s)
+            """
+            
+            cursor.execute(insert_sql, (username, password_hash, role, email, full_name))
+            self.connection.commit()
+            
+            # 監査ログ
+            self._log_audit(username, 'USER_CREATED', f'user:{username}')
+            
+            return True, "ユーザーが正常に作成されました"
+            
+        except Exception as e:
+            self.connection.rollback()
+            return False, f"ユーザー作成エラー: {str(e)}"
+        finally:
+            cursor.close()
+    
+    def authenticate_user(self, username: str, password: str, ip_address: str = None) -> tuple[bool, str]:
+        """ユーザー認証"""
+        cursor = self.connection.cursor()
+        
+        try:
+            # ユーザー情報取得
+            select_sql = """
+            SELECT password_hash, failed_attempts, locked_until, is_active
+            FROM users WHERE username = %s
+            """
+            
+            cursor.execute(select_sql, (username,))
+            result = cursor.fetchone()
+            
+            if not result:
+                self._log_audit(username, 'LOGIN_FAILED', 'authentication', ip_address, False, 'User not found')
+                return False, "無効なユーザー名またはパスワードです"
+            
+            password_hash, failed_attempts, locked_until, is_active = result
+            
+            # アカウント状態チェック
+            if not is_active:
+                self._log_audit(username, 'LOGIN_FAILED', 'authentication', ip_address, False, 'Account disabled')
+                return False, "このアカウントは無効化されています"
+            
+            # ロック状態チェック
+            if locked_until and datetime.now() < locked_until:
+                remaining = (locked_until - datetime.now()).seconds // 60
+                self._log_audit(username, 'LOGIN_FAILED', 'authentication', ip_address, False, 'Account locked')
+                return False, f"アカウントがロックされています。{remaining}分後に再試行してください"
+            
+            # パスワード確認
+            input_hash = hashlib.sha256(password.encode()).hexdigest()
+            
+            if password_hash == input_hash:
+                # 認証成功
+                update_sql = """
+                UPDATE users 
+                SET last_login = CURRENT_TIMESTAMP, failed_attempts = 0, locked_until = NULL
+                WHERE username = %s
+                """
+                cursor.execute(update_sql, (username,))
+                self.connection.commit()
+                
+                self._log_audit(username, 'LOGIN_SUCCESS', 'authentication', ip_address, True)
+                return True, "認証成功"
+            
+            else:
+                # 認証失敗
+                failed_attempts += 1
+                
+                if failed_attempts >= SecurityConfig.MAX_LOGIN_ATTEMPTS:
+                    # アカウントロック
+                    lock_time = datetime.now() + timedelta(minutes=SecurityConfig.LOCKOUT_DURATION_MINUTES)
+                    update_sql = """
+                    UPDATE users 
+                    SET failed_attempts = %s, locked_until = %s
+                    WHERE username = %s
+                    """
+                    cursor.execute(update_sql, (failed_attempts, lock_time, username))
+                    self._log_audit(username, 'ACCOUNT_LOCKED', 'authentication', ip_address, False, f'Failed attempts: {failed_attempts}')
+                    message = f"認証に{SecurityConfig.MAX_LOGIN_ATTEMPTS}回失敗しました。アカウントが{SecurityConfig.LOCKOUT_DURATION_MINUTES}分間ロックされます"
+                else:
+                    update_sql = "UPDATE users SET failed_attempts = %s WHERE username = %s"
+                    cursor.execute(update_sql, (failed_attempts, username))
+                    remaining = SecurityConfig.MAX_LOGIN_ATTEMPTS - failed_attempts
+                    message = f"無効なパスワードです。残り{remaining}回の試行が可能です"
+                
+                self.connection.commit()
+                self._log_audit(username, 'LOGIN_FAILED', 'authentication', ip_address, False, f'Invalid password, attempts: {failed_attempts}')
+                return False, message
+                
+        except Exception as e:
+            self.connection.rollback()
+            self._log_audit(username, 'LOGIN_ERROR', 'authentication', ip_address, False, str(e))
+            return False, f"認証エラー: {str(e)}"
+        finally:
+            cursor.close()
+    
+    def _log_audit(self, username: str, action: str, resource: str = None, ip_address: str = None, success: bool = True, details: str = None):
+        """監査ログ記録"""
+        cursor = self.connection.cursor()
+        
+        try:
+            insert_sql = """
+            INSERT INTO audit_logs (username, action, resource, ip_address, success, details)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """
+            
+            cursor.execute(insert_sql, (username, action, resource, ip_address, success, details))
+            self.connection.commit()
+            
+        except Exception as e:
+            print(f"Audit log error: {e}")
+        finally:
+            cursor.close()
