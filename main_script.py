@@ -110,7 +110,6 @@ class RamanEyeApp:
         st.markdown(
             """
             <style>
-            
             .security-info {
                 background-color: #e8f5e8;
                 border-left: 4px solid #28a745;
@@ -145,6 +144,13 @@ class RamanEyeApp:
               max-height: 100%;       /* 親400pxの高さいっぱい */
               width: auto;
               object-fit: contain;
+            }
+            .login-header {
+                color: #1f77b4;
+                margin-bottom: 0rem !important;
+                margin-top: 0rem !important;
+                font-size: 1.3rem !important;
+                font-weight: bold;
             }
             .login-container {
                 display: flex;
