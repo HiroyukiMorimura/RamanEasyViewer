@@ -162,7 +162,7 @@ class RamanEyeApp:
             .login-header {
                 color: #1f77b4;
                 margin-bottom: 0.5rem;
-                font-size: 1rem;
+                font-size: 0.5rem;
                 font-weight: bold;
             }
             .subtitle {
