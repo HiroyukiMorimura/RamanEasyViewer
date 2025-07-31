@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-統合ラマンスペクトル解析ツール（認証機能付き）
+統合ラマンスペクトル解析ツール
 メインスクリプト
 
 Created on Wed Jun 11 15:56:04 2025
-@author: hiroy
+@author: Hiroyuki Morimura
 
-Enhanced Integrated Raman Spectrum Analysis Tool with Authentication System
 """
 
 import streamlit as st
@@ -155,7 +154,7 @@ class RamanEyeApp:
             .login-header {
                 color: #1f77b4;
                 margin-bottom: 0.5rem;
-                font-size: 0.5rem;
+                font-size: 0.5rem !important;
                 font-weight: bold;
             }
             .feature-grid {
