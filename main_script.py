@@ -132,14 +132,14 @@ class RamanEyeApp:
                     image = Image.open(logo_path)
                     
                     # ロゴを中央に配置（幅を調整）
-                    col1, col2, col3 = st.columns([1, 2, 1])
-                    with col2:
-                        st.image(
-                            image, 
-                            width=300,  # ロゴの幅を調整
-                            caption="",
-                            use_container_width=False
-                        )
+                    # col1, col2, col3 = st.columns([1, 2, 1])
+                    # with col2:
+                    st.image(
+                        image, 
+                        width=300,  # ロゴの幅を調整
+                        caption="",
+                        use_container_width=False
+                    )
                     
                     logo_displayed = True
                     break
