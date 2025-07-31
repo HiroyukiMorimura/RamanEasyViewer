@@ -1,462 +1,571 @@
 # -*- coding: utf-8 -*-
 """
-ユーザー管理UI
-ログイン、ユーザー管理、権限管理のUIコンポーネント
+統合ラマンスペクトル解析ツール（認証機能付き）
+メインスクリプト
 
-Created for RamanEye Easy Viewer
-@author: User Management UI System
+Created on Wed Jun 11 15:56:04 2025
+@author: hiroy
+
+Enhanced Integrated Raman Spectrum Analysis Tool with Authentication System
 """
 
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import re
 
-# 循環インポートを避けるため、必要な時にインポート
-def get_auth_components():
-    """認証関連コンポーネントを遅延インポート"""
-    from auth_system import (
-        AuthenticationManager, 
-        UserDatabase, 
-        UserRole, 
-        PasswordPolicy,
-        require_auth,
-        require_permission,
-        require_role
-    )
-    return {
-        'AuthenticationManager': AuthenticationManager,
-        'UserDatabase': UserDatabase,
-        'UserRole': UserRole,
-        'PasswordPolicy': PasswordPolicy,
-        'require_auth': require_auth,
-        'require_permission': require_permission,
-        'require_role': require_role
-    }
+# 認証システムのインポート
+from auth_system import (
+    AuthenticationManager, 
+    UserRole, 
+    require_auth, 
+    require_permission,
+    require_role
+)
+from user_management_ui import (
+    LoginUI, 
+    UserManagementUI, 
+    ProfileUI, 
+    render_authenticated_header
+)
 
-def safe_datetime_format(date_value, format_str="%Y-%m-%d %H:%M", default="不明"):
-    """安全な日時フォーマット変換"""
-    if not date_value:
-        return default
-    
-    try:
-        if isinstance(date_value, str):
-            dt = datetime.fromisoformat(date_value)
-            return dt.strftime(format_str)
-        elif isinstance(date_value, datetime):
-            return date_value.strftime(format_str)
-        else:
-            return default
-    except (ValueError, TypeError, AttributeError):
-        return default
+# 既存の解析モジュールのインポート（権限チェック付きでラップ）
+try:
+    from spectrum_analysis import spectrum_analysis_mode
+    from peak_analysis_web import peak_analysis_mode
+    from peak_deconvolution import peak_deconvolution_mode
+    from multivariate_analysis import multivariate_analysis_mode
+    from peak_ai_analysis import peak_ai_analysis_mode
+    from calibration_mode import calibration_mode
+    from raman_database import database_comparison_mode
+    MODULES_AVAILABLE = True
+except ImportError as e:
+    MODULES_AVAILABLE = False
+    st.error(f"解析モジュールのインポートエラー: {e}")
 
-class LoginUI:
-    """ログインUIクラス"""
+class RamanEyeApp:
+    """メインアプリケーションクラス"""
     
     def __init__(self):
-        auth_components = get_auth_components()
-        self.auth_manager = auth_components['AuthenticationManager']()
+        self.auth_manager = AuthenticationManager()
+        self.login_ui = LoginUI()
+        self.user_management_ui = UserManagementUI()
+        self.profile_ui = ProfileUI()
+        
+        # ページ設定
+        st.set_page_config(
+            page_title="RamanEye Easy Viewer - Secure", 
+            page_icon="🔐", 
+            layout="wide",
+            initial_sidebar_state="expanded"
+        )
+        
+        # セッション状態の初期化
+        if "show_profile" not in st.session_state:
+            st.session_state.show_profile = False
+        if "show_user_management" not in st.session_state:
+            st.session_state.show_user_management = False
     
-    def render_login_page(self):
-        """ログインページをレンダリング"""
-        # カスタムCSSでログインページのスタイリング
+    def run(self):
+        """メインアプリケーションの実行"""
+        # 認証チェック
+        if not self.auth_manager.is_authenticated():
+            self._render_login_page()
+        else:
+            # セッションタイムアウトチェック
+            if not self.auth_manager.check_session_timeout(timeout_minutes=60):
+                st.error("セッションがタイムアウトしました。再度ログインしてください")
+                st.stop()
+            
+            self._render_main_application()
+    
+    def _display_company_logo(self):
+        """会社ロゴを表示"""
+        import os
+        from PIL import Image
+        
+        # ロゴファイルのパスを複数チェック
+        logo_paths = [
+            "logo.jpg",          # 同じフォルダ内
+            "logo.png",          # PNG形式も対応
+            "assets/logo.jpg",   # assetsフォルダ内
+            "assets/logo.png",   # assetsフォルダ内（PNG）
+            "images/logo.jpg",   # imagesフォルダ内
+            "images/logo.png"    # imagesフォルダ内（PNG）
+        ]
+        
+        logo_displayed = False
+        
+        # ローカルファイルをチェック
+        for logo_path in logo_paths:
+            if os.path.exists(logo_path):
+                try:
+                    image = Image.open(logo_path)
+                    
+                    # ロゴを中央に配置（幅を調整）
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col2:
+                        st.image(
+                            image, 
+                            width=300,  # ロゴの幅を調整
+                            caption="",
+                            use_column_width=False
+                        )
+                    
+                    logo_displayed = True
+                    break
+                    
+                except Exception as e:
+                    st.error(f"ロゴファイルの読み込みエラー ({logo_path}): {str(e)}")
+        
+        # ローカルファイルが見つからない場合、GitHubからの読み込みを試行
+        if not logo_displayed:
+            github_logo_urls = [
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/logo.jpg",
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/logo.png",
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/assets/logo.jpg",
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/assets/logo.png"
+            ]
+            
+            for url in github_logo_urls:
+                try:
+                    # GitHubからの画像読み込み
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col2:
+                        st.image(
+                            url,
+                            width=300,
+                            caption="",
+                            use_column_width=False
+                        )
+                    
+                    logo_displayed = True
+                    break
+                    
+                except Exception:
+                    continue
+        
+        # ロゴが見つからない場合のフォールバック
+        if not logo_displayed:
+            # テキストベースのロゴを表示
+            st.markdown(
+                """
+                <div style="text-align: center; margin: 1rem 0;">
+                    <div style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        padding: 1rem 2rem;
+                        border-radius: 10px;
+                        font-size: 1.5rem;
+                        font-weight: bold;
+                        display: inline-block;
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    ">
+                        🏢 Your Company Name
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            
+            # ロゴファイルの配置に関する情報を表示（開発用）
+            with st.expander("ℹ️ ロゴファイルの配置について"):
+                st.info("""
+                **ロゴを表示するには、以下のいずれかの場所にlogo.jpgまたはlogo.pngを配置してください:**
+                
+                📁 **同じフォルダ内**:
+                - `logo.jpg` または `logo.png`
+                
+                📁 **サブフォルダ内**:
+                - `assets/logo.jpg` または `assets/logo.png`
+                - `images/logo.jpg` または `images/logo.png`
+                
+                🌐 **GitHub Repository**:
+                - GitHubのraw URLを使用する場合は、`_display_company_logo()`メソッド内のURLを実際のリポジトリURLに変更してください
+                
+                **サポート形式**: JPG, PNG
+                **推奨サイズ**: 300px幅程度
+                """)
+    
+    def _render_login_page(self):
+        """ログインページの表示"""
+        # カスタムCSS
         st.markdown(
             """
             <style>
-            .login-container {
-                max-width: 400px;
-                margin: 0 auto;
-                padding: 2rem;
-                border-radius: 10px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                background-color: white;
-            }
-            .login-header {
+            .main-header {
                 text-align: center;
                 color: #1f77b4;
                 margin-bottom: 2rem;
+                font-size: 3rem;
+                font-weight: bold;
             }
-            .demo-accounts {
-                background-color: #f8f9fa;
-                padding: 1rem;
-                border-radius: 5px;
-                margin-top: 1rem;
-                border-left: 4px solid #17a2b8;
+            .subtitle {
+                text-align: center;
+                color: #666;
+                margin-bottom: 3rem;
+                font-size: 1.2rem;
+            }
+            .feature-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+                margin: 2rem 0;
+            }
+            .feature-card {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 1.5rem;
+                border-radius: 10px;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                margin-bottom: 1.5rem;
+                min-height: 180px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+            .feature-icon {
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
             }
             </style>
             """,
             unsafe_allow_html=True
         )
         
-        # st.markdown('<div class="login-container">', unsafe_allow_html=True)
+        # 会社ロゴの表示
+        self._display_company_logo()
         
         # ヘッダー
         st.markdown(
-            '<h1 class="login-header">🔐 RamanEye Login</h1>',
+            '<h1 class="main-header">🔐 RamanEye Easy Viewer</h1>',
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            '<p class="subtitle">Secure Raman Spectrum Analysis Platform</p>',
             unsafe_allow_html=True
         )
         
+        # 機能紹介
+        st.markdown("### 🌟 主要機能")
+        
+        features = [
+            ("📊", "スペクトル解析", "ラマンスペクトルの基本解析・可視化"),
+            ("🔍", "ピーク分析", "自動ピーク検出・解析・最適化"),
+            ("⚗️", "ピーク分離", "複雑なピークの分離・フィッティング"),
+            ("📈", "多変量解析", "PCA・クラスター分析等の統計解析"),
+            ("📏", "検量線作成", "定量分析用検量線の作成・評価"),
+            ("🤖", "AI解析", "機械学習によるスペクトル解釈"),
+            ("🗄️", "データベース比較", "スペクトルライブラリとの照合"),
+            ("🔒", "セキュリティ", "ユーザー管理・権限制御・監査機能")
+        ]
+        
+        # 2行4列のグリッドで機能を表示（重なりを防ぐ）
+        for row in range(2):
+            cols = st.columns(4)
+            for col_idx in range(4):
+                feature_idx = row * 4 + col_idx
+                if feature_idx < len(features):
+                    icon, title, desc = features[feature_idx]
+                    with cols[col_idx]:
+                        st.markdown(
+                            f"""
+                            <div class="feature-card">
+                                <div class="feature-icon">{icon}</div>
+                                <h4 style="margin: 0.5rem 0;">{title}</h4>
+                                <p style="font-size: 0.85rem; margin: 0; line-height: 1.3;">{desc}</p>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+        
+        st.markdown("---")
+        
         # ログインフォーム
-        with st.form("login_form"):
-            username = st.text_input("ユーザー名", placeholder="ユーザー名を入力してください")
-            password = st.text_input("パスワード", type="password", placeholder="パスワードを入力してください")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                login_button = st.form_submit_button("ログイン", type="primary", use_container_width=True)
-            with col2:
-                forgot_password = st.form_submit_button("パスワードを忘れた方", use_container_width=True)
+        self.login_ui.render_login_page()
         
-        # ログイン処理
-        if login_button:
-            if username and password:
-                success, message = self.auth_manager.login(username, password)
-                if success:
-                    st.success("ログインしました")
-                    st.rerun()
-                else:
-                    st.error(message)
-            else:
-                st.error("ユーザー名とパスワードを入力してください")
-        
-        # パスワードリセット（デモ用）
-        if forgot_password:
-            st.info("デモ版では、管理者に直接お問い合わせください")
-        
-        # デモアカウント情報
+        # フッター
+        st.markdown("---")
         st.markdown(
             """
-            <div class="demo-accounts">
-            <h4>🔧 デモアカウント</h4>
-            <p><strong>管理者:</strong> admin / Admin123!</p>
-            <p><strong>分析者:</strong> analyst / Analyst123!</p>
-            <p><strong>閲覧者:</strong> viewer / Viewer123!</p>
+            <div style="text-align: center; color: #666; margin-top: 2rem;">
+            <p>🔬 <strong>RamanEye Easy Viewer v2.0.0</strong> - Secure Edition</p>
+            <p>Advanced Raman Spectrum Analysis with Enterprise Security</p>
+            <p>© 2025 Hiroyuki Morimura. All rights reserved.</p>
             </div>
             """,
             unsafe_allow_html=True
         )
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-
-class UserManagementUI:
-    """ユーザー管理UIクラス"""
     
-    def __init__(self):
-        auth_components = get_auth_components()
-        self.auth_manager = auth_components['AuthenticationManager']()
-        self.db = auth_components['UserDatabase']()
-        self.require_permission = auth_components['require_permission']
-        self.UserRole = auth_components['UserRole']
-        self.PasswordPolicy = auth_components['PasswordPolicy']
-    
-    def render_user_management_page(self):
-        """ユーザー管理ページをレンダリング"""
-        # 権限チェックを手動で実行
-        if not self.auth_manager.has_permission("user_management"):
-            st.error("この機能を使用する権限がありません")
-            st.stop()
+    def _render_main_application(self):
+        """メインアプリケーションの表示"""
+        # 認証後ヘッダー
+        render_authenticated_header()
         
-        st.header("👥 ユーザー管理")
+        # 会社ロゴの表示
+        self._display_company_logo()
         
-        # タブで機能を分割
-        tab1, tab2, tab3 = st.tabs(["ユーザー一覧", "新規ユーザー作成", "一括操作"])
-        
-        with tab1:
-            self._render_user_list()
-        
-        with tab2:
-            self._render_create_user()
-        
-        with tab3:
-            self._render_bulk_operations()
-    
-    def _render_user_list(self):
-        """ユーザー一覧表示"""
-        st.subheader("📋 ユーザー一覧")
-        
-        users = self.db.list_users()
-        
-        if users:
-            # データフレーム作成
-            user_data = []
-            for username, user_info in users.items():
-                locked_status = "🔒 ロック中" if user_info.get("locked_until") else "✅ アクティブ"
-                
-                # 最終ログイン時刻の安全な処理
-                last_login = safe_datetime_format(
-                    user_info.get("last_login"), 
-                    "%Y-%m-%d %H:%M", 
-                    "未ログイン"
-                )
-                
-                # 作成日の安全な処理
-                created_at = safe_datetime_format(
-                    user_info.get("created_at"), 
-                    "%Y-%m-%d", 
-                    "不明"
-                )
-                
-                user_data.append({
-                    "ユーザー名": username,
-                    "フルネーム": user_info.get("full_name", ""),
-                    "メールアドレス": user_info.get("email", ""),
-                    "ロール": user_info["role"],
-                    "ステータス": locked_status,
-                    "最終ログイン": last_login,
-                    "失敗回数": user_info.get("failed_attempts", 0),
-                    "作成日": created_at
-                })
-            
-            df = pd.DataFrame(user_data)
-            st.dataframe(df, use_container_width=True)
-            
-            # ユーザー個別操作
-            st.subheader("🔧 ユーザー個別操作")
-            selected_user = st.selectbox("操作対象ユーザー", list(users.keys()))
-            
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                if st.button("🔓 ロック解除", key="unlock_user"):
-                    if self.db.update_user(selected_user, {"locked_until": None, "failed_attempts": 0}):
-                        st.success(f"{selected_user}のロックを解除しました")
-                        st.rerun()
-            
-            with col2:
-                if st.button("🔒 アカウントロック", key="lock_user"):
-                    lock_time = (datetime.now() + pd.Timedelta(hours=24)).isoformat()
-                    if self.db.update_user(selected_user, {"locked_until": lock_time}):
-                        st.success(f"{selected_user}を24時間ロックしました")
-                        st.rerun()
-            
-            with col3:
-                if st.button("🔄 パスワードリセット", key="reset_password"):
-                    # デモ用の簡易リセット
-                    new_password = f"Reset123!{datetime.now().strftime('%m%d')}"
-                    hashed = self.db._hash_password(new_password)
-                    if self.db.update_user(selected_user, {"password_hash": hashed, "failed_attempts": 0}):
-                        st.success(f"{selected_user}のパスワードをリセットしました")
-                        st.info(f"新しいパスワード: {new_password}")
-            
-            with col4:
-                if st.button("🗑️ ユーザー削除", key="delete_user"):
-                    if selected_user != self.auth_manager.get_current_user():
-                        if st.button("⚠️ 削除を確認", key="confirm_delete"):
-                            if self.db.delete_user(selected_user):
-                                st.success(f"{selected_user}を削除しました")
-                                st.rerun()
-                    else:
-                        st.error("自分自身は削除できません")
-        else:
-            st.info("登録されているユーザーがありません")
-    
-    def _render_create_user(self):
-        """新規ユーザー作成フォーム"""
-        st.subheader("➕ 新規ユーザー作成")
-        
-        with st.form("create_user_form"):
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                username = st.text_input("ユーザー名 *", placeholder="半角英数字（3-20文字）")
-                password = st.text_input("パスワード *", type="password", placeholder="パスワードを入力")
-                password_confirm = st.text_input("パスワード確認 *", type="password", placeholder="パスワードを再入力")
-            
-            with col2:
-                full_name = st.text_input("フルネーム *", placeholder="氏名を入力")
-                email = st.text_input("メールアドレス *", placeholder="example@company.com")
-                role = st.selectbox("ロール *", UserRole.get_all_roles())
-            
-            # パスワード強度表示
-            if password:
-                is_valid, errors = PasswordPolicy.validate_password(password)
-                if is_valid:
-                    st.success("✅ パスワード強度: 良好")
-                else:
-                    st.error("❌ パスワード強度の問題:")
-                    for error in errors:
-                        st.error(f"• {error}")
-            
-            create_button = st.form_submit_button("ユーザー作成", type="primary")
-            
-            if create_button:
-                # バリデーション
-                if not all([username, password, password_confirm, full_name, email]):
-                    st.error("すべての必須項目を入力してください")
-                elif password != password_confirm:
-                    st.error("パスワードが一致しません")
-                elif not re.match(r"^[a-zA-Z0-9_]{3,20}$", username):
-                    st.error("ユーザー名は3-20文字の半角英数字と_のみ使用可能です")
-                elif not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email):
-                    st.error("有効なメールアドレスを入力してください")
-                else:
-                    success, message = self.db.create_user(username, password, role, email, full_name)
-                    if success:
-                        st.success(message)
-                        st.balloons()
-                    else:
-                        st.error(message)
-    
-    def _render_bulk_operations(self):
-        """一括操作"""
-        st.subheader("📦 一括操作")
-        
-        users = self.db.list_users()
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**🔓 一括ロック解除**")
-            if st.button("全ユーザーのロックを解除"):
-                count = 0
-                for username in users:
-                    if users[username].get("locked_until"):
-                        self.db.update_user(username, {"locked_until": None, "failed_attempts": 0})
-                        count += 1
-                st.success(f"{count}人のユーザーのロックを解除しました")
+        # プロファイル表示チェック
+        if st.session_state.get("show_profile", False):
+            self.profile_ui.render_profile_page()
+            if st.button("⬅️ メインメニューに戻る"):
+                st.session_state.show_profile = False
                 st.rerun()
-        
-        with col2:
-            st.markdown("**📊 統計情報**")
-            total_users = len(users)
-            locked_users = sum(1 for u in users.values() if u.get("locked_until"))
-            active_users = total_users - locked_users
-            
-            st.metric("総ユーザー数", total_users)
-            st.metric("アクティブユーザー", active_users)
-            st.metric("ロック中ユーザー", locked_users)
-
-class ProfileUI:
-    """プロファイルUIクラス"""
-    
-    def __init__(self):
-        auth_components = get_auth_components()
-        self.auth_manager = auth_components['AuthenticationManager']()
-        self.db = auth_components['UserDatabase']()
-        self.require_auth = auth_components['require_auth']
-        self.PasswordPolicy = auth_components['PasswordPolicy']
-    
-    def render_profile_page(self):
-        """プロファイルページをレンダリング"""
-        # 権限チェックを手動で実行
-        if not self.auth_manager.is_authenticated():
-            st.error("この機能を使用するにはログインが必要です")
-            st.stop()
-        
-        st.header("👤 プロファイル管理")
-        
-        current_user = self.auth_manager.get_current_user()
-        user_info = self.db.get_user(current_user)
-        
-        if not user_info:
-            st.error("ユーザー情報が見つかりません")
             return
         
-        # タブで機能を分割
-        tab1, tab2 = st.tabs(["基本情報", "パスワード変更"])
-        
-        with tab1:
-            self._render_basic_info(current_user, user_info)
-        
-        with tab2:
-            self._render_password_change(current_user)
-    
-    def _render_basic_info(self, username, user_info):
-        """基本情報表示・編集"""
-        st.subheader("📋 基本情報")
-        
-        # 読み取り専用情報
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.text_input("ユーザー名", value=username, disabled=True)
-            st.text_input("ロール", value=user_info["role"], disabled=True)
-            
-        with col2:
-            # 作成日の安全な処理
-            created_at = safe_datetime_format(user_info.get("created_at"), "%Y-%m-%d %H:%M", "不明")
-            st.text_input("作成日", value=created_at, disabled=True)
-            
-            # 最終ログインの安全な処理
-            last_login = safe_datetime_format(user_info.get("last_login"), "%Y-%m-%d %H:%M", "未ログイン")
-            st.text_input("最終ログイン", value=last_login, disabled=True)
-        
-        # 編集可能情報
-        st.subheader("✏️ 編集可能情報")
-        
-        with st.form("update_profile_form"):
-            new_full_name = st.text_input("フルネーム", value=user_info.get("full_name", ""))
-            new_email = st.text_input("メールアドレス", value=user_info.get("email", ""))
-            
-            if st.form_submit_button("情報を更新"):
-                updates = {
-                    "full_name": new_full_name,
-                    "email": new_email
-                }
-                
-                if self.db.update_user(username, updates):
-                    st.success("プロファイルを更新しました")
-                    st.rerun()
-                else:
-                    st.error("更新に失敗しました")
-    
-    def _render_password_change(self, username):
-        """パスワード変更"""
-        st.subheader("🔑 パスワード変更")
-        
-        with st.form("change_password_form"):
-            current_password = st.text_input("現在のパスワード", type="password")
-            new_password = st.text_input("新しいパスワード", type="password")
-            confirm_password = st.text_input("新しいパスワード（確認）", type="password")
-            
-            # パスワード強度表示
-            if new_password:
-                is_valid, errors = self.PasswordPolicy.validate_password(new_password)
-                if is_valid:
-                    st.success("✅ パスワード強度: 良好")
-                else:
-                    st.error("❌ パスワード強度の問題:")
-                    for error in errors:
-                        st.error(f"• {error}")
-            
-            if st.form_submit_button("パスワードを変更"):
-                if not all([current_password, new_password, confirm_password]):
-                    st.error("すべての項目を入力してください")
-                elif new_password != confirm_password:
-                    st.error("新しいパスワードが一致しません")
-                else:
-                    success, message = self.db.change_password(username, current_password, new_password)
-                    if success:
-                        st.success(message)
-                    else:
-                        st.error(message)
-
-# ヘッダーコンポーネント
-def render_authenticated_header():
-    """認証後のヘッダー"""
-    auth_components = get_auth_components()
-    auth_manager = auth_components['AuthenticationManager']()
-    
-    if auth_manager.is_authenticated():
-        current_user = auth_manager.get_current_user()
-        current_role = auth_manager.get_current_role()
-        
-        # ヘッダーバー
-        col1, col2, col3 = st.columns([3, 1, 1])
-        
-        with col1:
-            role_emoji = {"admin": "👑", "analyst": "🔬", "viewer": "👁️"}
-            st.write(f"**{role_emoji.get(current_role, '👤')} {current_user}** ({current_role})")
-        
-        with col2:
-            if st.button("👤 プロファイル"):
-                st.session_state.show_profile = True
-        
-        with col3:
-            if st.button("🚪 ログアウト"):
-                auth_manager.logout()
+        # ユーザー管理表示チェック
+        if st.session_state.get("show_user_management", False):
+            self.user_management_ui.render_user_management_page()
+            if st.button("⬅️ メインメニューに戻る"):
+                st.session_state.show_user_management = False
                 st.rerun()
+            return
         
-        st.divider()
+        # メインタイトル
+        st.markdown(
+            "<h1>📊 <span style='font-style: italic;'>RamanEye</span> Easy Viewer</h1>",
+            unsafe_allow_html=True
+        )
+        
+        # サイドバー設定
+        self._render_sidebar()
+        
+        # メインコンテンツエリア
+        if not MODULES_AVAILABLE:
+            st.error("解析モジュールが利用できません。管理者にお問い合わせください。")
+            return
+        
+        # 選択されたモードに応じて適切な関数を呼び出す
+        analysis_mode = st.session_state.get("mode_selector", "スペクトル解析")
+        
+        try:
+            if analysis_mode == "スペクトル解析":
+                self._render_spectrum_analysis()
+            elif analysis_mode == "データベース比較":
+                self._render_database_comparison()
+            elif analysis_mode == "多変量解析":
+                self._render_multivariate_analysis()
+            elif analysis_mode == "ラマンピーク分離":
+                self._render_peak_deconvolution()
+            elif analysis_mode == "ラマンピークファインダー":
+                self._render_peak_analysis()
+            elif analysis_mode == "検量線作成":
+                self._render_calibration()
+            elif analysis_mode == "ピークAI解析":
+                self._render_peak_ai_analysis()
+            elif analysis_mode == "ユーザー管理":
+                st.session_state.show_user_management = True
+                st.rerun()
+            else:
+                # デフォルトはスペクトル解析
+                self._render_spectrum_analysis()
+        except Exception as e:
+            st.error(f"機能の実行中にエラーが発生しました: {e}")
+            st.error("管理者にお問い合わせください。")
+    
+    def _render_sidebar(self):
+        """サイドバーの設定"""
+        st.sidebar.header("🔧 解析モード選択")
+        
+        # 現在のユーザーの権限を取得
+        current_role = self.auth_manager.get_current_role()
+        permissions = UserRole.get_role_permissions(current_role)
+        
+        # 利用可能なモードを権限に基づいて決定（スペクトル解析を最初に配置）
+        available_modes = []
+        mode_permissions = {
+            "スペクトル解析": "spectrum_analysis",           # 全ユーザー利用可能
+            "データベース比較": "database_comparison",       # 全ユーザー利用可能  
+            "ラマンピークファインダー": "peak_analysis", 
+            "ラマンピーク分離": "peak_deconvolution",
+            "多変量解析": "multivariate_analysis",
+            "検量線作成": "calibration",
+            "ピークAI解析": "peak_ai_analysis"
+        }
+        
+        # 全ユーザーが使用可能な機能を最初に追加
+        for mode, permission in mode_permissions.items():
+            if permissions.get(permission, False):
+                available_modes.append(mode)
+        
+        # 管理者はユーザー管理も利用可能（最後に追加）
+        if permissions.get("user_management", False):
+            available_modes.append("ユーザー管理")
+        
+        # モード選択
+        analysis_mode = st.sidebar.selectbox(
+            "解析モードを選択してください:",
+            available_modes,
+            index=0,  # 常に最初の利用可能なモード（スペクトル解析）をデフォルトに
+            key="mode_selector"
+        )
+        
+        # 権限情報表示
+        st.sidebar.markdown("---")
+        st.sidebar.header("👤 アクセス権限")
+        
+        role_descriptions = {
+            UserRole.ADMIN: "🔧 すべての機能にアクセス可能",
+            UserRole.ANALYST: "📊 分析機能にフルアクセス可能", 
+            UserRole.VIEWER: "👁️ 閲覧・基本分析のみ可能"
+        }
+        
+        st.sidebar.info(role_descriptions.get(current_role, "権限情報なし"))
+        
+        # 使用方法の説明
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("📋 使用方法")
+        
+        self._render_usage_instructions(analysis_mode)
+        
+        # フッター情報
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("""
+        **バージョン情報:**
+        - Version: 2.0.0 Secure Edition
+        - Last Updated: 2025-07-31
+        - Author: Hiroyuki Morimura
+        - Security: Enterprise Grade
+        """)
+    
+    def _render_usage_instructions(self, analysis_mode):
+        """使用方法の説明"""
+        instructions = {
+            "スペクトル解析": """
+            **スペクトル解析モード:**
+            1. 解析したいCSVファイルをアップロード
+            2. パラメータを調整
+            3. スペクトルの表示と解析結果を確認
+            4. 結果をCSVファイルでダウンロード
+            """,
+            
+            "多変量解析": """
+            **多変量解析モード:**
+            1. 複数のCSVファイルをアップロード
+            2. パラメータを調整
+            3. 「データプロセス実効」をクリック
+            4. 「多変量解析実効」をクリック
+            5. 解析結果を確認・ダウンロード
+            
+            - コンポーネント数: 2-5
+            """,
+            
+            "ラマンピーク分離": """
+            **ピーク分離モード:**
+            1. 解析したいCSVファイルをアップロード
+            2. パラメータを調整
+            3. フィッティング範囲を設定
+            4. ピーク数最適化によりピーク数決定（n=1～6）
+            5. 必要であれば波数固定
+            6. フィッティングを実効
+            """,
+            
+            "ラマンピークファインダー": """
+            **ラマンピーク解析モード:**
+            1. 解析したいCSVファイルをアップロード
+            2. パラメータを調整
+            3. 「ピーク検出を実行」をクリック
+            4. インタラクティブプロットでピークを調整
+            5. 手動ピークの追加・除外が可能
+            6. グリッドサーチで最適化
+            7. 結果をCSVファイルでダウンロード
+            
+            **インタラクティブ機能:**
+            - グラフをクリックして手動ピーク追加
+            - 自動検出ピークをクリックして除外
+            - グリッドサーチで閾値最適化
+            """,
+            
+            "検量線作成": """
+            **検量線作成モード:**
+            1. **複数ファイルアップロード**: 異なる濃度のスペクトルファイルをアップロード
+            2. **濃度データ入力**: 各サンプルの濃度を入力
+            3. **検量線タイプ選択**: ピーク面積またはPLS回帰を選択
+            4. **波数範囲設定**: 解析に使用する波数範囲を指定
+            5. **検量線作成実行**: 統計解析により検量線を作成
+            6. **結果確認**: R²、RMSE等の統計指標を確認
+            7. **結果エクスポート**: 検量線データをCSVでダウンロード
+            """,
+            
+            "データベース比較": """
+            **データベース比較モード:**
+            1. **ファイルアップロード**: 複数のスペクトルファイル（CSV/TXT）をアップロード
+            2. **前処理パラメータ設定**: ベースライン補正や波数範囲を設定
+            3. **スペクトル処理**: 全ファイルを一括処理してデータベース化
+            4. **比較計算**: 比較マトリックスを計算
+            5. **効率化機能**: プーリングと上位N個選択で高速化
+            6. **結果確認**: 統計サマリーと比較マトリックスを表示
+            7. **最高一致ペア**: 最も一致したスペクトルペアを自動検出・表示
+            8. **エクスポート**: 結果をCSV形式でダウンロード
+            """,
+            
+            "ピークAI解析": """
+            **ピークAI解析モード:**
+            1. **LLM設定**: APIキーを入力するかオフラインモデルを起動
+            2. **論文アップロード**: RAG機能用の論文PDFをアップロード
+            3. **データベース構築**: 論文から検索用データベースを作成
+            4. **スペクトルアップロード**: 解析するラマンスペクトルをアップロード
+            5. **ピーク検出**: 自動検出 + 手動調整でピークを確定
+            6. **AI解析実行**: 確定ピークを基にAIが考察を生成
+            7. **質問機能**: 解析結果について追加質問が可能
+            """,
+            
+            "ユーザー管理": """
+            **ユーザー管理モード:**
+            1. **ユーザー一覧**: 全ユーザーの状態確認
+            2. **新規作成**: 新しいユーザーアカウントの作成
+            3. **権限管理**: ロール変更・アクセス制御
+            4. **アカウント管理**: ロック・解除・削除
+            5. **パスワード管理**: 強制リセット・ポリシー設定
+            6. **監査機能**: ログイン履歴・活動記録の確認
+            
+            **⚠️ 管理者専用機能**
+            """
+        }
+        
+        instruction = instructions.get(analysis_mode, "使用方法情報なし")
+        st.sidebar.markdown(instruction)
+    
+    # 各解析モードのラッパー関数（権限チェック付き）
+    @require_permission("spectrum_analysis")
+    def _render_spectrum_analysis(self):
+        """スペクトル解析モード（権限チェック付き）"""
+        spectrum_analysis_mode()
+    
+    @require_permission("multivariate_analysis")
+    def _render_multivariate_analysis(self):
+        """多変量解析モード（権限チェック付き）"""
+        multivariate_analysis_mode()
+    
+    @require_permission("peak_deconvolution")
+    def _render_peak_deconvolution(self):
+        """ピーク分離モード（権限チェック付き）"""
+        peak_deconvolution_mode()
+    
+    @require_permission("peak_analysis")
+    def _render_peak_analysis(self):
+        """ピーク解析モード（権限チェック付き）"""
+        peak_analysis_mode()
+    
+    @require_permission("calibration")
+    def _render_calibration(self):
+        """検量線作成モード（権限チェック付き）"""
+        calibration_mode()
+    
+    @require_permission("database_comparison")
+    def _render_database_comparison(self):
+        """データベース比較モード（権限チェック付き）"""
+        database_comparison_mode()
+    
+    @require_permission("peak_ai_analysis")
+    def _render_peak_ai_analysis(self):
+        """AI解析モード（権限チェック付き）"""
+        peak_ai_analysis_mode()
 
-import re
+def main():
+    """メイン関数"""
+    app = RamanEyeApp()
+    app.run()
+
+if __name__ == "__main__":
+    main()
