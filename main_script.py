@@ -160,10 +160,7 @@ class RamanEyeApp:
               flex-direction: column;
               justify-content: center;/* 中のフォームを縦方向センター */
             }
-            .stTextInput > div > div > input {
-                padding: 12px;
-                font-size: 16px;
-            }
+            
             .stButton > button {
                 padding: 12px;
                 font-size: 16px;
