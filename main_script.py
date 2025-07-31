@@ -118,7 +118,19 @@ class RamanEyeApp:
                 margin: 1rem 0;
                 border-radius: 5px;
             }
-            
+            .feature-card {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 1.5rem;
+                border-radius: 10px;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                margin-bottom: 1.5rem;
+                min-height: 180px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
             .feature-icon {
                 font-size: 2rem;
                 margin-bottom: 0.5rem;
