@@ -195,31 +195,8 @@ class RamanEyeApp:
         self._render_footer()
     
     def _display_logo_image(self):
-        try:
-            st.image("logo.png", use_container_width = True)
-        except Exception as e:
-            # logo.jpgが見つからない場合のフォールバック
-            st.markdown(
-                """
-                <div style="
-                    text-align: center;
-                    padding: 3rem 2rem;
-                    background: linear-gradient(135deg, #1f77b4 0%, #17a2b8 100%);
-                    color: white;
-                    border-radius: 12px;
-                    font-size: 1.5rem;
-                    font-weight: bold;
-                    margin: 1rem 0;
-                ">
-                    📊 RamanEye<br>
-                    <small style="font-size: 0.8rem;">Logo placeholder</small>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-            st.info("logo.jpgファイルが見つからないため、プレースホルダーを表示しています。")
-
-    
+       st.image("logo.png", use_container_width = True)
+        
     def _render_security_features_collapsible(self):
         """セキュリティ機能の折りたたみ表示"""
         st.markdown("---")
