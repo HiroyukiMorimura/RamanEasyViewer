@@ -136,7 +136,7 @@ class RamanEyeApp:
             }
             .logo-container {
                 display: flex;
-                align-items: center;
+                align-items: stretch;
                 justify-content: center;
                 height: 0px;
                 box-sizing: border-box;
