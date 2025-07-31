@@ -71,7 +71,7 @@ class RamanEyeApp:
         # ページ設定
         st.set_page_config(
             page_title="RamanEye Easy Viewer - Secure", 
-            page_icon="🔐", 
+            page_icon="🏢",  # ロゴのマークに変更（実際のロゴがある場合は画像パスを指定可能）
             layout="wide",
             initial_sidebar_state="expanded"
         )
@@ -109,6 +109,104 @@ class RamanEyeApp:
                 st.stop()
             
             self._render_main_application()
+    
+    def _display_company_logo_centered(self):
+        """会社ロゴを中央配置で表示（左側レイアウト用）"""
+        import os
+        from PIL import Image
+        
+        # ロゴファイルのパスを複数チェック
+        logo_paths = [
+            "logo.jpg",          # 同じフォルダ内
+            "logo.png",          # PNG形式も対応
+            "assets/logo.jpg",   # assetsフォルダ内
+            "assets/logo.png",   # assetsフォルダ内（PNG）
+            "images/logo.jpg",   # imagesフォルダ内
+            "images/logo.png"    # imagesフォルダ内（PNG）
+        ]
+        
+        logo_displayed = False
+        
+        # 中央配置用のコンテナ
+        st.markdown('<div class="logo-container">', unsafe_allow_html=True)
+        
+        # ローカルファイルをチェック
+        for logo_path in logo_paths:
+            if os.path.exists(logo_path):
+                try:
+                    image = Image.open(logo_path)
+                    
+                    # ロゴを中央に配置（適切なサイズ）
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col2:
+                        st.image(
+                            image, 
+                            width=350,  # 半分のスペースに適したサイズ
+                            caption="",
+                            use_container_width=False
+                        )
+                    
+                    logo_displayed = True
+                    break
+                    
+                except Exception as e:
+                    st.error(f"ロゴファイルの読み込みエラー ({logo_path}): {str(e)}")
+        
+        # ローカルファイルが見つからない場合、GitHubからの読み込みを試行
+        if not logo_displayed:
+            github_logo_urls = [
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/logo.jpg",
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/logo.png",
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/assets/logo.jpg",
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/assets/logo.png"
+            ]
+            
+            for url in github_logo_urls:
+                try:
+                    # GitHubからの画像読み込み（中央配置）
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col2:
+                        st.image(
+                            url,
+                            width=350,
+                            caption="",
+                            use_container_width=False
+                        )
+                    
+                    logo_displayed = True
+                    break
+                    
+                except Exception:
+                    continue
+        
+        # ロゴが見つからない場合のフォールバック（中央配置）
+        if not logo_displayed:
+            # テキストベースのロゴを中央に表示
+            st.markdown(
+                """
+                <div style="text-align: center; margin: 2rem 0;">
+                    <div style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        padding: 2rem 2.5rem;
+                        border-radius: 15px;
+                        font-size: 2rem;
+                        font-weight: bold;
+                        display: inline-block;
+                        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+                        margin-bottom: 1rem;
+                    ">
+                        🏢 Your Company Name
+                    </div>
+                    <div style="font-size: 1.1rem; color: #666; text-align: center;">
+                        Advanced Scientific Solutions
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        
+        st.markdown('</div>', unsafe_allow_html=True)
     
     def _display_company_logo_inline(self):
         """会社ロゴをインライン表示（左側レイアウト用）"""
@@ -360,8 +458,11 @@ class RamanEyeApp:
                 margin-bottom: 2rem;
             }
             .logo-section {
-                flex: 3;
+                flex: 1;
                 padding-right: 2rem;
+                display: flex;
+                justify-content: center;
+                align-items: center;
             }
             .login-section {
                 flex: 1;
@@ -369,6 +470,15 @@ class RamanEyeApp:
                 padding: 1.5rem;
                 border-radius: 10px;
                 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .logo-container {
+                text-align: center;
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                min-height: 300px;
             }
             .demo-accounts {
                 background-color: #e3f2fd;
@@ -383,15 +493,15 @@ class RamanEyeApp:
             unsafe_allow_html=True
         )
         
-        # 上部レイアウト：ロゴ（3/4）+ ログイン（1/4）
-        col_logo, col_login = st.columns([3, 1])
+        # 上部レイアウト：ロゴ（1/2）+ ログイン（1/2）
+        col_logo, col_login = st.columns([1, 1])  # 面積を半分半分に変更
         
         with col_logo:
-            # ロゴ表示（左側、3/4サイズ）
-            self._display_company_logo_inline()
+            # ロゴ表示（左側、1/2サイズ、中央配置）
+            self._display_company_logo_centered()
         
         with col_login:
-            # ログインセクション（右側、1/4サイズ）
+            # ログインセクション（右側、1/2サイズ）
             st.markdown('<h2 class="login-header">RamanEye Easy Viewer Login</h2>', unsafe_allow_html=True)
             
             # ログインフォーム
