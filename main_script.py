@@ -679,8 +679,6 @@ class RamanEyeApp:
         # 利用可能モード
         
         st.sidebar.header("🔧 解析モード選択")
-        
-        available_modes = []
         mode_permissions = {
             "スペクトル解析": "spectrum_analysis",
             "データベース比較": "database_comparison",
@@ -690,7 +688,7 @@ class RamanEyeApp:
             "検量線作成": "calibration",
             "ピークAI解析": "peak_ai_analysis"
         }
-        
+        available_modes = list(mode_permissions.keys())
         # モード選択
         analysis_mode = st.sidebar.selectbox(
             "セキュア解析モードを選択してください:",
@@ -698,7 +696,6 @@ class RamanEyeApp:
             index=0,
             key="mode_selector"
         )
-        
         
         """サイドバー"""
         auth_system = self._get_auth_system()
