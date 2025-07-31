@@ -254,7 +254,7 @@ class RamanEyeApp:
         
         with col_logo:
             # ロゴ表示（左側、1/2サイズ、中央配置）
-            self._display_company_logo_centered()
+            self._display_company_logo()
         
         with col_login:
             # ログインセクション（右側、1/2サイズ）
@@ -378,7 +378,7 @@ class RamanEyeApp:
         ui_components['render_authenticated_header']()
         
         # 会社ロゴの表示
-        self._display_company_logo()
+        # self._display_company_logo()
         
         # プロファイル表示チェック
         if st.session_state.get("show_profile", False):
