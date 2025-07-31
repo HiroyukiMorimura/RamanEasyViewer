@@ -422,6 +422,11 @@ class RamanEyeApp:
             key="mode_selector"
         )
     def _render_secure_sidebar(self):
+        """サイドバーの設定"""
+        auth_system = self._get_auth_system()
+        AuthenticationManager = auth_system['AuthenticationManager']
+        UserRole = auth_system['UserRole']
+        
         # 権限情報表示
         st.sidebar.markdown("---")
         st.sidebar.header("👤 アクセス権限")
