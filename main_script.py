@@ -725,7 +725,7 @@ class SecureRamanEyeApp:
             "セキュア解析モードを選択してください:",
             available_modes,
             index=0,
-            key="secure_mode_selector"
+            key="mode_selector"
         )
         
         # セキュリティ権限情報表示
@@ -869,7 +869,7 @@ class SecureRamanEyeApp:
     
     def _execute_secure_analysis_mode(self):
         """セキュア強化された解析モードの実行"""
-        analysis_mode = st.session_state.get("secure_mode_selector", "セキュアスペクトル解析")
+        analysis_mode = st.session_state.get("mode_selector", "スペクトル解析")
         
         # セキュリティログ記録
         current_user = st.session_state.get('current_user', {})
@@ -882,8 +882,8 @@ class SecureRamanEyeApp:
         )
         
         try:
-            if analysis_mode == "セキュアスペクトル解析":
-                self._render_secure_spectrum_analysis()
+            if analysis_mode == "スペクトル解析":
+                self._render_spectrum_analysis()
             elif analysis_mode == "セキュアデータベース比較":
                 self._render_secure_database_comparison()
             elif analysis_mode == "セキュア多変量解析":
@@ -939,7 +939,7 @@ class SecureRamanEyeApp:
     
     # セキュア強化された各解析モードのラッパー関数
     def _render_secure_spectrum_analysis(self):
-        """セキュア強化されたスペクトル解析モード"""
+        """スペクトル解析モード"""
         auth_system = self._get_auth_system()
         auth_manager = auth_system['AuthenticationManager']()
         
@@ -948,8 +948,8 @@ class SecureRamanEyeApp:
             st.stop()
         
         # セキュリティヘッダー追加
-        st.markdown("### 🔒 セキュアスペクトル解析")
-        st.info("このモードでは、全てのファイル操作が暗号化・監査されます。")
+        # st.markdown("### 🔒スペクトル解析")
+        # st.info("このモードでは、全てのファイル操作が暗号化・監査されます。")
         
         spectrum_analysis_mode()
     
