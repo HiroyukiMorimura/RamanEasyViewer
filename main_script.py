@@ -601,7 +601,7 @@ class SecureRamanEyeApp:
         self._render_secure_authenticated_header()
         
         # セキュア版会社ロゴ
-        self._display_secure_company_logo()
+        # self._display_secure_company_logo()
         
         # プロファイル表示チェック
         if st.session_state.get("show_profile", False):
@@ -621,13 +621,13 @@ class SecureRamanEyeApp:
                 st.rerun()
             return
         
-        # セキュアメインタイトル
+        # メインタイトル
         st.markdown(
-            "<h1>🔒 <span style='font-style: italic;'>RamanEye</span> Secure Viewer</h1>",
+            "<h1><span style='font-style: italic;'>RamanEye</span> Secure Viewer</h1>",
             unsafe_allow_html=True
         )
         
-        # セキュアサイドバー設定
+        # サイドバー設定
         self._render_secure_sidebar()
         
         # メインコンテンツエリア（セキュリティ付き）
@@ -635,7 +635,7 @@ class SecureRamanEyeApp:
             st.error("解析モジュールが利用できません。管理者にお問い合わせください。")
             return
         
-        # セキュア強化された解析モード実行
+        # 強化された解析モード実行
         self._execute_secure_analysis_mode()
     
     def _render_secure_authenticated_header(self):
