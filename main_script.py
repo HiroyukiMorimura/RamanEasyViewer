@@ -238,7 +238,7 @@ class RamanEyeApp:
                     # ロゴを左側に配置（幅を大きく調整）
                     st.image(
                         image, 
-                        width=750,  # より大きなロゴサイズ
+                        width=500,  # より大きなロゴサイズ
                         caption="",
                         use_container_width=False
                     )
@@ -263,7 +263,7 @@ class RamanEyeApp:
                     # GitHubからの画像読み込み
                     st.image(
                         url,
-                        width=500,
+                        width=750,
                         caption="",
                         use_container_width=False
                     )
