@@ -444,34 +444,7 @@ class SecureRamanEyeApp:
             st.info("パスワードリセットについては管理者にお問い合わせください")
     
     def _display_secure_company_logo(self):
-        """セキュア版会社ロゴ表示"""
-        # セキュリティ機能付きのロゴ表示
-        st.markdown(
-            """
-            <div style="text-align: center; margin: 1rem 0;">
-                <div style="
-                    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-                    color: white;
-                    padding: 1.5rem 2rem;
-                    border-radius: 12px;
-                    font-size: 1.8rem;
-                    font-weight: bold;
-                    display: inline-block;
-                    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-                    margin-bottom: 0.8rem;
-                ">
-                    🔒 RamanEye Secure
-                </div>
-                <div style="font-size: 1rem; color: #666; text-align: center; margin: 0;">
-                    Enterprise Security Edition
-                </div>
-                <div style="font-size: 0.8rem; color: #28a745; text-align: center; margin-top: 0.5rem;">
-                    🛡️ Bank-Grade Security
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        st.image("logo.png", use_container_width = True)
     
     def _render_security_information(self):
         """セキュリティ情報の表示"""
