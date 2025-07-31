@@ -364,7 +364,7 @@ class RamanEyeApp:
                 # デフォルトはスペクトル解析
                 self._render_spectrum_analysis()
                 
-            self._render_secure_sidebar():
+            self._render_secure_sidebar()
         
         except Exception as e:
             st.error(f"機能の実行中にエラーが発生しました: {e}")
