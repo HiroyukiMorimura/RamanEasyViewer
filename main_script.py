@@ -904,7 +904,7 @@ class SecureRamanEyeApp:
                 st.session_state.show_user_management = True
                 st.rerun()
             else:
-                self._render_secure_spectrum_analysis()
+                self._render_spectrum_analysis()
                 
         except Exception as e:
             self._handle_analysis_security_exception(analysis_mode, e)
@@ -938,7 +938,7 @@ class SecureRamanEyeApp:
                 st.error(f"エラーメッセージ: {str(exception)}")
     
     # セキュア強化された各解析モードのラッパー関数
-    def _render_secure_spectrum_analysis(self):
+    def _render_spectrum_analysis(self):
         """スペクトル解析モード"""
         auth_system = self._get_auth_system()
         auth_manager = auth_system['AuthenticationManager']()
