@@ -877,14 +877,16 @@ class RamanEyeApp:
         if current_role not in ["admin", "analyst"]:
             st.error("この機能を使用する権限がありません")
             st.stop()
-        
+        from signature_management_ui import render_signature_demo_page
+        render_signature_demo_page()
+        """
         try:
             from signature_management_ui import render_signature_demo_page
             render_signature_demo_page()
         except ImportError:
             st.error("電子署名管理機能がインストールされていません")
             st.info("電子署名機能を使用するには、追加のモジュールをインストールしてください")
-    
+        """
     def _render_signature_integration_demo(self):
         """電子署名統合デモモード"""
         auth_system = self._get_auth_system()
