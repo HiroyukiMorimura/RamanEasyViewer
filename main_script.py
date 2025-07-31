@@ -182,7 +182,7 @@ class RamanEyeApp:
                     
                 except Exception:
                     continue
-        
+        """
         # ロゴが見つからない場合のフォールバック（ログインフォームと同じ高さ）
         if not logo_displayed:
             # テキストベースのロゴを表示
@@ -211,7 +211,7 @@ class RamanEyeApp:
                 """,
                 unsafe_allow_html=True
             )
-    
+            """
     def _display_company_logo_inline(self):
         """会社ロゴをインライン表示（左側レイアウト用）"""
         import os
@@ -248,7 +248,7 @@ class RamanEyeApp:
                     
                 except Exception as e:
                     st.error(f"ロゴファイルの読み込みエラー ({logo_path}): {str(e)}")
-        
+        """
         # ローカルファイルが見つからない場合、GitHubからの読み込みを試行
         if not logo_displayed:
             github_logo_urls = [
@@ -278,7 +278,7 @@ class RamanEyeApp:
         if not logo_displayed:
             # テキストベースのロゴを表示
             st.markdown(
-                """
+                
                 <div style="margin: 1rem 0;">
                     <div style="
                         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -296,10 +296,10 @@ class RamanEyeApp:
                         Advanced Scientific Solutions
                     </div>
                 </div>
-                """,
+                ,
                 unsafe_allow_html=True
             )
-    
+    """
     def _display_company_logo(self):
         """会社ロゴを表示"""
         import os
