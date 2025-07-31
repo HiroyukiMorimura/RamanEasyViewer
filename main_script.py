@@ -259,8 +259,7 @@ class RamanEyeApp:
             with st.form("login_form"):
                 st.markdown(
                     '<h2 class="login-header"><em>RamanEye</em> Easy Viewer ログイン</h2>',
-                    unsafe_allow_html=False
-                    
+                    unsafe_allow_html=True
                 )
                 
                 username = st.text_input("ユーザー名", placeholder="ユーザー名を入力")
