@@ -150,7 +150,7 @@ class RamanEyeApp:
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
-                height: 450px;
+                height: 350px;
                 box-sizing: border-box;
             }
             .login-form-wrapper {
