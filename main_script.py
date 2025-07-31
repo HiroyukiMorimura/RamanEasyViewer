@@ -436,6 +436,9 @@ class RamanEyeApp:
             UserRole.ANALYST: "📊 分析機能にフルアクセス可能", 
             UserRole.VIEWER: "👁️ 閲覧・基本分析のみ可能"
         }
+        # 現在のユーザーの権限を取得
+        current_role = auth_manager.get_current_role()
+        permissions = UserRole.get_role_permissions(current_role)
         
         st.sidebar.info(role_descriptions.get(current_role, "権限情報なし"))
         
