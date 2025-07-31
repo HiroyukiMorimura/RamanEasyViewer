@@ -138,7 +138,7 @@ class RamanEyeApp:
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                height: 400px;
+                height: 0px;
                 box-sizing: border-box;
             }
             .logo-container img {
@@ -157,7 +157,7 @@ class RamanEyeApp:
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
-                height: 380px;
+                height: 0px;
                 box-sizing: border-box;
             }
             .login-form-wrapper {
