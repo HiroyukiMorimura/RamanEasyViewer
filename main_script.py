@@ -82,9 +82,8 @@ except ImportError as e:
     MODULES_AVAILABLE = False
     st.error(f"解析モジュールのインポートエラー: {e}")
 
-class SecureRamanEyeApp:
-    """セキュリティ強化版メインアプリケーションクラス"""
-    
+class RamanEyeApp:
+    """メインアプリケーションクラス"""
     def __init__(self):
         # 遅延初期化用の変数
         self._auth_system = None
@@ -596,6 +595,8 @@ class SecureRamanEyeApp:
     def _render_secure_main_application(self):
         """セキュア強化されたメインアプリケーションの表示"""
         ui_components = self._get_ui_components()
+        # 解析モード実行
+        self._execute_analysis_mode()
         
         # メインタイトル
         st.markdown(
@@ -608,8 +609,7 @@ class SecureRamanEyeApp:
             st.error("解析モジュールが利用できません。管理者にお問い合わせください。")
             return
         
-        # 強化された解析モード実行
-        self._execute_secure_analysis_mode()
+        
         
         # 認証後ヘッダー（セキュリティ情報付き）
         self._render_secure_authenticated_header()
@@ -866,8 +866,8 @@ class SecureRamanEyeApp:
         instruction = instructions.get(analysis_mode, "使用方法情報なし")
         st.sidebar.markdown(instruction)
     
-    def _execute_secure_analysis_mode(self):
-        """セキュア強化された解析モードの実行"""
+    def _execute_analysis_mode(self):
+        """解析モードの実行"""
         analysis_mode = st.session_state.get("mode_selector", "スペクトル解析")
         
         # セキュリティログ記録
@@ -1254,10 +1254,11 @@ class SecureRamanEyeApp:
         calibration_mode()
 
 def main():
-    """セキュア強化されたメイン関数"""
+    """メイン関数"""
     try:
-        app = SecureRamanEyeApp()
+        app = RamanEyeApp()
         app.run()
+        
     except Exception as e:
         st.error("アプリケーションの初期化中にエラーが発生しました")
         st.error(f"エラー詳細: {e}")
