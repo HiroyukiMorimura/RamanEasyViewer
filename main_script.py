@@ -149,14 +149,14 @@ class RamanEyeApp:
                 color: #1f77b4;
                 margin-bottom: 0rem !important;
                 margin-top: 0rem !important;
-                font-size: 1.3rem !important;
+                font-size: 1.5rem !important;
                 font-weight: bold;
             }
             .login-container {
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
-                height: 350px;
+                height: 300px;
                 box-sizing: border-box;
             }
             .login-form-wrapper {
