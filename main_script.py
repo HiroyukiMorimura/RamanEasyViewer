@@ -133,13 +133,7 @@ class RamanEyeApp:
                 font-size: 1.3rem !important;
                 font-weight: bold;
             }
-            .logo-container {
-                text-align: center;
-                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-                border-radius: 15px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                margin-bottom: 1rem;
-            }
+            
             .security-info {
                 background-color: #e8f5e8;
                 border-left: 4px solid #28a745;
