@@ -642,12 +642,8 @@ class RamanEyeApp:
         ui_components['render_authenticated_header']()
         
         # セキュリティ情報は_render_sidebar()内で下側に表示
-    
-    def _render_sidebar(self):
+    def _render_mode_sidebar(self):
         """サイドバー"""
-        # 解析モード選択を一番上に
-        st.sidebar.header("🔧 解析モード選択")
-        
         auth_system = self._get_auth_system()
         AuthenticationManager = auth_system['AuthenticationManager']
         UserRole = auth_system['UserRole']
@@ -658,6 +654,8 @@ class RamanEyeApp:
         current_role = auth_manager.get_current_role()
         permissions = UserRole.get_role_permissions(current_role)
         
+        # 解析モード選択
+        st.sidebar.header("🔧 解析モード選択")
         mode_permissions = {
             "スペクトル解析": "spectrum_analysis",
             "データベース比較": "database_comparison",
@@ -695,6 +693,7 @@ class RamanEyeApp:
             key="mode_selector"
         )
         
+    def _render_secure_sidebar(self):
         # セキュリティ関連の表示を下側に移動
         st.sidebar.markdown("---")
         
