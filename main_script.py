@@ -142,20 +142,37 @@ class RamanEyeApp:
                 font-size: 2rem;
                 margin-bottom: 0.5rem;
             }
+            .logo-container {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 400px;
+                padding: 20px;
+            }
+            .login-container {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                height: 400px;
+                padding: 20px;
+            }
             </style>
             """,
             unsafe_allow_html=True
         )
         
-        # ロゴとログインフォームを1:1で配置
+        # ロゴとログインフォームを1:1で配置（高さを揃える）
         col_logo, col_login = st.columns([1, 1])
         
         with col_logo:
-            # logo.jpg表示
+            # logo.jpg表示（高さ調整用コンテナで囲む）
+            st.markdown('<div class="logo-container">', unsafe_allow_html=True)
             self._display_logo_image()
+            st.markdown('</div>', unsafe_allow_html=True)
         
         with col_login:
-            # ログインフォーム
+            # ログインフォーム（高さ調整用コンテナで囲む）
+            st.markdown('<div class="login-container">', unsafe_allow_html=True)
             with st.form("login_form"):
                 st.markdown('<h2 class="login-header"><em>RamanEye</em> Easy Viewer ログイン</h2>', unsafe_allow_html=True)
                 username = st.text_input(
@@ -173,6 +190,7 @@ class RamanEyeApp:
                     login_button = st.form_submit_button("🔐 ログイン", type="primary", use_container_width=True)
                 with col2:
                     forgot_password = st.form_submit_button("パスワード忘れ", use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             
             # ログイン処理
             if login_button:
