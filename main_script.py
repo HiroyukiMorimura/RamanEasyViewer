@@ -353,16 +353,17 @@ class SecureRamanEyeApp:
             self._display_secure_company_logo()
         
         with col_login:
-            # セキュア強化されたログインフォーム
-            st.markdown('<h2 class="login-header">🔒 <em>RamanEye</em> Secure Login</h2>', unsafe_allow_html=True)
             
-            # ログイン試行制限の表示
-            failed_attempts = st.session_state.get('failed_login_attempts', 0)
-            if failed_attempts > 0:
-                st.warning(f"⚠️ ログイン失敗回数: {failed_attempts}/{SecurityConfig.MAX_LOGIN_ATTEMPTS}")
             
             # セキュアなログインフォーム
             with st.form("secure_login_form"):
+                st.markdown('<h2 class="login-header">🔒 <em>RamanEye</em> Secure Login</h2>', unsafe_allow_html=True)
+                
+                # ログイン試行制限の表示
+                failed_attempts = st.session_state.get('failed_login_attempts', 0)
+                if failed_attempts > 0:
+                    st.warning(f"⚠️ ログイン失敗回数: {failed_attempts}/{SecurityConfig.MAX_LOGIN_ATTEMPTS}")
+                
                 username = st.text_input(
                     "ユーザー名", 
                     placeholder="ユーザー名を入力",
