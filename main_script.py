@@ -681,6 +681,17 @@ class SecureRamanEyeApp:
                         st.text(f"{event['event_type']} - {event['timestamp'][:19]}")
     
     def _render_sidebar(self):
+        # セキュリティ強化された利用可能モード
+        available_modes = []
+        mode_permissions = {
+            "スペクトル解析": "spectrum_analysis",
+            "データベース比較": "database_comparison",
+            "ピークファインダー": "peak_analysis", 
+            "ピーク分離": "peak_deconvolution",
+            "多変量解析": "multivariate_analysis",
+            "検量線作成": "calibration",
+            "ピークAI解析": "peak_ai_analysis"
+        }
         # モード選択
         analysis_mode = st.sidebar.selectbox(
             "セキュア解析モードを選択してください:",
@@ -702,17 +713,7 @@ class SecureRamanEyeApp:
         current_role = auth_manager.get_current_role()
         permissions = UserRole.get_role_permissions(current_role)
         
-        # セキュリティ強化された利用可能モード
-        available_modes = []
-        mode_permissions = {
-            "スペクトル解析": "spectrum_analysis",
-            "データベース比較": "database_comparison",
-            "ピークファインダー": "peak_analysis", 
-            "ピーク分離": "peak_deconvolution",
-            "多変量解析": "multivariate_analysis",
-            "検量線作成": "calibration",
-            "ピークAI解析": "peak_ai_analysis"
-        }
+        
         
         # 権限チェック付きモード追加
         for mode, permission in mode_permissions.items():
