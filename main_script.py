@@ -1261,7 +1261,11 @@ def main():
     except Exception as e:
         st.error("アプリケーションの初期化中にエラーが発生しました")
         st.error(f"エラー詳細: {e}")
-        
+        # ここでフルのスタックトレースを出力
+        tb = traceback.format_exc()
+        st.text("=== ここからスタックトレース ===")
+        st.text(tb)
+        st.text("=== ここまでスタックトレース ===")
         # 緊急時のフォールバック
         st.markdown("---")
         st.info("通常モードで起動しますか？")
