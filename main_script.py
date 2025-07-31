@@ -110,22 +110,7 @@ class RamanEyeApp:
         st.markdown(
             """
             <style>
-            .top-layout {
-              display: flex;
-              align-items: stretch;  /* 子要素を等高にする */
-            }
-            /* logo と login を等高に */
-            .logo-section, .login-section {
-              display: flex;
-              flex-direction: column;
-              flex: 1;
-            }
-            /* フォームだけさらに高さいっぱいに */
-            .login-section form {
-              flex: 1;
-              display: flex;
-              flex-direction: column;
-            }
+            
             .login-header {
                 color: #1f77b4;
                 margin-bottom: 0rem !important;
@@ -133,7 +118,6 @@ class RamanEyeApp:
                 font-size: 1.3rem !important;
                 font-weight: bold;
             }
-            
             .security-info {
                 background-color: #e8f5e8;
                 border-left: 4px solid #28a745;
