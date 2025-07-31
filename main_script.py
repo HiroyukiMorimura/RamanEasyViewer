@@ -72,7 +72,7 @@ class RamanEyeApp:
         # ページ設定
         st.set_page_config(
             page_title="RamanEye Easy Viewer", 
-            page_icon="📊",
+            page_icon=Image.open("logo2.png"),
             layout="wide",
             initial_sidebar_state="expanded"
         )
@@ -162,7 +162,7 @@ class RamanEyeApp:
         
         with col_login:
             # ログインフォーム
-            st.markdown('<h2 class="login-header">📊 <em>RamanEye</em> Login</h2>', unsafe_allow_html=True)
+            st.markdown('<h2 class="login-header"><em>RamanEye</em> Login</h2>', unsafe_allow_html=True)
             
             # ログインフォーム
             with st.form("login_form"):
