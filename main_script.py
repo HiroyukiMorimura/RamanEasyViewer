@@ -152,24 +152,11 @@ class RamanEyeApp:
         st.markdown(
             """
             <style>
-            .main-header {
-                text-align: center;
-                color: #1f77b4;
-                margin-bottom: 1rem;
-                font-size: 1rem;
-                font-weight: bold;
-            }
             .login-header {
                 color: #1f77b4;
                 margin-bottom: 0.5rem;
                 font-size: 0.5rem;
                 font-weight: bold;
-            }
-            .subtitle {
-                text-align: center;
-                color: #666;
-                margin-bottom: 3rem;
-                font-size: 1.2rem;
             }
             .feature-grid {
                 display: grid;
@@ -376,9 +363,6 @@ class RamanEyeApp:
         
         # 認証後ヘッダー
         ui_components['render_authenticated_header']()
-        
-        # 会社ロゴの表示
-        # self._display_company_logo()
         
         # プロファイル表示チェック
         if st.session_state.get("show_profile", False):
