@@ -6,20 +6,6 @@ RamanEye Easy Viewer (Main Script)
 Created on Wed Jun 11 15:56:04 2025
 @author: Hiroyuki Morimura
 """
-# -*- coding: utf-8 -*-
-"""
-統合ラマンスペクトル解析ツール（セキュリティ強化版）
-Enhanced Integrated Raman Spectrum Analysis Tool with Advanced Security Features
-
-Created on Wed Jun 11 15:56:04 2025
-@author: Enhanced Security System
-Enhanced with comprehensive security features including:
-- Data encryption (At-Rest and In-Transit)
-- File integrity verification
-- Advanced access control
-- Security audit logging
-- HTTPS enforcement
-"""
 
 import streamlit as st
 import pandas as pd
