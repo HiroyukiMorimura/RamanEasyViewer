@@ -72,7 +72,7 @@ class RamanEyeApp:
         # ページ設定
         st.set_page_config(
             page_title="RamanEye Easy Viewer", 
-            page_icon=open("favicon.png"),
+            page_icon=Image.open("favicon.png"),
             layout="wide",
             initial_sidebar_state="expanded"
         )
