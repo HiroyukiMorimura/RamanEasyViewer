@@ -170,7 +170,7 @@ class RamanEyeApp:
     
     def run(self):
         """メインアプリケーションの実行"""
-        try:
+        # try:
             # セキュリティチェック
             if not self._perform_security_checks():
                 st.stop()
@@ -193,8 +193,8 @@ class RamanEyeApp:
                 
                 self._render_secure_main_application()
                 
-        except Exception as e:
-            self._handle_security_exception(e)
+        # except Exception as e:
+        #     self._handle_security_exception(e)
     
     def _perform_security_checks(self) -> bool:
         """基本的なセキュリティチェック"""
@@ -1261,11 +1261,7 @@ def main():
     except Exception as e:
         st.error("アプリケーションの初期化中にエラーが発生しました")
         st.error(f"エラー詳細: {e}")
-        # ここでフルのスタックトレースを出力
-        tb = traceback.format_exc()
-        st.text("=== ここからスタックトレース ===")
-        st.text(tb)
-        st.text("=== ここまでスタックトレース ===")
+        
         # 緊急時のフォールバック
         st.markdown("---")
         st.info("通常モードで起動しますか？")
