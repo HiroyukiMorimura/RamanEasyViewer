@@ -110,6 +110,94 @@ class RamanEyeApp:
             
             self._render_main_application()
     
+    def _display_company_logo_inline(self):
+        """会社ロゴをインライン表示（左側レイアウト用）"""
+        import os
+        from PIL import Image
+        
+        # ロゴファイルのパスを複数チェック
+        logo_paths = [
+            "logo.jpg",          # 同じフォルダ内
+            "logo.png",          # PNG形式も対応
+            "assets/logo.jpg",   # assetsフォルダ内
+            "assets/logo.png",   # assetsフォルダ内（PNG）
+            "images/logo.jpg",   # imagesフォルダ内
+            "images/logo.png"    # imagesフォルダ内（PNG）
+        ]
+        
+        logo_displayed = False
+        
+        # ローカルファイルをチェック
+        for logo_path in logo_paths:
+            if os.path.exists(logo_path):
+                try:
+                    image = Image.open(logo_path)
+                    
+                    # ロゴを左側に配置（幅を大きく調整）
+                    st.image(
+                        image, 
+                        width=500,  # より大きなロゴサイズ
+                        caption="",
+                        use_container_width=False
+                    )
+                    
+                    logo_displayed = True
+                    break
+                    
+                except Exception as e:
+                    st.error(f"ロゴファイルの読み込みエラー ({logo_path}): {str(e)}")
+        
+        # ローカルファイルが見つからない場合、GitHubからの読み込みを試行
+        if not logo_displayed:
+            github_logo_urls = [
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/logo.jpg",
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/logo.png",
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/assets/logo.jpg",
+                "https://raw.githubusercontent.com/yourusername/yourrepository/main/assets/logo.png"
+            ]
+            
+            for url in github_logo_urls:
+                try:
+                    # GitHubからの画像読み込み
+                    st.image(
+                        url,
+                        width=500,
+                        caption="",
+                        use_container_width=False
+                    )
+                    
+                    logo_displayed = True
+                    break
+                    
+                except Exception:
+                    continue
+        
+        # ロゴが見つからない場合のフォールバック
+        if not logo_displayed:
+            # テキストベースのロゴを表示
+            st.markdown(
+                """
+                <div style="margin: 1rem 0;">
+                    <div style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        padding: 2rem 3rem;
+                        border-radius: 15px;
+                        font-size: 2.5rem;
+                        font-weight: bold;
+                        display: inline-block;
+                        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+                    ">
+                        🏢 Your Company Name
+                    </div>
+                    <div style="margin-top: 1rem; font-size: 1.2rem; color: #666;">
+                        Advanced Scientific Solutions
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+    
     def _display_company_logo(self):
         """会社ロゴを表示"""
         import os
@@ -231,6 +319,12 @@ class RamanEyeApp:
                 font-size: 3rem;
                 font-weight: bold;
             }
+            .login-header {
+                color: #1f77b4;
+                margin-bottom: 1rem;
+                font-size: 1.8rem;
+                font-weight: bold;
+            }
             .subtitle {
                 text-align: center;
                 color: #666;
@@ -260,25 +354,91 @@ class RamanEyeApp:
                 font-size: 2rem;
                 margin-bottom: 0.5rem;
             }
+            .top-layout {
+                display: flex;
+                align-items: flex-start;
+                margin-bottom: 2rem;
+            }
+            .logo-section {
+                flex: 3;
+                padding-right: 2rem;
+            }
+            .login-section {
+                flex: 1;
+                background-color: #f8f9fa;
+                padding: 1.5rem;
+                border-radius: 10px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .demo-accounts {
+                background-color: #e3f2fd;
+                padding: 1rem;
+                border-radius: 5px;
+                margin-top: 1rem;
+                border-left: 4px solid #1976d2;
+                font-size: 0.85rem;
+            }
             </style>
             """,
             unsafe_allow_html=True
         )
         
-        # 会社ロゴの表示
-        self._display_company_logo()
+        # 上部レイアウト：ロゴ（3/4）+ ログイン（1/4）
+        col_logo, col_login = st.columns([3, 1])
         
-        # ヘッダー
-        st.markdown(
-            '<h1 class="main-header">🔐 RamanEye Easy Viewer</h1>',
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            '<p class="subtitle">Secure Raman Spectrum Analysis Platform</p>',
-            unsafe_allow_html=True
-        )
+        with col_logo:
+            # ロゴ表示（左側、3/4サイズ）
+            self._display_company_logo_inline()
         
-        # 機能紹介
+        with col_login:
+            # ログインセクション（右側、1/4サイズ）
+            st.markdown('<h2 class="login-header">RamanEye Easy Viewer Login</h2>', unsafe_allow_html=True)
+            
+            # ログインフォーム
+            with st.form("login_form"):
+                username = st.text_input("ユーザー名", placeholder="ユーザー名を入力")
+                password = st.text_input("パスワード", type="password", placeholder="パスワードを入力")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    login_button = st.form_submit_button("ログイン", type="primary", use_container_width=True)
+                with col2:
+                    forgot_password = st.form_submit_button("パスワード忘れ", use_container_width=True)
+            
+            # ログイン処理
+            if login_button:
+                if username and password:
+                    ui_components = self._get_ui_components()
+                    login_ui = ui_components['LoginUI']()
+                    success, message = login_ui.auth_manager.login(username, password)
+                    if success:
+                        st.success("ログインしました")
+                        st.rerun()
+                    else:
+                        st.error(message)
+                else:
+                    st.error("ユーザー名とパスワードを入力してください")
+            
+            # パスワードリセット（デモ用）
+            if forgot_password:
+                st.info("管理者にお問い合わせください")
+            
+            # デモアカウント情報（コンパクト版）
+            st.markdown(
+                """
+                <div class="demo-accounts">
+                <strong>デモアカウント:</strong><br>
+                管理者: admin / Admin123!<br>
+                分析者: analyst / Analyst123!<br>
+                閲覧者: viewer / Viewer123!
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        
+        st.markdown("---")
+        
+        # 主要機能のアイコン群を表示
         st.markdown("### 🌟 主要機能")
         
         features = [
@@ -292,7 +452,7 @@ class RamanEyeApp:
             ("🔒", "セキュリティ", "ユーザー管理・権限制御・監査機能")
         ]
         
-        # 2行4列のグリッドで機能を表示（重なりを防ぐ）
+        # 2行4列のグリッドで機能を表示
         for row in range(2):
             cols = st.columns(4)
             for col_idx in range(4):
@@ -310,13 +470,6 @@ class RamanEyeApp:
                             """,
                             unsafe_allow_html=True
                         )
-        
-        st.markdown("---")
-        
-        # ログインフォーム
-        ui_components = self._get_ui_components()
-        login_ui = ui_components['LoginUI']()
-        login_ui.render_login_page()
         
         # フッター
         st.markdown("---")
@@ -365,7 +518,7 @@ class RamanEyeApp:
             unsafe_allow_html=True
         )
         
-        # サイドバー設定
+        # サイドバー設定（メインアプリケーションでも表示）
         self._render_sidebar()
         
         # メインコンテンツエリア
@@ -484,7 +637,59 @@ class RamanEyeApp:
         - Security: Enterprise Grade
         """)
     
-    def _render_usage_instructions(self, analysis_mode):
+    def _render_mode_parameters(self, analysis_mode):
+        """選択されたモードに応じたパラメータ設定を表示"""
+        if analysis_mode == "スペクトル解析":
+            st.sidebar.number_input("波数範囲 開始", value=200, min_value=0, max_value=4000, key="start_wavenum")
+            st.sidebar.number_input("波数範囲 終了", value=2000, min_value=0, max_value=4000, key="end_wavenum")
+            st.sidebar.slider("ベースライン閾値", 0.001, 0.1, 0.01, key="dssn_th")
+            st.sidebar.selectbox("平滑化窓サイズ", [3, 5, 7, 9, 11], index=2, key="savgol_wsize")
+            
+        elif analysis_mode == "ラマンピークファインダー":
+            st.sidebar.slider("ピーク検出閾値", 0.01, 1.0, 0.1, key="peak_threshold")
+            st.sidebar.number_input("最小ピーク高さ", value=0.05, min_value=0.01, max_value=1.0, key="min_height")
+            st.sidebar.number_input("最小ピーク距離", value=10, min_value=1, max_value=100, key="min_distance")
+            
+        elif analysis_mode == "ラマンピーク分離":
+            st.sidebar.number_input("フィッティング開始", value=800, min_value=0, max_value=4000, key="fit_start")
+            st.sidebar.number_input("フィッティング終了", value=1200, min_value=0, max_value=4000, key="fit_end")
+            st.sidebar.selectbox("最大ピーク数", [1, 2, 3, 4, 5, 6], index=2, key="max_peaks")
+            
+        elif analysis_mode == "多変量解析":
+            st.sidebar.selectbox("コンポーネント数", [2, 3, 4, 5], index=1, key="n_components")
+            st.sidebar.selectbox("解析手法", ["PCA", "K-means", "階層クラスター"], key="analysis_method")
+            st.sidebar.checkbox("標準化", value=True, key="normalize")
+            
+        elif analysis_mode == "検量線作成":
+            st.sidebar.selectbox("検量線タイプ", ["ピーク面積", "PLS回帰"], key="calibration_type")
+            st.sidebar.number_input("解析波数範囲 開始", value=800, min_value=0, max_value=4000, key="cal_start")
+            st.sidebar.number_input("解析波数範囲 終了", value=1200, min_value=0, max_value=4000, key="cal_end")
+            
+        elif analysis_mode == "ピークAI解析":
+            st.sidebar.selectbox("AI モデル", ["GPT-4", "Claude", "ローカルモデル"], key="ai_model")
+            st.sidebar.checkbox("RAG機能を使用", value=True, key="use_rag")
+            st.sidebar.slider("応答の詳細度", 1, 5, 3, key="detail_level")
+            
+        elif analysis_mode == "データベース比較":
+            st.sidebar.selectbox("比較手法", ["相関係数", "コサイン類似度", "ユークリッド距離"], key="comparison_method")
+            st.sidebar.number_input("上位N個表示", value=10, min_value=1, max_value=50, key="top_n")
+            st.sidebar.checkbox("プーリング計算", value=True, key="use_pooling")
+            
+        elif analysis_mode == "電子署名管理":
+            st.sidebar.selectbox("表示フィルター", ["すべて", "完了", "待機中", "拒否"], key="signature_filter")
+            st.sidebar.number_input("表示件数", value=50, min_value=10, max_value=500, key="signature_limit")
+            
+        elif analysis_mode == "電子署名統合デモ":
+            st.sidebar.info("デモ用パラメータ")
+            st.sidebar.checkbox("デバッグモード", value=False, key="debug_mode")
+            st.sidebar.selectbox("デモレベル", ["基本", "詳細"], key="demo_level")
+            
+        elif analysis_mode == "ユーザー管理":
+            st.sidebar.selectbox("表示フィルター", ["すべて", "アクティブ", "ロック中"], key="user_filter")
+            st.sidebar.checkbox("詳細表示", value=True, key="detailed_view")
+        
+        else:
+            st.sidebar.info("パラメータはありません")
         """使用方法の説明"""
         instructions = {
             "スペクトル解析": """
