@@ -152,66 +152,6 @@ class RamanEyeApp:
                     
                 except Exception as e:
                     st.error(f"ロゴファイルの読み込みエラー ({logo_path}): {str(e)}")
-        
-        # ローカルファイルが見つからない場合、GitHubからの読み込みを試行
-        if not logo_displayed:
-            github_logo_urls = [
-                "https://raw.githubusercontent.com/yourusername/yourrepository/main/logo.jpg",
-                "https://raw.githubusercontent.com/yourusername/yourrepository/main/logo.png",
-                "https://raw.githubusercontent.com/yourusername/yourrepository/main/assets/logo.jpg",
-                "https://raw.githubusercontent.com/yourusername/yourrepository/main/assets/logo.png"
-            ]
-            
-            for url in github_logo_urls:
-                try:
-                    # GitHubからの画像読み込み（中央配置）
-                    st.markdown('<div class="logo-content">', unsafe_allow_html=True)
-                    
-                    col1, col2, col3 = st.columns([1, 2, 1])
-                    with col2:
-                        st.image(
-                            url,
-                            width=280,
-                            caption="",
-                            use_container_width=False
-                        )
-                    
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    logo_displayed = True
-                    break
-                    
-                except Exception:
-                    continue
-        """
-        # ロゴが見つからない場合のフォールバック（ログインフォームと同じ高さ）
-        if not logo_displayed:
-            # テキストベースのロゴを表示
-            st.markdown(
-                """
-                <div class="logo-content">
-                    <div style="text-align: center; margin: 0;">
-                        <div style="
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            color: white;
-                            padding: 1.5rem 2rem;
-                            border-radius: 12px;
-                            font-size: 1.8rem;
-                            font-weight: bold;
-                            display: inline-block;
-                            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-                            margin-bottom: 0.8rem;
-                        ">
-                            🏢 Your Company Name
-                        </div>
-                        <div style="font-size: 1rem; color: #666; text-align: center; margin: 0;">
-                            Advanced Scientific Solutions
-                        </div>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-            """
     def _display_company_logo_inline(self):
         """会社ロゴをインライン表示（左側レイアウト用）"""
         import os
