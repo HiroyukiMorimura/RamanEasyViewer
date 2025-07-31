@@ -310,8 +310,9 @@ class SecureRamanEyeApp:
             }
             .login-header {
                 color: #1f77b4;
-                margin-bottom: 1rem;
-                font-size: 1.8rem;
+                margin-top: 0rem !important;
+                margin-bottom: 0rem !important;
+                font-size: 1.8rem !important;
                 font-weight: bold;
             }
             .security-info {
@@ -357,7 +358,7 @@ class SecureRamanEyeApp:
             
             # セキュアなログインフォーム
             with st.form("secure_login_form"):
-                st.markdown('<h2 class="login-header">🔒 <em>RamanEye</em> Secure Login</h2>', unsafe_allow_html=True)
+                st.markdown('<h2 class="login-header"><em>RamanEye</em> Secure Login</h2>', unsafe_allow_html=True)
                 
                 # ログイン試行制限の表示
                 failed_attempts = st.session_state.get('failed_login_attempts', 0)
