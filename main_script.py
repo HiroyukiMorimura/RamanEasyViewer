@@ -325,10 +325,9 @@ class RamanEyeApp:
         st.markdown(
             """
             <div style="text-align: center; color: #666; margin-top: 2rem;">
-            <p>📊 <strong>RamanEye Easy Viewer v2.0.0</strong> - Simple Edition</p>
-            <p>© 2025 Hiroyuki Morimura. All rights reserved.</p>
+            <p><strong>RamanEye Easy Viewer v1.0.0</strong></p>
+            <p>© 2025 METASENSING All rights reserved.</p>
             <p style="font-size: 0.8rem; color: #999;">
-                Integrated Raman Spectrum Analysis Tool
             </p>
             </div>
             """,
