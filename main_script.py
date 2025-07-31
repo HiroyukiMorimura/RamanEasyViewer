@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-統合ラマンスペクトル解析ツール（シンプル版 + ログイン機能）
-Integrated Raman Spectrum Analysis Tool - Simple Version with Login
+統合ラマンスペクトル解析ツール（メインスクリプト）
+RamanEye Easy Viewer (Main Script)
 
 Created on Wed Jun 11 15:56:04 2025
 @author: Hiroyuki Morimura
@@ -203,44 +203,30 @@ class RamanEyeApp:
         self._render_footer()
     
     def _display_logo_image(self):
-        """logo.jpg画像の表示"""
         try:
+            st.image("logo.png", caption="Company Logo", use_column_width=True)
+        except Exception as e:
+            # logo.jpgが見つからない場合のフォールバック
             st.markdown(
                 """
-                <div class="logo-container">
-                    <h3 style="color: #1f77b4; margin-bottom: 1rem;">会社ロゴ</h3>
+                <div style="
+                    text-align: center;
+                    padding: 3rem 2rem;
+                    background: linear-gradient(135deg, #1f77b4 0%, #17a2b8 100%);
+                    color: white;
+                    border-radius: 12px;
+                    font-size: 1.5rem;
+                    font-weight: bold;
+                    margin: 1rem 0;
+                ">
+                    📊 RamanEye<br>
+                    <small style="font-size: 0.8rem;">Logo placeholder</small>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
-            
-            # logo.jpgの表示を試行
-            try:
-                st.image("logo.jpg", caption="Company Logo", use_column_width=True)
-            except Exception as e:
-                # logo.jpgが見つからない場合のフォールバック
-                st.markdown(
-                    """
-                    <div style="
-                        text-align: center;
-                        padding: 3rem 2rem;
-                        background: linear-gradient(135deg, #1f77b4 0%, #17a2b8 100%);
-                        color: white;
-                        border-radius: 12px;
-                        font-size: 1.5rem;
-                        font-weight: bold;
-                        margin: 1rem 0;
-                    ">
-                        📊 RamanEye<br>
-                        <small style="font-size: 0.8rem;">Logo placeholder</small>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-                st.info("logo.jpgファイルが見つからないため、プレースホルダーを表示しています。")
-        
-        except Exception as e:
-            st.error(f"ロゴ表示エラー: {e}")
+            st.info("logo.jpgファイルが見つからないため、プレースホルダーを表示しています。")
+
     
     def _render_security_features_collapsible(self):
         """セキュリティ機能の折りたたみ表示"""
