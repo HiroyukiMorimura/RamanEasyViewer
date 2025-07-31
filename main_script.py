@@ -204,7 +204,7 @@ class RamanEyeApp:
     
     def _display_logo_image(self):
         try:
-            st.image("logo.png", caption="Company Logo", use_column_width=True)
+            st.image("logo.png", caption="Company Logo", use_container_width = True)
         except Exception as e:
             # logo.jpgが見つからない場合のフォールバック
             st.markdown(
