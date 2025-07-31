@@ -19,6 +19,23 @@ from auth_system import (
     require_permission,
     require_role
 )
+import re
+
+def safe_datetime_format(date_value, format_str="%Y-%m-%d %H:%M", default="不明"):
+    """安全な日時フォーマット変換"""
+    if not date_value:
+        return default
+    
+    try:
+        if isinstance(date_value, str):
+            dt = datetime.fromisoformat(date_value)
+            return dt.strftime(format_str)
+        elif isinstance(date_value, datetime):
+            return date_value.strftime(format_str)
+        else:
+            return default
+    except (ValueError, TypeError, AttributeError):
+        return default
 
 class LoginUI:
     """ログインUIクラス"""
@@ -142,9 +159,20 @@ class UserManagementUI:
             user_data = []
             for username, user_info in users.items():
                 locked_status = "🔒 ロック中" if user_info.get("locked_until") else "✅ アクティブ"
-                last_login = user_info.get("last_login", "未ログイン")
-                if last_login != "未ログイン":
-                    last_login = datetime.fromisoformat(last_login).strftime("%Y-%m-%d %H:%M")
+                
+                # 最終ログイン時刻の安全な処理
+                last_login = safe_datetime_format(
+                    user_info.get("last_login"), 
+                    "%Y-%m-%d %H:%M", 
+                    "未ログイン"
+                )
+                
+                # 作成日の安全な処理
+                created_at = safe_datetime_format(
+                    user_info.get("created_at"), 
+                    "%Y-%m-%d", 
+                    "不明"
+                )
                 
                 user_data.append({
                     "ユーザー名": username,
@@ -154,7 +182,7 @@ class UserManagementUI:
                     "ステータス": locked_status,
                     "最終ログイン": last_login,
                     "失敗回数": user_info.get("failed_attempts", 0),
-                    "作成日": datetime.fromisoformat(user_info["created_at"]).strftime("%Y-%m-%d")
+                    "作成日": created_at
                 })
             
             df = pd.DataFrame(user_data)
@@ -316,12 +344,12 @@ class ProfileUI:
             st.text_input("ロール", value=user_info["role"], disabled=True)
             
         with col2:
-            created_at = datetime.fromisoformat(user_info["created_at"]).strftime("%Y-%m-%d %H:%M")
+            # 作成日の安全な処理
+            created_at = safe_datetime_format(user_info.get("created_at"), "%Y-%m-%d %H:%M", "不明")
             st.text_input("作成日", value=created_at, disabled=True)
             
-            last_login = user_info.get("last_login", "未ログイン")
-            if last_login != "未ログイン":
-                last_login = datetime.fromisoformat(last_login).strftime("%Y-%m-%d %H:%M")
+            # 最終ログインの安全な処理
+            last_login = safe_datetime_format(user_info.get("last_login"), "%Y-%m-%d %H:%M", "未ログイン")
             st.text_input("最終ログイン", value=last_login, disabled=True)
         
         # 編集可能情報
