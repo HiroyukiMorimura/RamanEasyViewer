@@ -138,7 +138,9 @@ class RamanEyeApp:
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                height: 0px;
+                height: 400px;       /* ← ここで「高さ 400px」を指定 */
+                box-sizing: border-box;
+                padding: 20px;
             }
             .logo-container img {
               max-height: 100%;       /* 親400pxの高さいっぱい */
