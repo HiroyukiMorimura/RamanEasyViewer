@@ -71,8 +71,8 @@ class RamanEyeApp:
     def __init__(self):
         # ページ設定
         st.set_page_config(
-            page_title="RamanEye Easy Viewer", 
-            page_icon=Image.open("favicon.png"),
+            page_title="RamanEye Easy Viewer",
+            page_icon="favicon.png",  # 同フォルダ内のPNGをそのまま指定
             layout="wide",
             initial_sidebar_state="expanded"
         )
