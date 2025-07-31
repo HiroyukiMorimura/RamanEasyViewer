@@ -330,8 +330,7 @@ class RamanEyeApp:
     
     def _render_main_application(self):
         """メインアプリケーションの表示"""
-        # 認証後ヘッダー
-        self._render_authenticated_header()
+        
         
         # メインタイトル
         st.markdown(
@@ -349,6 +348,8 @@ class RamanEyeApp:
         
         # 解析モード実行
         self._execute_analysis_mode()
+        # 認証後ヘッダー
+        self._render_authenticated_header()
     
     def _render_authenticated_header(self):
         """認証後ヘッダー"""
