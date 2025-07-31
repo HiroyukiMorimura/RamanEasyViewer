@@ -358,7 +358,7 @@ class SecureRamanEyeApp:
             
             # セキュアなログインフォーム
             with st.form("secure_login_form"):
-                st.markdown('<h2 class="login-header"><em>RamanEye</em> Secure Login</h2>', unsafe_allow_html=True)
+                st.markdown('<h2 class="login-header"><em>RamanEye</em> Easy Viewer ログインフォーム</h2>', unsafe_allow_html=True)
                 
                 # ログイン試行制限の表示
                 failed_attempts = st.session_state.get('failed_login_attempts', 0)
