@@ -600,14 +600,16 @@ class RamanEyeApp:
         
         ui_components = self._get_ui_components()
         
-        # 認証後ヘッダー（セキュリティ情報付き）- ユーザー状態を一番上に
+        # 認証後ヘッダー（セキュリティ情報付き
         self._render_secure_authenticated_header()
+        # サイドバー設定を先に実行
+        self._render_mode_sidebar()
         
         # 解析モード実行
         self._execute_analysis_mode()
         
         # サイドバー設定を先に実行
-        self._render_sidebar()
+        self._render_secure_sidebar()
         
         # メインコンテンツエリア（セキュリティ付き）
         if not MODULES_AVAILABLE:
@@ -642,6 +644,7 @@ class RamanEyeApp:
         ui_components['render_authenticated_header']()
         
         # セキュリティ情報は_render_sidebar()内で下側に表示
+    
     def _render_mode_sidebar(self):
         """サイドバー"""
         auth_system = self._get_auth_system()
