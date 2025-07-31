@@ -112,7 +112,7 @@ class RamanEyeApp:
             <style>
             .login-header {
                 color: #1f77b4;
-                margin-bottom: 0.5rem !important;
+                margin-bottom: 0.1rem !important;
                 font-size: 1.8rem !important;
                 font-weight: bold;
             }
@@ -161,8 +161,6 @@ class RamanEyeApp:
             self._display_logo_image()
         
         with col_login:
-            # ログインフォーム
-            
             # ログインフォーム
             with st.form("login_form"):
                 st.markdown('<h2 class="login-header"><em>RamanEye</em> Easy Viwer ログイン</h2>', unsafe_allow_html=True)
