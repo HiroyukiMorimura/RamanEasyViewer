@@ -98,9 +98,6 @@ class RamanEyeApp:
             initial_sidebar_state="expanded"
         )
         
-        # セキュリティヘッダーの追加
-        # self._add_security_headers()
-        
         # セキュリティシステムの初期化
         if SECURITY_AVAILABLE:
             self._security_manager = init_security_system()
