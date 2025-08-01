@@ -181,6 +181,44 @@ class RamanEyeApp:
                 flex-direction: column;
                 justify-content: center;
             }
+            .uniform-container {
+                min-height: 400px;
+                height: 400px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                padding: 20px;
+                border: 1px solid #e0e0e0;
+                border-radius: 10px;
+                background-color: #fafafa;
+            }
+            .logo-container {
+                min-height: 400px;
+                height: 400px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                padding: 20px;
+                border: 1px solid #e0e0e0;
+                border-radius: 10px;
+                background-color: #f8f9fa;
+            }
+            .login-container {
+                min-height: 400px;
+                height: 400px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                padding: 20px;
+                border: 1px solid #e0e0e0;
+                border-radius: 10px;
+                background-color: #ffffff;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
             </style>
             """,
             unsafe_allow_html=True
