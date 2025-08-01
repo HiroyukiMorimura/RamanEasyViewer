@@ -287,7 +287,7 @@ def calibration_mode():
             ax.set_xlabel('ラマンシフト (cm⁻¹)')
             ax.set_ylabel('強度')
             ax.set_title('アップロードされたスペクトル（移動平均処理済み）')
-            ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+            ax.legend(loc='upper right') 
             ax.grid(True, alpha=0.3)
             plt.tight_layout()
             st.pyplot(fig)
