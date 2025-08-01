@@ -708,6 +708,7 @@ class RamanEyeApp:
         peak_ai_analysis_mode()
     
     def _render_signature_management(self):
+        st.write("あばばばばばば")
         """電子署名管理モード"""
         auth_system = self._get_auth_system()
         auth_manager = auth_system['AuthenticationManager']()
