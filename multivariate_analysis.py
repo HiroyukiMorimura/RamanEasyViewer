@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 多変量解析モジュール
-NMF（非負値行列因子分解）による多変量解析機能
+多変量解析機能
 """
 
 import streamlit as st
