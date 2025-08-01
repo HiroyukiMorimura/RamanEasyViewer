@@ -69,8 +69,8 @@ class SecureSignatureRecord:
     signature_type: SignatureType
     status: SignatureStatus
     
-    # セキュリティ強化フィールド
-    created_at: str
+    # セキュリティ強化フィールド（デフォルト値を設定）
+    created_at: Optional[str] = None
     expires_at: Optional[str] = None
     digital_signature: Optional[str] = None
     tamper_proof_seal: Optional[str] = None
@@ -95,14 +95,14 @@ class SecureSignatureRecord:
     secondary_certificate_fingerprint: Optional[str] = None
     
     # 追加署名者情報（多段階署名用）
-    additional_signers: List[Dict] = None
+    additional_signers: Optional[List[Dict]] = None
     
     # 監査・コンプライアンス情報
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
     geolocation: Optional[str] = None
-    compliance_flags: List[str] = None
-    audit_trail: List[Dict] = None
+    compliance_flags: Optional[List[str]] = None
+    audit_trail: Optional[List[Dict]] = None
     
     # 暗号化・完全性情報
     encryption_algorithm: str = "AES-256-GCM"
@@ -251,7 +251,7 @@ class SecureElectronicSignatureManager:
             return signature_id
             
         except Exception as e:
-            raise SecurityException(f"セキュア署名要求作成エラー: {e}")
+            raise SecurityException(f"署名要求作成エラー: {e}")
     
     def _secure_hash_operation_data(self, data: Any) -> str:
         """セキュア強化操作データハッシュ化"""
