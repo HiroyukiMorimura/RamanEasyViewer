@@ -443,7 +443,6 @@ class RamanEyeApp:
         st.sidebar.subheader("📋 使用方法")
         self._render_usage_instructions(analysis_mode)
         
-        """サイドバーの設定"""
         auth_system = self._get_auth_system()
         AuthenticationManager = auth_system['AuthenticationManager']
         UserRole = auth_system['UserRole']
