@@ -161,7 +161,7 @@ def multivariate_analysis_mode():
     
     # File upload
     uploaded_files = st.file_uploader(
-        "ファイルを選択してください",
+        "ラマンスペクトルをアップロードしてください（複数可）",
         type=['csv', 'txt'],
         accept_multiple_files=True,
         help="Upload multiple CSV files with spectral data. Files should be named as GroupName_Number.csv",
@@ -315,17 +315,6 @@ def multivariate_analysis_mode():
                     key="mv_download_H"
                 )
             
-            # Advanced analysis section
-            # st.subheader("🔍 Advanced Analysis")
-            
-            # # Show individual sample information
-            # if st.checkbox("Show Individual Sample Information", key="mv_sample_info"):
-            #     sample_info_df = pd.DataFrame({
-            #         'Sample Index': range(len(label_list)),
-            #         'Group': label_list,
-            #         **{f'Component_{i+1}': W[:, i] for i in range(W.shape[1])}
-            #     })
-            #     st.dataframe(sample_info_df, use_container_width=True)
         else:
             st.error("有効なデータが見つかりませんでした。")
     
