@@ -431,14 +431,16 @@ class RamanEyeApp:
         )
         
         # パラメータ設定
-        self._render_mode_parameters(analysis_mode)
+        # self._render_mode_parameters(analysis_mode)
         
+
+        
+    def _render_secure_sidebar(self):
         # 使用方法の説明を追加
         st.sidebar.markdown("---")
         st.sidebar.subheader("📋 使用方法")
         self._render_usage_instructions(analysis_mode)
         
-    def _render_secure_sidebar(self):
         """サイドバーの設定"""
         auth_system = self._get_auth_system()
         AuthenticationManager = auth_system['AuthenticationManager']
@@ -471,6 +473,7 @@ class RamanEyeApp:
     
     def _render_mode_parameters(self, analysis_mode):
         """選択されたモードに応じたパラメータ設定を表示"""
+        """
         if analysis_mode == "スペクトル解析":
             st.sidebar.number_input("波数範囲 開始", value=200, min_value=0, max_value=4000, key="start_wavenum")
             st.sidebar.number_input("波数範囲 終了", value=2000, min_value=0, max_value=4000, key="end_wavenum")
@@ -522,6 +525,7 @@ class RamanEyeApp:
         
         else:
             st.sidebar.info("パラメータはありません")
+        """
         
     def _render_usage_instructions(self, analysis_mode):
         """使用方法の説明"""
