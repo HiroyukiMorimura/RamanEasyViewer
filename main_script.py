@@ -168,17 +168,17 @@ class RamanEyeApp:
                 margin-bottom: 0.5rem;
             }
             .feature-card {
-                border: 2px solid #1f77b4;
-                border-radius: 8px;
-                padding: 1rem;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 1.5rem;
+                border-radius: 10px;
                 text-align: center;
-                background-color: #f8f9fa;
-                transition: all 0.3s ease;
-            }
-            .feature-card:hover {
-                background-color: #e3f2fd;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                margin-bottom: 1.5rem;
+                min-height: 180px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
             }
             </style>
             """,
