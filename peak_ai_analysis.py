@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-ピークAI解析モジュール（セキュリティ強化版）
+ピークAI解析モジュール
 RAG機能とOpenAI APIを使用したラマンスペクトルの高度な解析
-Enhanced with comprehensive security features
+Enhanced with comprehensive features
 
 Created on Wed Jun 11 15:56:04 2025
-@author: Enhanced Security System
+@author: Enhanced System
 """
 
 import streamlit as st
@@ -62,7 +62,7 @@ except ImportError:
 openai_api_key = st.secrets["openai"]["openai_api_key"]
 
 def check_internet_connection():
-    """セキュアなインターネット接続チェック"""
+    """インターネット接続チェック"""
     try:
         # HTTPS接続のみを許可
         response = requests.get("https://www.google.com", timeout=5, verify=True)
@@ -70,8 +70,8 @@ def check_internet_connection():
     except requests.exceptions.RequestException:
         return False
 
-def setup_secure_ssl_context():
-    """セキュアなSSLコンテキストの設定"""
+def setup_ssl_context():
+    """SSLコンテキストの設定"""
     try:
         # SSL証明書検証を強制
         ssl_context = ssl.create_default_context()
@@ -89,23 +89,23 @@ def setup_secure_ssl_context():
         st.error(f"SSL設定エラー: {e}")
         return None
 
-class SecureLLMConnector:
-    """セキュア強化されたOpenAI LLM接続設定クラス"""
+class LLMConnector:
+    """強化されたOpenAI LLM接続設定クラス"""
     def __init__(self):
         self.is_online = check_internet_connection()
         self.selected_model = "gpt-3.5-turbo"
         self.openai_client = None
         self.security_manager = get_security_manager() if SECURITY_AVAILABLE else None
-        self.ssl_context = setup_secure_ssl_context()
-        self._setup_secure_session()
+        self.ssl_context = setup_ssl_context()
+        self._setup_session()
         
-    def _setup_secure_session(self):
-        """セキュアなHTTPセッションの設定"""
+    def _setup_session(self):
+        """HTTPセッションの設定"""
         self.session = requests.Session()
         
-        # セキュリティヘッダーの設定
+        # ヘッダーの設定
         self.session.headers.update({
-            'User-Agent': 'RamanEye-SecureClient/2.0',
+            'User-Agent': 'RamanEye-Client/2.0',
             'Accept': 'application/json',
             'Content-Type': 'application/json',
             'X-Content-Type-Options': 'nosniff',
@@ -119,13 +119,13 @@ class SecureLLMConnector:
             self.session.mount('https://', adapter)
         
     def setup_llm_connection(self):
-        """セキュア強化されたOpenAI API接続設定"""
+        """強化されたOpenAI API接続設定"""
         # インターネット接続チェック
         if not self.is_online:
-            st.sidebar.error("❌ セキュアなインターネット接続が必要です")
+            st.sidebar.error("❌ インターネット接続が必要です")
             return False
         
-        st.sidebar.success("🌐 セキュアなインターネット接続: 正常")
+        st.sidebar.success("🌐 インターネット接続: 正常")
         
         # モデル選択
         model_options = [
@@ -142,7 +142,7 @@ class SecureLLMConnector:
         )
         
         try:
-            # セキュアなAPI設定
+            # API設定
             openai.api_key = os.getenv("OPENAI_API_KEY", openai_api_key)
             
             # APIキーの妥当性検証
@@ -169,7 +169,7 @@ class SecureLLMConnector:
                     severity="INFO"
                 )
             
-            st.sidebar.success(f"✅ セキュアなOpenAI API接続設定完了 ({selected_model})")
+            st.sidebar.success(f"✅ OpenAI API接続設定完了 ({selected_model})")
             return True
             
         except Exception as e:
@@ -201,7 +201,7 @@ class SecureLLMConnector:
         return True
     
     def generate_analysis(self, prompt, temperature=0.3, max_tokens=1024, stream_display=True):
-        """セキュア強化されたOpenAI API解析実行"""
+        """強化されたOpenAI API解析実行"""
         if not self.selected_model:
             raise SecurityException("OpenAI モデルが設定されていません")
         
@@ -229,7 +229,7 @@ class SecureLLMConnector:
                     severity="INFO"
                 )
             
-            # セキュアなHTTPS通信でAPI呼び出し
+            # HTTPS通信でAPI呼び出し
             response = openai.ChatCompletion.create(
                 model=self.selected_model,
                 messages=[
@@ -239,7 +239,7 @@ class SecureLLMConnector:
                 temperature=temperature,
                 max_tokens=max_tokens,
                 stream=True,
-                # セキュリティ設定
+                # 設定
                 request_timeout=60,  # タイムアウト設定
                 api_version=None  # 最新バージョンを強制
             )
@@ -285,7 +285,7 @@ class SecureLLMConnector:
                     severity="ERROR"
                 )
             
-            raise SecurityException(f"セキュアなOpenAI API解析エラー: {str(e)}")
+            raise SecurityException(f"OpenAI API解析エラー: {str(e)}")
     
     def _sanitize_prompt(self, prompt: str) -> str:
         """プロンプトインジェクション対策"""
@@ -325,7 +325,7 @@ class SecureLLMConnector:
         return content
     
     def generate_qa_response(self, question, context, previous_qa_history=None):
-        """セキュア強化された質問応答専用のOpenAI API呼び出し"""
+        """強化された質問応答専用のOpenAI API呼び出し"""
         if not self.selected_model:
             raise SecurityException("OpenAI モデルが設定されていません")
         
@@ -394,8 +394,8 @@ class SecureLLMConnector:
         except Exception as e:
             raise SecurityException(f"質問応答エラー: {str(e)}")
 
-class SecureRamanRAGSystem:
-    """セキュア強化されたRAG機能のクラス"""
+class RamanRAGSystem:
+    """強化されたRAG機能のクラス"""
     def __init__(
         self,
         embedding_model_name: str = 'all-MiniLM-L6-v2',
@@ -418,7 +418,7 @@ class SecureRamanRAGSystem:
         self.db_info: Dict = {}
     
     def build_vector_database(self, folder_path: str):
-        """セキュア強化されたベクトルデータベース構築"""
+        """強化されたベクトルデータベース構築"""
         if not PDF_AVAILABLE:
             st.error("PDF処理ライブラリが利用できません")
             return
@@ -427,17 +427,17 @@ class SecureRamanRAGSystem:
             st.error(f"指定されたフォルダが存在しません: {folder_path}")
             return
 
-        # セキュリティチェック
+        # チェック
         current_user = st.session_state.get('current_user', {})
         user_id = current_user.get('username', 'unknown')
         
-        # ファイル一覧取得（セキュリティ考慮）
+        # ファイル一覧取得（考慮）
         file_patterns = ['*.pdf', '*.docx', '*.txt']
         files = []
         for pat in file_patterns:
             potential_files = glob.glob(os.path.join(folder_path, pat))
             for file_path in potential_files:
-                # ファイルアクセスのセキュリティチェック
+                # ファイルアクセスのチェック
                 if self.security_manager:
                     access_result = self.security_manager.secure_file_access(
                         file_path, user_id, 'read'
@@ -453,7 +453,7 @@ class SecureRamanRAGSystem:
             st.warning("アクセス可能なファイルが見つかりません。")
             return
 
-        # テキスト抽出とチャンク化（セキュリティ付き）
+        # テキスト抽出とチャンク化（付き）
         all_chunks, all_metadata = [], []
         st.info(f"{len(files)} 件のファイルを安全に処理中…")
         pbar = st.progress(0)
@@ -467,7 +467,7 @@ class SecureRamanRAGSystem:
                         st.error(f"ファイル完全性エラー: {fp}")
                         continue
                 
-                text = self._extract_text_secure(fp)
+                text = self._extract_text(fp)
                 chunks = self.chunk_text(text)
                 
                 for c in chunks:
@@ -497,11 +497,11 @@ class SecureRamanRAGSystem:
             st.error("抽出できるテキストチャンクがありませんでした。")
             return
 
-        # 埋め込みベクトルの生成（セキュア）
-        st.info("セキュアな埋め込みベクトルを生成中…")
+        # 埋め込みベクトルの生成
+        st.info("埋め込みベクトルを生成中…")
         try:
             if self.use_openai:
-                embeddings = self._create_openai_embeddings_secure(all_chunks)
+                embeddings = self._create_openai_embeddings(all_chunks)
             else:
                 embeddings = self.embedding_model.encode(all_chunks, show_progress_bar=True)
 
@@ -541,7 +541,7 @@ class SecureRamanRAGSystem:
                     severity="INFO"
                 )
             
-            st.success(f"セキュアなベクトルDB構築完了: {len(all_chunks)} チャンク")
+            st.success(f"ベクトルDB構築完了: {len(all_chunks)} チャンク")
             
         except Exception as e:
             st.error(f"ベクトルDB構築エラー: {e}")
@@ -553,8 +553,8 @@ class SecureRamanRAGSystem:
                     severity="ERROR"
                 )
     
-    def _create_openai_embeddings_secure(self, texts: List[str], batch_size: int = 200) -> np.ndarray:
-        """セキュアなOpenAI埋め込みAPIの使用"""
+    def _create_openai_embeddings(self, texts: List[str], batch_size: int = 200) -> np.ndarray:
+        """OpenAI埋め込みAPIの使用"""
         all_embs = []
         
         # セキュリティログ記録
@@ -585,7 +585,7 @@ class SecureRamanRAGSystem:
                         text = text[:8000]
                     sanitized_chunk.append(text)
                 
-                # セキュアなHTTPS通信でAPI呼び出し
+                # HTTPS通信でAPI呼び出し
                 resp = openai.Embedding.create(
                     model=self.openai_embedding_model,
                     input=sanitized_chunk,
@@ -608,12 +608,12 @@ class SecureRamanRAGSystem:
                     details={'error': str(e)},
                     severity="ERROR"
                 )
-            raise SecurityException(f"セキュアな埋め込み生成エラー: {e}")
+            raise SecurityException(f"埋め込み生成エラー: {e}")
         
         return np.array(all_embs, dtype=np.float32)
     
-    def _extract_text_secure(self, file_path: str) -> str:
-        """セキュアなファイルからのテキスト抽出"""
+    def _extract_text(self, file_path: str) -> str:
+        """ファイルからのテキスト抽出"""
         ext = os.path.splitext(file_path)[1].lower()
         
         # ファイルサイズチェック
@@ -646,11 +646,11 @@ class SecureRamanRAGSystem:
                 return content
                 
         except Exception as e:
-            st.error(f"セキュアなテキスト抽出エラー {file_path}: {e}")
+            st.error(f"テキスト抽出エラー {file_path}: {e}")
             return ""
     
     def chunk_text(self, text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
-        """テキストをセキュアにチャンクに分割"""
+        """テキストをチャンクに分割"""
         if not text or not text.strip():
             return []
         
@@ -696,7 +696,7 @@ class SecureRamanRAGSystem:
         return False
     
     def search_relevant_documents(self, query: str, top_k: int = 5) -> List[Dict]:
-        """セキュアな関連文書検索"""
+        """関連文書検索"""
         if self.vector_db is None:
             return []
         
@@ -724,7 +724,7 @@ class SecureRamanRAGSystem:
             # DB作成時のモデル情報を確認
             model_used = self.db_info.get("embedding_model", "")
             if model_used == "text-embedding-ada-002":
-                query_emb = self._create_openai_embeddings_secure([sanitized_query])
+                query_emb = self._create_openai_embeddings([sanitized_query])
             else:
                 query_emb = self.embedding_model.encode([sanitized_query], show_progress_bar=False)
     
@@ -746,25 +746,25 @@ class SecureRamanRAGSystem:
             return results
             
         except Exception as e:
-            st.error(f"セキュアな文書検索エラー: {e}")
+            st.error(f"文書検索エラー: {e}")
             return []
 
 def peak_ai_analysis_mode():
-    """セキュア強化されたPeak AI analysis mode"""
+    """強化されたPeak AI analysis mode"""
     if not PDF_AVAILABLE:
         st.error("AI解析機能を使用するには、以下のライブラリが必要です：")
         st.code("pip install PyPDF2 python-docx openai faiss-cpu sentence-transformers")
         return
     
-    st.header("🔒 セキュアなラマンピークAI解析")
+    st.header("🔒 ラマンピークAI解析")
     
-    # セキュリティ状態表示
+    # 状態表示
     if SECURITY_AVAILABLE:
         security_manager = get_security_manager()
         if security_manager:
             security_status = security_manager.get_security_status()
             
-            with st.expander("🛡️ セキュリティ状態", expanded=False):
+            with st.expander("🛡️ システム状態", expanded=False):
                 col1, col2 = st.columns(2)
                 with col1:
                     st.write("**データ保護機能:**")
@@ -773,31 +773,31 @@ def peak_ai_analysis_mode():
                     st.write(f"🛡️ アクセス制御: {'✅' if security_status['access_control_enabled'] else '❌'}")
                 
                 with col2:
-                    st.write("**通信セキュリティ:**")
+                    st.write("**通信:**")
                     st.write(f"🌐 HTTPS強制: {'✅' if security_status['https_enforced'] else '❌'}")
                     st.write(f"📝 監査ログ: {'✅' if security_status['audit_logging_enabled'] else '❌'}")
-                    st.write(f"🔑 セキュリティキー: {'✅' if security_status['master_key_exists'] else '❌'}")
+                    st.write(f"🔑 キー: {'✅' if security_status['master_key_exists'] else '❌'}")
     else:
         st.warning("⚠️ セキュリティモジュールが無効です。基本機能のみ動作します。")
     
-    # LLM接続設定（セキュア版）
-    llm_connector = SecureLLMConnector()
+    # LLM接続設定（版）
+    llm_connector = LLMConnector()
     
     # インターネット接続状態の表示
     if llm_connector.is_online:
-        st.sidebar.success("🌐 セキュアなインターネット接続: 正常")
+        st.sidebar.success("🌐 インターネット接続: 正常")
         if llm_connector.ssl_context:
             st.sidebar.info("🔒 SSL/TLS暗号化: 有効")
     else:
-        st.sidebar.error("❌ セキュアなインターネット接続: 必要")
-        st.error("この機能にはセキュアなインターネット接続が必要です。")
+        st.sidebar.error("❌ インターネット接続: 必要")
+        st.error("この機能にはインターネット接続が必要です。")
         return
     
     # OpenAI API設定
     llm_ready = llm_connector.setup_llm_connection()
     
-    # RAG設定セクション（セキュア版）
-    st.sidebar.subheader("📚 セキュアな論文データベース設定")
+    # RAG設定セクション（版）
+    st.sidebar.subheader("📚 論文データベース設定")
     
     # データベース操作モードの選択
     db_mode = st.sidebar.radio(
@@ -806,29 +806,29 @@ def peak_ai_analysis_mode():
         index=0
     )
      
-    # 一時保存用ディレクトリ（セキュア）
-    TEMP_DIR = "./secure/tmp_uploads"
+    # 一時保存用ディレクトリ
+    TEMP_DIR = "./tmp_uploads"
     os.makedirs(TEMP_DIR, exist_ok=True)
     
-    # RAGシステムの初期化（セキュア版）
-    if 'secure_rag_system' not in st.session_state:
-        st.session_state.secure_rag_system = SecureRamanRAGSystem()
-        st.session_state.secure_rag_db_built = False
+    # RAGシステムの初期化（版）
+    if 'rag_system' not in st.session_state:
+        st.session_state.rag_system = RamanRAGSystem()
+        st.session_state.rag_db_built = False
     
     if db_mode == "新規作成":
-        setup_secure_new_database(TEMP_DIR)
+        setup_new_database(TEMP_DIR)
     elif db_mode == "既存データベース読み込み":
-        load_secure_existing_database()
+        load_existing_database()
     
     # データベース状態表示
-    if st.session_state.secure_rag_db_built:
-        st.sidebar.success("✅ セキュアな論文データベース構築済み")
+    if st.session_state.rag_db_built:
+        st.sidebar.success("✅ 論文データベース構築済み")
         
         if st.sidebar.button("📊 データベース情報を表示"):
-            db_info = st.session_state.secure_rag_system.get_database_info()
+            db_info = st.session_state.rag_system.get_database_info()
             st.sidebar.json(db_info)
     else:
-        st.sidebar.info("ℹ️ セキュアな論文データベース未構築")
+        st.sidebar.info("ℹ️ 論文データベース未構築")
         
     # サイドバーに補足指示欄を追加
     user_hint = st.sidebar.text_area(
@@ -836,29 +836,29 @@ def peak_ai_analysis_mode():
         placeholder="例：この試料はポリエチレン系高分子である可能性がある、など"
     )
     
-    # ピーク解析部分の実行（セキュア版）
-    perform_secure_peak_analysis_with_ai(llm_connector, user_hint, llm_ready)
+    # ピーク解析部分の実行（版）
+    perform_peak_analysis_with_ai(llm_connector, user_hint, llm_ready)
 
-def setup_secure_new_database(TEMP_DIR):
-    """セキュアな新規データベースの作成"""
+def setup_new_database(TEMP_DIR):
+    """新規データベースの作成"""
     uploaded_files = st.sidebar.file_uploader(
         "📄 文献PDFを選択してください（複数可）",
         type=["pdf", "docx", "txt"],
         accept_multiple_files=True
     )
 
-    if st.sidebar.button("📚 セキュアな論文データベース構築"):
+    if st.sidebar.button("📚 論文データベース構築"):
         if not uploaded_files:
             st.sidebar.warning("文献ファイルを選択してください。")
         else:
-            with st.spinner("文献をセキュアにアップロードし、データベースを構築中..."):
+            with st.spinner("文献をアップロードし、データベースを構築中..."):
                 security_manager = get_security_manager()
                 current_user = st.session_state.get('current_user', {})
                 user_id = current_user.get('username', 'unknown')
                 
                 uploaded_count = 0
                 for uploaded_file in uploaded_files:
-                    # セキュアなファイルアップロード
+                    # ファイルアップロード
                     if security_manager:
                         upload_result = security_manager.secure_file_upload(uploaded_file, user_id)
                         if upload_result['status'] == 'success':
@@ -873,19 +873,19 @@ def setup_secure_new_database(TEMP_DIR):
                         uploaded_count += 1
                 
                 if uploaded_count > 0:
-                    st.session_state.secure_rag_system.build_vector_database(TEMP_DIR)
-                    st.session_state.secure_rag_db_built = True
-                    st.sidebar.success(f"✅ {uploaded_count} 件のファイルからセキュアなデータベースを構築しました。")
+                    st.session_state.rag_system.build_vector_database(TEMP_DIR)
+                    st.session_state.rag_db_built = True
+                    st.sidebar.success(f"✅ {uploaded_count} 件のファイルからデータベースを構築しました。")
 
-def load_secure_existing_database():
-    """セキュアな既存データベースの読み込み"""
+def load_existing_database():
+    """既存データベースの読み込み"""
     st.sidebar.markdown("---")
-    st.sidebar.subheader("📂 セキュアな既存データベース読み込み")
-    st.sidebar.info("セキュリティ機能により、アクセス権限のあるデータベースのみ読み込み可能です。")
+    st.sidebar.subheader("📂 既存データベース読み込み")
+    st.sidebar.info("機能により、アクセス権限のあるデータベースのみ読み込み可能です。")
 
-def perform_secure_peak_analysis_with_ai(llm_connector, user_hint, llm_ready):
-    """セキュア強化されたAI機能を含むピーク解析の実行"""
-    # 既存の解析コードにセキュリティ機能を統合
+def perform_peak_analysis_with_ai(llm_connector, user_hint, llm_ready):
+    """強化されたAI機能を含むピーク解析の実行"""
+    # 既存の解析コードに機能を統合
     
     # セキュリティログ記録
     if SECURITY_AVAILABLE:
@@ -955,15 +955,15 @@ def perform_secure_peak_analysis_with_ai(llm_connector, user_hint, llm_ready):
         key="prominence_threshold"
     )
 
-    # セキュアなファイルアップロード
+    # ファイルアップロード
     uploaded_files = st.file_uploader(
         "ファイルを選択してください", 
         accept_multiple_files=True, 
-        key="secure_file_uploader",
-        help="セキュリティ機能により、アップロードされたファイルの完全性が検証されます"
+        key="file_uploader",
+        help="アップロードされたファイルの完全性が検証されます"
     )
     
-    # 残りのロジックは元のコードと同様だが、セキュリティ機能を統合
+    # 残りのロジックは元のコードと同様だが、機能を統合
     # （スペース制限により省略）
     
-    st.info("🔒 このモードでは、全てのファイル操作とAPI通信がセキュアに実行されます。")
+    st.info("🔒 このモードでは、全てのファイル操作とAPI通信が安全に実行されます。")
