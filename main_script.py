@@ -745,9 +745,9 @@ class RamanEyeApp:
             3. 必要なライブラリがインストールされているか確認
             """)
         
-    except Exception as e:
-        st.error(f"電子署名管理機能でエラーが発生しました: {e}")
-        st.info("管理者にお問い合わせください")
+        except Exception as e:
+            st.error(f"電子署名管理機能でエラーが発生しました: {e}")
+            st.info("管理者にお問い合わせください")
 
     def _render_signature_integration_demo(self):
         """電子署名統合デモモード"""
