@@ -51,7 +51,7 @@ try:
     from peak_analysis_web import peak_analysis_mode
     from peak_deconvolution import peak_deconvolution_mode
     from multivariate_analysis import multivariate_analysis_mode
-    from peak_ai_analysis import peak_ai_analysis_mode
+    from peak_ai_analysis_web import peak_ai_analysis_mode
     from calibration_mode import calibration_mode
     from raman_database import database_comparison_mode
     MODULES_AVAILABLE = True
