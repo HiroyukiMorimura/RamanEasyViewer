@@ -987,7 +987,7 @@ def peak_ai_analysis_mode():
     
     # LLM接続設定（セキュリティ強化版）
     llm_connector = LLMConnector()
-    
+    """
     # インターネット接続状態の表示
     if llm_connector.is_online:
         st.sidebar.success("🌐 インターネット接続: 正常")
@@ -997,7 +997,7 @@ def peak_ai_analysis_mode():
         st.sidebar.error("❌ インターネット接続: 必要")
         st.error("この機能にはインターネット接続が必要です。")
         return
-    
+    """
     # OpenAI API設定
     llm_ready = llm_connector.setup_llm_connection()
     
