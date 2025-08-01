@@ -604,7 +604,7 @@ def peak_deconvolution_mode():
     savgol_wsize = st.sidebar.number_input("ウィンドウサイズ:", value=5, min_value=1, max_value=101, step=2)
     
     uploaded_file = st.file_uploader(
-        "ファイルを選択してください",
+        "ラマンスペクトルをアップロードしてください（単数）",
         type=['csv', 'txt'],
         accept_multiple_files=False,
         key="mv_uploader"
