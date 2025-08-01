@@ -219,10 +219,8 @@ class RamanEyeApp:
         </style>
         """,
         unsafe_allow_html=True
-            </style>
-            """,
-            unsafe_allow_html=True
         )
+    
         
         # 上部レイアウト：ロゴ（1/2）+ ログイン（1/2）
         col_logo, col_login = st.columns([1, 1])  # 面積を半分半分に変更
