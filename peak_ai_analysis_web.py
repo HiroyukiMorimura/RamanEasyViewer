@@ -985,28 +985,6 @@ def peak_ai_analysis_mode():
     
     st.header("ラマンピークAI解析")
     
-    # セキュリティ状態表示
-    if SECURITY_AVAILABLE:
-        security_manager = get_security_manager()
-        if security_manager:
-            security_status = security_manager.get_security_status()
-            
-            with st.expander("🛡️ システム状態", expanded=False):
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write("**データ保護機能:**")
-                    st.write(f"🔐 暗号化: {'✅' if security_status['encryption_enabled'] else '❌'}")
-                    st.write(f"🔍 完全性チェック: {'✅' if security_status['integrity_checking_enabled'] else '❌'}")
-                    st.write(f"🛡️ アクセス制御: {'✅' if security_status['access_control_enabled'] else '❌'}")
-                
-                with col2:
-                    st.write("**通信:**")
-                    st.write(f"🌐 HTTPS強制: {'✅' if security_status['https_enforced'] else '❌'}")
-                    st.write(f"📝 監査ログ: {'✅' if security_status['audit_logging_enabled'] else '❌'}")
-                    st.write(f"🔑 キー: {'✅' if security_status['master_key_exists'] else '❌'}")
-    else:
-        st.warning("⚠️ セキュリティモジュールが無効です。基本機能のみ動作します。")
-    
     # LLM接続設定（セキュリティ強化版）
     llm_connector = LLMConnector()
     
@@ -1195,6 +1173,27 @@ def perform_peak_analysis_with_ai(llm_connector, user_hint, llm_ready):
     all_bsremoval_spectra = []
     all_averemoval_spectra = []
     all_wavenum = []
+    # セキュリティ状態表示
+    if SECURITY_AVAILABLE:
+        security_manager = get_security_manager()
+        if security_manager:
+            security_status = security_manager.get_security_status()
+            
+            with st.expander("🛡️ システム状態", expanded=False):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write("**データ保護機能:**")
+                    st.write(f"🔐 暗号化: {'✅' if security_status['encryption_enabled'] else '❌'}")
+                    st.write(f"🔍 完全性チェック: {'✅' if security_status['integrity_checking_enabled'] else '❌'}")
+                    st.write(f"🛡️ アクセス制御: {'✅' if security_status['access_control_enabled'] else '❌'}")
+                
+                with col2:
+                    st.write("**通信:**")
+                    st.write(f"🌐 HTTPS強制: {'✅' if security_status['https_enforced'] else '❌'}")
+                    st.write(f"📝 監査ログ: {'✅' if security_status['audit_logging_enabled'] else '❌'}")
+                    st.write(f"🔑 キー: {'✅' if security_status['master_key_exists'] else '❌'}")
+    else:
+        st.warning("⚠️ セキュリティモジュールが無効です。基本機能のみ動作します。")
     # セキュリティログ記録
     if SECURITY_AVAILABLE:
         security_manager = get_security_manager()
