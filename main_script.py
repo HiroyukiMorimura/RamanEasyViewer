@@ -153,8 +153,9 @@ class RamanEyeApp:
             <style>
             .login-header {
                 color: #1f77b4;
-                margin-bottom: 0.5rem;
-                font-size: 0.5rem !important;
+                margin-top: 0rem !important;
+                margin-bottom: 0rem !important;
+                font-size: 2.0rem !important;
                 font-weight: bold;
             }
             .feature-grid {
