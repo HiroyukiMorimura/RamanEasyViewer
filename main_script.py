@@ -718,8 +718,8 @@ class RamanEyeApp:
             st.error("この機能を使用する権限がありません")
             st.stop()
             try:
-                from signature_management_ui import render_signature_demo_page
-                render_signature_demo_page()
+                from signature_management_ui import render_signature_management_page
+                render_signature_management_page()
             except ImportError as e:
                 st.error("電子署名管理機能がインストールされていません")
                 st.info("電子署名機能を使用するには、追加のモジュールをインストールしてください")
@@ -747,6 +747,7 @@ class RamanEyeApp:
     except Exception as e:
         st.error(f"電子署名管理機能でエラーが発生しました: {e}")
         st.info("管理者にお問い合わせください")
+
     def _render_signature_integration_demo(self):
         """電子署名統合デモモード"""
         auth_system = self._get_auth_system()
