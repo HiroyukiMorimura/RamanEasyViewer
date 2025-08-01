@@ -296,7 +296,7 @@ def upload_and_process_database_files():
         "ベースライン補正閾値を入力してください:", 
         min_value=1, 
         max_value=10000, 
-        value=100, 
+        value=1000, 
         step=1,
         key="db_dssn_input"
     )
