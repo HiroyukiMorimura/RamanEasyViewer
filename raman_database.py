@@ -303,7 +303,7 @@ def upload_and_process_database_files():
     dssn_th = dssn_th_input / 10000000
     
     uploaded_files = st.file_uploader(
-        "ラマンスペクトルファイルをアップロード (CSV/TXT)",
+        "ファイルを選択してください",
         type=['csv', 'txt'],
         accept_multiple_files=True,
         help="データベース比較用に複数のスペクトルファイルをアップロードしてください",
