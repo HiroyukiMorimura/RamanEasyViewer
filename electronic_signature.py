@@ -617,7 +617,7 @@ class SecureElectronicSignatureManager:
             st.error(error_msg)
             return False, error_msg
     
-def get_pending_secure_signatures(self, user_id: str = None) -> List[Dict]:
+    def get_pending_secure_signatures(self, user_id: str = None) -> List[Dict]:
         """ペンディングセキュア署名一覧を取得"""
         pending = []
         
