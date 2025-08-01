@@ -284,9 +284,9 @@ def calibration_mode():
                        color=colors[i], linewidth=1.5, 
                        label=f"{spectrum_data['filename']}")
             
-            ax.set_xlabel('ラマンシフト (cm⁻¹)')
-            ax.set_ylabel('強度')
-            ax.set_title('アップロードされたスペクトル（移動平均処理済み）')
+            ax.set_xlabel('Raman Shift (cm⁻¹)')
+            ax.set_ylabel('Intensity (a.u.)')
+            # ax.set_title('アップロードされたスペクトル（移動平均処理済み）')
             ax.legend(loc='upper right') 
             ax.grid(True, alpha=0.3)
             plt.tight_layout()
