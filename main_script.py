@@ -718,31 +718,31 @@ class RamanEyeApp:
             st.error("この機能を使用する権限がありません")
             st.stop()
             try:
-        from signature_management_ui import render_signature_demo_page
-        render_signature_demo_page()
-    except ImportError as e:
-        st.error("電子署名管理機能がインストールされていません")
-        st.info("電子署名機能を使用するには、追加のモジュールをインストールしてください")
-        st.error(f"詳細: {e}")
-        
-        # フォールバック画面を表示
-        st.markdown("---")
-        st.subheader("🔐 電子署名管理（代替画面）")
-        st.markdown("""
-        **📋 電子署名管理機能について:**
-        - 署名待ち操作の確認・実行
-        - 署名履歴の閲覧・監査
-        - セキュリティポリシーの管理
-        - 監査証跡の記録・確認
-        
-        **⚠️ 現在の状況:**  
-        `signature_management_ui.py` モジュールが見つかりません
-        
-        **🔧 対処方法:**
-        1. ファイルが存在することを確認
-        2. ファイルの構文エラーがないか確認
-        3. 必要なライブラリがインストールされているか確認
-        """)
+                from signature_management_ui import render_signature_demo_page
+                render_signature_demo_page()
+            except ImportError as e:
+                st.error("電子署名管理機能がインストールされていません")
+                st.info("電子署名機能を使用するには、追加のモジュールをインストールしてください")
+                st.error(f"詳細: {e}")
+                
+                # フォールバック画面を表示
+                st.markdown("---")
+                st.subheader("🔐 電子署名管理（代替画面）")
+                st.markdown("""
+                **📋 電子署名管理機能について:**
+                - 署名待ち操作の確認・実行
+                - 署名履歴の閲覧・監査
+                - セキュリティポリシーの管理
+                - 監査証跡の記録・確認
+                
+                **⚠️ 現在の状況:**  
+                `signature_management_ui.py` モジュールが見つかりません
+                
+                **🔧 対処方法:**
+                1. ファイルが存在することを確認
+                2. ファイルの構文エラーがないか確認
+                3. 必要なライブラリがインストールされているか確認
+                """)
         
     except Exception as e:
         st.error(f"電子署名管理機能でエラーが発生しました: {e}")
