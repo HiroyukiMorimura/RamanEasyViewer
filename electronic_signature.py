@@ -789,7 +789,14 @@ class SecureSignatureUI:
             with col2:
                 st.write("**コンプライアンス:**")
                 for flag in record.compliance_flags:
-                    st.badge(flag, type="secondary")
+                    if flag == "完了":
+                        st.success(f"✅ {flag}")
+                    elif flag == "待機中":
+                        st.warning(f"⏳ {flag}")
+                    elif flag == "処理中":
+                        st.info(f"⚙️ {flag}")
+                    else:
+                        st.write(f"🏷️ {flag}")  # 中性的な表示
                 
                 if record.blockchain_hash:
                     st.write("**ブロックチェーン:** ✅ 有効")
