@@ -181,44 +181,87 @@ class RamanEyeApp:
                 flex-direction: column;
                 justify-content: center;
             }
-            .uniform-container {
-                min-height: 400px;
-                height: 400px;
+                    /* 統一コンテナのベーススタイル */
+            .uniform-base {
+                min-height: 450px;
+                height: 450px;
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
-                padding: 20px;
-                border: 1px solid #e0e0e0;
-                border-radius: 10px;
-                background-color: #fafafa;
+                padding: 30px;
+                border: 2px solid #e0e0e0;
+                border-radius: 15px;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             }
+            
+            /* ロゴコンテナ */
             .logo-container {
-                min-height: 400px;
-                height: 400px;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                padding: 20px;
-                border: 1px solid #e0e0e0;
-                border-radius: 10px;
-                background-color: #f8f9fa;
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             }
+            
+            /* ログインコンテナ */
             .login-container {
-                min-height: 400px;
-                height: 400px;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                padding: 20px;
-                border: 1px solid #e0e0e0;
-                border-radius: 10px;
-                background-color: #ffffff;
+                background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
             }
-        </style>
-        """,
-        unsafe_allow_html=True
+            
+            /* ログインフォーム内の要素サイズ調整 */
+            .login-container .stTextInput > div > div > input {
+                height: 50px !important;
+                font-size: 16px !important;
+                padding: 12px !important;
+            }
+            
+            .login-container .stButton > button {
+                height: 50px !important;
+                font-size: 16px !important;
+                font-weight: bold !important;
+                border-radius: 8px !important;
+            }
+            
+            /* フォーム間隔調整 */
+            .login-container .stTextInput {
+                margin-bottom: 20px !important;
+            }
+            
+            .login-container .stColumns {
+                margin-top: 25px !important;
+            }
+            
+            /* ロゴのレスポンシブ調整 */
+            .logo-responsive {
+                max-width: 80%;
+                max-height: 250px;
+                object-fit: contain;
+            }
+            
+            /* デフォルトロゴスタイル */
+            .default-logo {
+                text-align: center;
+                padding: 20px;
+            }
+            
+            .default-logo-icon {
+                font-size: 4rem;
+                color: #1f77b4;
+                font-weight: bold;
+                margin-bottom: 15px;
+            }
+            
+            .default-logo-title {
+                font-size: 2rem;
+                color: #333;
+                font-weight: bold;
+                margin-bottom: 10px;
+            }
+            
+            .default-logo-subtitle {
+                font-size: 1.2rem;
+                color: #666;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
         )
     
         
