@@ -430,12 +430,14 @@ class RamanEyeApp:
             key="mode_selector"
         )
         
-        # パラメータ設定
-        # self._render_mode_parameters(analysis_mode)
-        
-
-        
     def _render_secure_sidebar(self):
+        auth_system = self._get_auth_system()
+        AuthenticationManager = auth_system['AuthenticationManager']
+        UserRole = auth_system['UserRole']
+        auth_manager = AuthenticationManager()
+        
+        # 現在選択されているモードを取得
+        analysis_mode = st.session_state.get("mode_selector", "スペクトル解析")
         # 使用方法の説明を追加
         st.sidebar.markdown("---")
         st.sidebar.subheader("📋 使用方法")
