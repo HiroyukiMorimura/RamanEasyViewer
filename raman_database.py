@@ -279,7 +279,7 @@ def upload_and_process_database_files():
         "波数（開始）を入力してください:", 
         min_value=-200, 
         max_value=4800, 
-        value=200, 
+        value=400, 
         step=100,
         key="db_start_wave"
     )
@@ -287,7 +287,7 @@ def upload_and_process_database_files():
         "波数（終了）を入力してください:", 
         min_value=-200, 
         max_value=4800, 
-        value=3000, 
+        value=2000, 
         step=100,
         key="db_end_wave"
     )
