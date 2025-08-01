@@ -590,7 +590,7 @@ def process_peak_constraints(constraints_df):
     return constraints
 
 def peak_deconvolution_mode():
-    st.title("ピーク分離機能")
+    st.header("ピーク分離機能")
     
     deconv = RamanDeconvolution()
     
