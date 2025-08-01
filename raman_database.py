@@ -641,7 +641,7 @@ def upload_and_process_database_files():
     # アップロード済みスペクトルの表示
     if st.session_state.uploaded_database_spectra:
         st.markdown("---")
-        with st.expander("📊 アップロード済みスペクトル", expanded=False):
+        with st.expander("アップロード済みスペクトル", expanded=False):
             # アップロードされたファイルのリスト表示
             spectra_df = pd.DataFrame(st.session_state.uploaded_database_spectra)
             spectra_df.columns = ['ID', 'ファイル名']
