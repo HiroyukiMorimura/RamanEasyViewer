@@ -421,7 +421,15 @@ class RamanEyeApp:
         # 管理者はユーザー管理も利用可能（最後に追加）
         if permissions.get("user_management", False):
             available_modes.append("ユーザー管理")
-        
+        # 追加：スペクトル解析を必ず最初に配置 ★★★
+        if "スペクトル解析" in available_modes:
+            available_modes.remove("スペクトル解析")
+            available_modes.insert(0, "スペクトル解析")
+    
+        # ログイン直後は強制的にスペクトル解析を設定 ★★★
+        if "mode_selector" not in st.session_state and "スペクトル解析" in available_modes:
+            st.session_state.mode_selector = "スペクトル解析"
+            
         # モード選択
         analysis_mode = st.sidebar.selectbox(
             "解析モードを選択してください:",
