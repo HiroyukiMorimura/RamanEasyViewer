@@ -242,8 +242,7 @@ class CalibrationAnalyzer:
 
 def calibration_mode():
     """検量線作成モード"""
-    st.title("検量線作成機能")
-    
+    st.header("検量線作成")
     analyzer = CalibrationAnalyzer()
     
     # サイドバー設定
@@ -255,12 +254,9 @@ def calibration_mode():
     dssn_th = st.sidebar.number_input("ベースラインパラメーター:", value=1000, min_value=1, max_value=10000) / 1e7
     savgol_wsize = st.sidebar.number_input("ウィンドウサイズ:", value=5, min_value=3, max_value=101, step=2)
     
-    # データファイルアップロード
-    st.subheader("データファイルアップロード")
-    
     # 複数ファイルアップロード
     uploaded_files = st.file_uploader(
-        "検量線作成用のスペクトルファイルを選択してください（複数可）",
+        "ラマンスペクトルをアップロードしてください（複数可）",
         type=['csv', 'txt'],
         accept_multiple_files=True,
         key="calibration_uploader"
