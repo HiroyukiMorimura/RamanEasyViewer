@@ -1059,7 +1059,7 @@ def peak_ai_analysis_mode():
         
     # サイドバーに補足指示欄を追加
     user_hint = st.sidebar.text_area(
-        "🧪 AIへの補足ヒント（任意）",
+        "AIへの補足ヒント（任意）",
         placeholder="例：この試料はポリエチレン系高分子である可能性がある、など"
     )
     
@@ -1177,12 +1177,11 @@ def perform_peak_analysis_with_ai(llm_connector, user_hint, llm_ready):
         key="prominence_threshold"
     )
 
-    # セキュリティ強化ファイルアップロード
+    # ファイルアップロード
     uploaded_files = st.file_uploader(
-        "ファイルを選択してください", 
-        accept_multiple_files=True, 
+        "ラマンスペクトルをアップロードしてください（単数）", 
+        accept_multiple_files=False, 
         key="file_uploader",
-        help="アップロードされたファイルの完全性が検証されます"
     )
     
     openai_api_key = os.getenv("OPENAI_API_KEY")
