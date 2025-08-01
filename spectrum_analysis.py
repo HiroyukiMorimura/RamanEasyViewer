@@ -64,7 +64,7 @@ def spectrum_analysis_mode():
 
     # 複数ファイルのアップロード
     uploaded_files = st.file_uploader(
-        "ファイルを選択してください",
+        "ラマンスペクトルをアップロードしてください（複数可）",
         type=['csv', 'txt'],
         accept_multiple_files=True,
         key="mv_uploader"
