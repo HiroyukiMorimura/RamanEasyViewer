@@ -271,7 +271,7 @@ def init_database_session_state():
 
 def upload_and_process_database_files():
     """データベース比較用のファイルアップロードと処理"""
-    st.header("📁 データベース比較用スペクトルファイルアップロード")
+    # st.header("データベース比較")
     
     # パラメータ設定をサイドバーに移動
     st.sidebar.subheader("🔧 処理パラメータ")
@@ -413,7 +413,7 @@ def upload_and_process_database_files():
             # Raw spectraのCSVダウンロード
             raw_csv_data = create_interpolated_csv(all_spectrum_data, 'raw_spectrum')
             st.download_button(
-                label="📥 Raw Spectra CSV ダウンロード",
+                label="Raw Spectra CSV ダウンロード",
                 data=raw_csv_data,
                 file_name=f'raw_spectra_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv',
                 mime='text/csv',
@@ -449,7 +449,7 @@ def upload_and_process_database_files():
             
             with col1:
                 st.download_button(
-                    label="💾 スペクトルデータ保存 (pickle)",
+                    label="スペクトルデータ保存 (pickle)",
                     data=pickle_buffer,
                     file_name=f'spectrum_data_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pkl',
                     mime='application/octet-stream',
@@ -458,7 +458,7 @@ def upload_and_process_database_files():
             
             with col2:
                 # 既存データに追加する機能
-                st.subheader("📥 既存データに追加")
+                st.subheader("既存データに追加")
                 existing_pickle = st.file_uploader(
                     "既存のpickleファイルを選択",
                     type=['pkl'],
@@ -511,7 +511,7 @@ def upload_and_process_database_files():
     
     # 利用可能なスペクトルの数を確認
     total_spectra = len(st.session_state.uploaded_database_spectra)
-    
+    """
     # デバッグ情報（開発時のみ表示）
     if st.sidebar.checkbox("🐛 デバッグ情報", key="debug_mode"):
         st.info(f"🔍 デバッグ: 現在のスペクトル数 = {total_spectra}")
@@ -521,7 +521,7 @@ def upload_and_process_database_files():
                 st.write(f"  {i+1}. ID: {spec['id'][:50]}..., Name: {spec['filename']}")
             if total_spectra > 5:
                 st.write(f"  ... 他 {total_spectra - 5} 個")
-    
+    """
     if total_spectra >= 2:
         st.header("🎯 基準スペクトル選択・比較実行")
         
@@ -543,16 +543,19 @@ def upload_and_process_database_files():
             st.info(f"📌 基準スペクトル: **{reference_spectrum_name}**")
             
             # 類似度計算手法の説明
-            st.markdown("""
-            **類似度計算手法:**
-            - **コサイン類似度**: ベクトル角度に基づく類似度（形状の類似性を重視）
-            - **ピアソン相関**: 線形関係の強さ（相関の強さを重視）  
-            - **相互相関**: 時系列的な類似性（位置ずれに対応）
-            """)
+            # st.markdown("""
+            # **類似度計算手法:**
+            # - **コサイン類似度**: ベクトル角度に基づく類似度（形状の類似性を重視）
+            # - **ピアソン相関**: 線形関係の強さ（相関の強さを重視）  
+            # - **相互相関**: 時系列的な類似性（位置ずれに対応）
+            # """)
             
             # 比較計算パラメータ
             col1, col2, col3, col4 = st.columns(4)
+            
             with col1:
+                similarity_method = "cosine"
+            """
                 similarity_method = st.selectbox(
                     "類似度計算手法", 
                     ['cosine', 'pearson', 'cross_correlation'], 
@@ -564,6 +567,7 @@ def upload_and_process_database_files():
                     }[x],
                     key="similarity_method"
                 )
+            """
             with col2:
                 pool_size = st.selectbox("プーリングサイズ", [2, 4, 8], index=1, key="db_pool_size")
             with col3:
