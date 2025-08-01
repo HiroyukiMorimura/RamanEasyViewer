@@ -11,7 +11,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-def render_signature_demo_page():
+def render_signature_page():
     """電子署名管理ページ（運用機能）"""
     st.header("🔐 電子署名管理")
     
@@ -226,4 +226,4 @@ def _get_user_role():
 
 # メイン実行部分（スタンドアロンで実行される場合）
 if __name__ == "__main__":
-    render_signature_demo_page()
+    render_signature_page()
