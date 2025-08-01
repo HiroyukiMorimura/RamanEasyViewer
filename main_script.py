@@ -395,9 +395,15 @@ class RamanEyeApp:
         
         # 利用可能なモードを権限に基づいて決定（スペクトル解析を最初に配置）
         available_modes = []
+
+        if current_role == "viewer":
+            # viewerは「スペクトル解析」のみ
+            if permissions.get("spectrum_analysis", False):
+                available_modes.append("スペクトル解析")
+            
         mode_permissions = {
             "スペクトル解析": "spectrum_analysis",           # 全ユーザー利用可能
-            "データベース比較": "database_comparison",       # 全ユーザー利用可能  
+            "データベース比較": "database_comparison",  
             "ラマンピークファインダー": "peak_analysis", 
             "ラマンピーク分離": "peak_deconvolution",
             "多変量解析": "multivariate_analysis",
@@ -421,12 +427,13 @@ class RamanEyeApp:
         # 管理者はユーザー管理も利用可能（最後に追加）
         if permissions.get("user_management", False):
             available_modes.append("ユーザー管理")
-        # 追加：スペクトル解析を必ず最初に配置 ★★★
+            
+        # 追加：スペクトル解析を必ず最初に配置 
         if "スペクトル解析" in available_modes:
             available_modes.remove("スペクトル解析")
             available_modes.insert(0, "スペクトル解析")
     
-        # ログイン直後は強制的にスペクトル解析を設定 ★★★
+        # ログイン直後は強制的にスペクトル解析を設定
         if "mode_selector" not in st.session_state and "スペクトル解析" in available_modes:
             st.session_state.mode_selector = "スペクトル解析"
             
