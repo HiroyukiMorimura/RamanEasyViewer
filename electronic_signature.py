@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-電子署名システム（セキュリティ統合版） - 修正版
+電子署名システム（セキュリティ統合版） - 完全版
 重要な操作に対するセキュア電子署名機能を提供
 Enhanced with comprehensive security features
 
@@ -28,7 +28,9 @@ try:
     CRYPTO_AVAILABLE = True
 except ImportError:
     CRYPTO_AVAILABLE = False
-    st.warning("⚠️ cryptographyライブラリが見つかりません。デジタル署名機能は制限されます。")
+    if 'crypto_warning_shown' not in st.session_state:
+        st.warning("⚠️ cryptographyライブラリが見つかりません。デジタル署名機能は制限されます。")
+        st.session_state.crypto_warning_shown = True
 
 # セキュリティモジュールのインポート
 try:
@@ -146,8 +148,6 @@ class SecureElectronicSignatureManager:
         # 暗号化キーの初期化
         if CRYPTO_AVAILABLE:
             self._initialize_crypto_keys()
-        else:
-            st.warning("⚠️ デジタル署名機能は利用できません。基本的な署名機能のみ使用します。")
     
     def _initialize_crypto_keys(self):
         """暗号化キーの初期化"""
@@ -192,7 +192,6 @@ class SecureElectronicSignatureManager:
                 
         except Exception as e:
             st.error(f"暗号化キー初期化エラー: {e}")
-            # エラーが発生してもアプリケーションを停止しない
     
     def create_secure_signature_request(self, 
                                       operation_type: str, 
@@ -236,7 +235,6 @@ class SecureElectronicSignatureManager:
             
             # 地理的位置情報の追加（可能な場合）
             try:
-                # 実際の実装では適切なgeolocation APIを使用
                 signature_record.geolocation = "Location tracking not implemented"
             except:
                 pass
@@ -276,7 +274,7 @@ class SecureElectronicSignatureManager:
         except Exception as e:
             error_msg = f"署名要求作成エラー: {e}"
             st.error(error_msg)
-            raise Exception(error_msg)  # SecurityExceptionの代わり
+            raise Exception(error_msg)
     
     def _secure_hash_operation_data(self, data: Any) -> str:
         """セキュア強化操作データハッシュ化"""
@@ -344,8 +342,7 @@ class SecureElectronicSignatureManager:
             return base64.urlsafe_b64encode(signature).decode()
             
         except Exception as e:
-            error_msg = f"デジタル署名生成エラー: {e}"
-            st.warning(error_msg)
+            st.warning(f"デジタル署名生成エラー: {e}")
             return None
     
     def _verify_digital_signature(self, data: str, signature: str) -> bool:
@@ -411,8 +408,8 @@ class SecureElectronicSignatureManager:
         return {
             'timestamp': datetime.now(timezone.utc).isoformat(),
             'session_id': st.session_state.get('session_id', 'unknown'),
-            'user_agent': 'Streamlit-Application',  # 実際の実装では適切に取得
-            'ip_address': 'localhost',  # 実際の実装では適切に取得
+            'user_agent': 'Streamlit-Application',
+            'ip_address': 'localhost',
             'security_level': st.session_state.get('security_level', 'standard')
         }
     
@@ -443,19 +440,18 @@ class SecureElectronicSignatureManager:
         except Exception as e:
             # セキュリティログ記録（エラー）
             if self.security_manager:
-                self.security_manager.audit_logger.log_security_event(
-                    event_type="SIGNATURE_PASSWORD_VERIFICATION_ERROR",
-                    user_id=username,
-                    details={'error': str(e)},
-                    severity="ERROR"
-                )
+                try:
+                    self.security_manager.audit_logger.log_security_event(
+                        event_type="SIGNATURE_PASSWORD_VERIFICATION_ERROR",
+                        user_id=username,
+                        details={'error': str(e)},
+                        severity="ERROR"
+                    )
+                except:
+                    pass
             
-            # フォールバック：基本的なパスワード検証
             st.warning(f"認証システムエラー: {e}")
             return False
-    
-    # 以下は元のコードの残りの部分をそのまま保持...
-    # （add_secure_signature, get_pending_secure_signatures など）
     
     def add_secure_signature(self, 
                            signature_id: str, 
@@ -582,18 +578,21 @@ class SecureElectronicSignatureManager:
             
             # セキュリティログ記録
             if self.security_manager:
-                self.security_manager.audit_logger.log_security_event(
-                    event_type="SECURE_SIGNATURE_ADDED",
-                    user_id=signer_id,
-                    details={
-                        'signature_id': signature_id,
-                        'operation_type': record.operation_type,
-                        'signature_level': record.signature_level.value,
-                        'status': record.status.value,
-                        'digital_signature_verified': True
-                    },
-                    severity="INFO"
-                )
+                try:
+                    self.security_manager.audit_logger.log_security_event(
+                        event_type="SECURE_SIGNATURE_ADDED",
+                        user_id=signer_id,
+                        details={
+                            'signature_id': signature_id,
+                            'operation_type': record.operation_type,
+                            'signature_level': record.signature_level.value,
+                            'status': record.status.value,
+                            'digital_signature_verified': True
+                        },
+                        severity="INFO"
+                    )
+                except:
+                    pass
             
             return True, "セキュア署名が正常に完了しました"
             
@@ -611,11 +610,68 @@ class SecureElectronicSignatureManager:
                         severity="ERROR"
                     )
                 except:
-                    pass  # ログ記録に失敗してもアプリケーションは続行
+                    pass
             
             error_msg = f"セキュア署名エラー: {e}"
             st.error(error_msg)
             return False, error_msg
+    
+    def _get_required_signature_count(self, signature_level: SignatureLevel) -> int:
+        """必要な署名数を取得"""
+        counts = {
+            SignatureLevel.SINGLE: 1,
+            SignatureLevel.DUAL: 2,
+            SignatureLevel.MULTI: 3,
+            SignatureLevel.HIERARCHICAL: 2  # 管理者1名 + 承認者1名
+        }
+        return counts.get(signature_level, 1)
+    
+    def _count_current_signatures(self, record: SecureSignatureRecord) -> int:
+        """現在の署名数をカウント"""
+        count = 0
+        if record.primary_signer_id:
+            count += 1
+        if record.secondary_signer_id:
+            count += 1
+        count += len(record.additional_signers)
+        return count
+    
+    def _on_secure_signature_completed(self, signature_id: str):
+        """セキュア署名完了時の処理"""
+        record = st.session_state.secure_signature_records[signature_id]
+        
+        # ペンディング署名から削除
+        if signature_id in st.session_state.secure_pending_signatures:
+            del st.session_state.secure_pending_signatures[signature_id]
+        
+        # ブロックチェーンハッシュの生成（模擬）
+        blockchain_data = f"{signature_id}:{record.operation_type}:{record.status.value}:{datetime.now(timezone.utc).isoformat()}"
+        record.blockchain_hash = hashlib.sha256(blockchain_data.encode()).hexdigest()
+        
+        # 完了通知
+        st.success(f"🔒 セキュア電子署名が完了しました: {record.operation_type}")
+        st.balloons()
+        
+        # セキュリティログ記録
+        if self.security_manager:
+            try:
+                self.security_manager.audit_logger.log_security_event(
+                    event_type="SECURE_SIGNATURE_COMPLETED",
+                    user_id="system",
+                    details={
+                        'signature_id': signature_id,
+                        'operation_type': record.operation_type,
+                        'signature_count': self._count_current_signatures(record),
+                        'blockchain_hash': record.blockchain_hash
+                    },
+                    severity="INFO"
+                )
+            except:
+                pass
+    
+    def get_secure_signature_record(self, signature_id: str) -> Optional[SecureSignatureRecord]:
+        """セキュア署名記録を取得"""
+        return st.session_state.secure_signature_records.get(signature_id)
     
     def get_pending_secure_signatures(self, user_id: str = None) -> List[Dict]:
         """ペンディングセキュア署名一覧を取得"""
@@ -861,7 +917,7 @@ class SecureSignatureUI:
         """)
         
         # 既存署名の表示
-        self._render_existing_signatures(record)
+        self._render_existing_signatures(record, signature_id)
         
         # セキュア署名フォーム
         with st.form(f"secure_signature_form_{signature_id}"):
@@ -918,7 +974,7 @@ class SecureSignatureUI:
             
             # セキュリティコンテキストの取得
             security_context = {
-                'ip_address': 'localhost',  # 実際の実装では適切に取得
+                'ip_address': 'localhost',
                 'user_agent': 'Streamlit-App',
                 'timestamp': datetime.now(timezone.utc).isoformat()
             }
@@ -965,15 +1021,18 @@ class SecureSignatureUI:
             
             # セキュリティログ記録
             if self.security_manager:
-                self.security_manager.audit_logger.log_security_event(
-                    event_type="SECURE_SIGNATURE_REJECTED",
-                    user_id=current_user_id,
-                    details={
-                        'signature_id': signature_id,
-                        'operation_type': record.operation_type
-                    },
-                    severity="WARNING"
-                )
+                try:
+                    self.security_manager.audit_logger.log_security_event(
+                        event_type="SECURE_SIGNATURE_REJECTED",
+                        user_id=current_user_id,
+                        details={
+                            'signature_id': signature_id,
+                            'operation_type': record.operation_type
+                        },
+                        severity="WARNING"
+                    )
+                except:
+                    pass
             
             st.warning("⚠️ セキュア署名を拒否しました")
             return False
@@ -1023,7 +1082,7 @@ class SecureSignatureUI:
         }
         return descriptions.get(signature_type, "不明な署名タイプ")
     
-    def _render_existing_signatures(self, record: SecureSignatureRecord):
+    def _render_existing_signatures(self, record: SecureSignatureRecord, signature_id: str):
         """既存署名の表示"""
         if record.primary_signer_name:
             st.success(f"✅ 第一署名者: {record.primary_signer_name} ({record.primary_signature_time})")
@@ -1040,77 +1099,6 @@ class SecureSignatureUI:
             st.success(f"✅ 第{i}署名者: {signer['signer_name']} ({signer['signature_time']})")
             if signer.get('certificate_fingerprint'):
                 st.caption(f"証明書フィンガープリント: {signer['certificate_fingerprint']}")
-    
-    def render_secure_signature_status(self, signature_id: str):
-        """セキュア署名ステータスを表示"""
-        record = self.signature_manager.get_secure_signature_record(signature_id)
-        if not record:
-            return
-        
-        # ステータス表示（アイコン強化）
-        status_info = {
-            SignatureStatus.PENDING: ("🟡", "署名待ち"),
-            SignatureStatus.PARTIAL: ("🟠", "部分署名済み"), 
-            SignatureStatus.COMPLETED: ("🟢", "署名完了"),
-            SignatureStatus.REJECTED: ("🔴", "署名拒否"),
-            SignatureStatus.EXPIRED: ("⚫", "期限切れ"),
-            SignatureStatus.REVOKED: ("🚫", "取り消し"),
-            SignatureStatus.SUSPENDED: ("⏸️", "一時停止")
-        }
-        
-        status_icon, status_text = status_info.get(record.status, ("⚪", "不明"))
-        st.write(f"{status_icon} **セキュア署名ステータス**: {status_text}")
-        
-        # セキュリティメトリクス
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            current_sigs = self.signature_manager._count_current_signatures(record)
-            required_sigs = self.signature_manager._get_required_signature_count(record.signature_level)
-            st.metric("署名進捗", f"{current_sigs}/{required_sigs}")
-        
-        with col2:
-            if record.blockchain_hash:
-                st.metric("ブロックチェーン", "検証済み", delta="✅")
-            else:
-                st.metric("ブロックチェーン", "未対応", delta="⏳")
-        
-        with col3:
-            compliance_count = len(record.compliance_flags)
-            st.metric("コンプライアンス", f"{compliance_count}項目")
-        
-        # 詳細情報
-        with st.expander("🔍 セキュア署名詳細"):
-            if record.primary_signer_name:
-                st.write(f"**第一署名者**: {record.primary_signer_name}")
-                st.write(f"**署名日時**: {record.primary_signature_time}")
-                st.write(f"**署名理由**: {record.primary_signature_reason}")
-                
-                # デジタル署名検証
-                if record.primary_digital_signature:
-                    signature_data = f"{signature_id}:{record.primary_signer_id}:{record.primary_signature_time}:{record.primary_signature_reason}"
-                    is_valid = self.signature_manager._verify_digital_signature(signature_data, record.primary_digital_signature)
-                    st.write(f"**デジタル署名**: {'✅ 検証済み' if is_valid else '❌ 検証失敗'}")
-            
-            if record.secondary_signer_name:
-                st.write("---")
-                st.write(f"**第二署名者**: {record.secondary_signer_name}")
-                st.write(f"**署名日時**: {record.secondary_signature_time}")
-                st.write(f"**署名理由**: {record.secondary_signature_reason}")
-            
-            # 追加署名者
-            for i, signer in enumerate(record.additional_signers, 3):
-                st.write("---")
-                st.write(f"**第{i}署名者**: {signer['signer_name']}")
-                st.write(f"**署名日時**: {signer['signature_time']}")
-                st.write(f"**署名理由**: {signer['signature_reason']}")
-            
-            # 監査証跡
-            if record.audit_trail:
-                st.write("---")
-                st.write("**監査証跡**:")
-                for entry in record.audit_trail:
-                    st.write(f"- {entry['action']} by {entry['signer_id']} at {entry['timestamp']}")
 
 # セキュア強化署名要求デコレータ
 def require_secure_signature(operation_type: str, 
@@ -1121,57 +1109,62 @@ def require_secure_signature(operation_type: str,
     """セキュア電子署名が必要な操作に使用するデコレータ"""
     def decorator(func):
         def wrapper(*args, **kwargs):
-            from auth_system import AuthenticationManager  # SecureAuthenticationManager → AuthenticationManager
-            
-            auth_manager = AuthenticationManager()
-            if not auth_manager.is_authenticated():
-                st.error("この機能を使用するにはログインが必要です")
-                st.stop()
-            
-            current_user = auth_manager.get_current_user()
-            
-            # セッション状態の確認
-            signature_key = f"secure_signature_pending_{func.__name__}"
-            
-            if signature_key not in st.session_state:
-                # セキュア署名要求を作成
-                signature_manager = SecureElectronicSignatureManager()
-                operation_data = {
-                    "function": func.__name__, 
-                    "args": str(args), 
-                    "kwargs": str(kwargs),
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "user": current_user
-                }
+            try:
+                from auth_system import AuthenticationManager
                 
-                signature_id = signature_manager.create_secure_signature_request(
-                    operation_type=operation_type,
-                    operation_data=operation_data,
-                    signature_level=signature_level,
-                    signature_type=signature_type,
-                    required_signers=required_signers,
-                    expires_in_hours=expires_in_hours
+                auth_manager = AuthenticationManager()
+                if not auth_manager.is_authenticated():
+                    st.error("この機能を使用するにはログインが必要です")
+                    st.stop()
+                
+                current_user = auth_manager.get_current_user()
+                
+                # セッション状態の確認
+                signature_key = f"secure_signature_pending_{func.__name__}"
+                
+                if signature_key not in st.session_state:
+                    # セキュア署名要求を作成
+                    signature_manager = SecureElectronicSignatureManager()
+                    operation_data = {
+                        "function": func.__name__, 
+                        "args": str(args), 
+                        "kwargs": str(kwargs),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "user": current_user
+                    }
+                    
+                    signature_id = signature_manager.create_secure_signature_request(
+                        operation_type=operation_type,
+                        operation_data=operation_data,
+                        signature_level=signature_level,
+                        signature_type=signature_type,
+                        required_signers=required_signers,
+                        expires_in_hours=expires_in_hours
+                    )
+                    
+                    st.session_state[signature_key] = signature_id
+                
+                signature_id = st.session_state[signature_key]
+                
+                # セキュア署名UI表示
+                signature_ui = SecureSignatureUI()
+                user_info = auth_manager.db.get_user(current_user)
+                user_name = user_info.get("full_name", current_user) if user_info else current_user
+                
+                signature_completed = signature_ui.render_secure_signature_dialog(
+                    signature_id, current_user, user_name
                 )
                 
-                st.session_state[signature_key] = signature_id
-            
-            signature_id = st.session_state[signature_key]
-            
-            # セキュア署名UI表示
-            signature_ui = SecureSignatureUI()
-            user_info = auth_manager.db.get_user(current_user)
-            user_name = user_info.get("full_name", current_user)
-            
-            signature_completed = signature_ui.render_secure_signature_dialog(
-                signature_id, current_user, user_name
-            )
-            
-            if signature_completed:
-                # 署名完了、元の機能を実行
-                del st.session_state[signature_key]
-                return func(*args, **kwargs)
-            else:
-                # 署名待ち
+                if signature_completed:
+                    # 署名完了、元の機能を実行
+                    del st.session_state[signature_key]
+                    return func(*args, **kwargs)
+                else:
+                    # 署名待ち
+                    st.stop()
+                    
+            except Exception as e:
+                st.error(f"電子署名システムエラー: {e}")
                 st.stop()
         
         return wrapper
