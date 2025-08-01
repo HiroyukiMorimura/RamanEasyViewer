@@ -983,7 +983,7 @@ def peak_ai_analysis_mode():
         st.code("pip install PyPDF2 python-docx openai faiss-cpu sentence-transformers")
         return
     
-    st.header("🔒 ラマンピークAI解析")
+    st.header("ラマンピークAI解析")
     
     # セキュリティ状態表示
     if SECURITY_AVAILABLE:
@@ -1112,25 +1112,7 @@ def load_existing_database():
 
 def perform_peak_analysis_with_ai(llm_connector, user_hint, llm_ready):
     """セキュリティ強化されたAI機能を含むピーク解析の実行"""
-    # セキュリティログ記録
-    if SECURITY_AVAILABLE:
-        security_manager = get_security_manager()
-        current_user = st.session_state.get('current_user', {})
-        user_id = current_user.get('username', 'unknown')
-        
-        if security_manager:
-            security_manager.audit_logger.log_security_event(
-                event_type="PEAK_ANALYSIS_START",
-                user_id=user_id,
-                details={
-                    'llm_ready': llm_ready,
-                    'user_hint_provided': bool(user_hint),
-                    'timestamp': datetime.now().isoformat()
-                },
-                severity="INFO"
-            )
-    
-    # パラメータ設定
+        # パラメータ設定
     pre_start_wavenum = 400
     pre_end_wavenum = 2000
     
@@ -1213,7 +1195,23 @@ def perform_peak_analysis_with_ai(llm_connector, user_hint, llm_ready):
     all_bsremoval_spectra = []
     all_averemoval_spectra = []
     all_wavenum = []
-    
+    # セキュリティログ記録
+    if SECURITY_AVAILABLE:
+        security_manager = get_security_manager()
+        current_user = st.session_state.get('current_user', {})
+        user_id = current_user.get('username', 'unknown')
+        
+        if security_manager:
+            security_manager.audit_logger.log_security_event(
+                event_type="PEAK_ANALYSIS_START",
+                user_id=user_id,
+                details={
+                    'llm_ready': llm_ready,
+                    'user_hint_provided': bool(user_hint),
+                    'timestamp': datetime.now().isoformat()
+                },
+                severity="INFO"
+            )
     if uploaded_files:
         # ファイル処理
         for uploaded_file in uploaded_files:
