@@ -1,15 +1,15 @@
-# RamanEye Easy Viewer v2.0.0 - Secure Enterprise Edition
+# RamanEye Easy Viewer v1.0.0
 
 <div align="center">
 
-🔬 **Advanced Raman Spectroscopy Analysis Platform with Enterprise Security**  
-統合ラマンスペクトル解析ツール - セキュア企業版
+**RamanEye Easy Viewer**  
+統合ラマンスペクトル解析ツール
 
 </div>
 
 ## 📋 概要
 
-RamanEye Easy Viewerは、ラマン分光法による高度なスペクトル解析を提供する統合プラットフォームです。研究機関・企業向けのセキュリティ機能を備え、データの完全性と監査証跡を保証します。
+RamanEye Easy Viewerは、ラマン分光法による高度なスペクトル解析を提供する統合プラットフォームで、研究機関・企業向けのセキュリティ機能を備えています。
 
 ## 🌟 主要特徴
 
@@ -17,8 +17,8 @@ RamanEye Easy Viewerは、ラマン分光法による高度なスペクトル解
 - 🔐 **エンタープライズセキュリティ**: 電子署名・暗号化・監査機能
 - 🤖 **AI統合**: OpenAI API + RAG機能による高度解析
 - 👥 **ロールベースアクセス制御**: Admin/Analyst/Viewer権限管理
-- 📊 **多変量解析**: PCA・NMF・クラスター分析
-- 🎯 **ピーク分離**: 高精度ローレンツフィッティング
+- 📊 **多変量解析**: クラスター分析
+- 🎯 **ピーク分離**: フィッティングによるピーク分解
 - 📈 **検量線作成**: 定量分析用検量線の自動生成
 - 🗄️ **データベース比較**: スペクトルライブラリとの照合
 
@@ -30,9 +30,9 @@ RamanEye Easy Viewerは、ラマン分光法による高度なスペクトル解
 |------|------|-----------|
 | スペクトル解析 | 基本的なラマンスペクトル表示・前処理 | All Users |
 | ピーク分析 | 自動ピーク検出・手動調整・グリッドサーチ最適化 | Analyst+ |
-| ピーク分離 | ローレンツフィッティング・制約付き最適化 | Analyst+ |
-| 多変量解析 | NMF・PCA・クラスター分析 | Analyst+ |
-| 検量線作成 | ピーク面積・PLS回帰による定量分析 | Analyst+ |
+| ピーク分離 | フィッティングによる複数ピーク分離 | Analyst+ |
+| 多変量解析 | クラスター分析 | Analyst+ |
+| 検量線作成 | ピーク面積・回帰による定量分析 | Analyst+ |
 | AI解析 | OpenAI API + RAG機能による高度解釈 | Analyst+ |
 | データベース比較 | コサイン類似度・相関分析による照合 | All Users |
 
