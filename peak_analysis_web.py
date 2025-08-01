@@ -166,10 +166,9 @@ def peak_analysis_mode():
     
     # ファイルアップロード
     uploaded_files = st.file_uploader(
-        "ファイルを選択してください",
+        "ラマンスペクトルをアップロードしてください（単数）",
         type=['csv', 'txt'],
-        accept_multiple_files=True,
-        help="Upload multiple CSV files with spectral data. Files should be named as GroupName_Number.csv",
+        accept_multiple_files=False,
         key="mv_uploader"
     )
     
