@@ -1967,6 +1967,7 @@ class RamanUIManager:
 
         # レポートダウンロード
         self.render_download_section(file_key, result)
+        
     def render_download_section(self, file_key: str, result: AnalysisResult):
         """レポートダウンロードセクション（Q&A・ヒント統合版）"""
         st.subheader("📥 包括的レポートダウンロード")
