@@ -1510,7 +1510,7 @@ def peak_ai_analysis_mode():
     )
     
     # ピーク解析部分の実行（セキュリティ強化版）
-    perform_peak_analysis_with_ai(llm_connector, user_hint, llm_ready)
+    peak_ai_analysis_mode(llm_connector, user_hint, llm_ready)
 
 def setup_new_database(TEMP_DIR):
     """新規データベースの作成"""
@@ -1560,7 +1560,7 @@ def load_existing_database():
     st.sidebar.subheader("📂 既存データベース読み込み")
     st.sidebar.info("セキュリティ機能により、アクセス権限のあるデータベースのみ読み込み可能です。")
 
-def perform_peak_analysis_with_ai(llm_connector, user_hint, llm_ready):
+def peak_ai_analysis_mode(llm_connector, user_hint, llm_ready):
     """セキュリティ強化されたAI機能を含むピーク解析の実行"""
     # パラメータ設定
     pre_start_wavenum = 400
