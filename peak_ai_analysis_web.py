@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-ピークAI解析モジュール（PDFレポート機能付き）
+ピークAI解析モジュール
 RAG機能とOpenAI APIを使用したラマンスペクトルの高度な解析
-Enhanced with PDF report generation
+Enhanced with comprehensive features and PDF report generation
 
 Created on Wed Jun 11 15:56:04 2025
 @author: Enhanced System
@@ -19,19 +19,16 @@ import requests
 import ssl
 import urllib3
 import glob
-import base64
-import io
 from datetime import datetime
 from typing import List, Dict, Optional
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import plotly.io as pio
 from scipy.signal import savgol_filter, find_peaks, peak_prominences
 from pathlib import Path
 from common_utils import *
 from peak_analysis_web import optimize_thresholds_via_gridsearch
 
-# PDF生成関連のインポート
+# PDF生成関連のインポート（新機能）
 try:
     from reportlab.lib.pagesizes import letter, A4
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
@@ -42,6 +39,7 @@ try:
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
     from PIL import Image as PILImage
+    import plotly.io as pio
     PDF_GENERATION_AVAILABLE = True
 except ImportError as e:
     PDF_GENERATION_AVAILABLE = False
@@ -1064,6 +1062,7 @@ class RamanPDFReportGenerator:
             raise Exception("PDF生成ライブラリが利用できません")
         
         # PDFファイルをメモリ上に作成
+        import io
         pdf_buffer = io.BytesIO()
         
         try:
@@ -1510,7 +1509,7 @@ def peak_ai_analysis_mode():
     )
     
     # ピーク解析部分の実行（セキュリティ強化版）
-    peak_ai_analysis_mode(llm_connector, user_hint, llm_ready)
+    perform_peak_analysis_with_ai(llm_connector, user_hint, llm_ready)
 
 def setup_new_database(TEMP_DIR):
     """新規データベースの作成"""
@@ -1560,7 +1559,7 @@ def load_existing_database():
     st.sidebar.subheader("📂 既存データベース読み込み")
     st.sidebar.info("セキュリティ機能により、アクセス権限のあるデータベースのみ読み込み可能です。")
 
-def peak_ai_analysis_mode(llm_connector, user_hint, llm_ready):
+def perform_peak_analysis_with_ai(llm_connector, user_hint, llm_ready):
     """セキュリティ強化されたAI機能を含むピーク解析の実行"""
     # パラメータ設定
     pre_start_wavenum = 400
