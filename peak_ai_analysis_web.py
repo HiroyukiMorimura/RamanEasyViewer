@@ -1862,31 +1862,27 @@ def render_interactive_plot(result, file_key, spectrum_type):
         if i not in st.session_state[f"{file_key}_excluded_peaks"]
     ]
 
+    # peak_analysis_web.pyと同様の設定でサブプロットを作成
     fig = make_subplots(
         rows=3, cols=1,
         shared_xaxes=True,
-        subplot_titles=[
-            f'{file_key} - {spectrum_type}',
-            f'{file_key} - 微分スペクトル比較',
-            f'{file_key} - Prominence vs 波数'
-        ],
         vertical_spacing=0.07,
         row_heights=[0.4, 0.3, 0.3]
     )
 
-    # スペクトル描画
+    # 1段目：メインスペクトル
     fig.add_trace(
         go.Scatter(
             x=result['wavenum'],
             y=result['spectrum'],
             mode='lines',
             name=spectrum_type,
-            line=dict(color='blue', width=1)
+            line=dict(color='blue', width=2)
         ),
         row=1, col=1
     )
 
-    # 有効なピーク
+    # 自動検出ピーク（有効なもののみ）
     if len(filtered_peaks) > 0:
         fig.add_trace(
             go.Scatter(
@@ -1915,10 +1911,12 @@ def render_interactive_plot(result, file_key, spectrum_type):
 
     # 手動ピーク
     for x, y in st.session_state[f"{file_key}_manual_peaks"]:
+        idx = np.argmin(np.abs(result['wavenum'] - x))
+        intensity = result['spectrum'][idx]
         fig.add_trace(
             go.Scatter(
                 x=[x],
-                y=[y],
+                y=[intensity],
                 mode='markers+text',
                 marker=dict(color='green', size=10, symbol='star'),
                 text=["手動"],
@@ -1929,7 +1927,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
             row=1, col=1
         )
 
-    # 2次微分
+    # 2段目：2次微分
     fig.add_trace(
         go.Scatter(
             x=result['wavenum'],
@@ -1940,16 +1938,15 @@ def render_interactive_plot(result, file_key, spectrum_type):
         ),
         row=2, col=1
     )
-
     fig.add_hline(y=0, line_dash="dash", line_color="black", opacity=0.5, row=2, col=1)
 
-    # Prominenceプロット
+    # 3段目：Prominenceプロット
     fig.add_trace(
         go.Scatter(
             x=result['wavenum'][result['all_peaks']],
             y=result['all_prominences'],
             mode='markers',
-            name='全ピークのProminence',
+            name='全ピークの卓立度',
             marker=dict(color='orange', size=4)
         ),
         row=3, col=1
@@ -1960,16 +1957,27 @@ def render_interactive_plot(result, file_key, spectrum_type):
                 x=result['wavenum'][filtered_peaks],
                 y=filtered_prominences,
                 mode='markers',
-                name='有効なProminence',
+                name='有効な卓立度',
                 marker=dict(color='red', size=7, symbol='circle')
             ),
             row=3, col=1
         )
 
-    fig.update_layout(height=800, margin=dict(t=80, b=40))
-    fig.update_xaxes(title_text="波数 (cm⁻¹)", row=3, col=1)
-    fig.update_yaxes(title_text="強度", row=1, col=1)
-    fig.update_yaxes(title_text="微分値", row=2, col=1)
+    # peak_analysis_web.pyと同様のレイアウト設定
+    fig.update_layout(height=800, margin=dict(t=80, b=150))
+    
+    # X軸とY軸のタイトル設定（peak_analysis_web.pyと同様）
+    for r in [1, 2, 3]:
+        fig.update_xaxes(
+            showticklabels=True,
+            title_text="波数 (cm⁻¹)" if r == 3 else "",
+            row=r, col=1,
+            automargin=True
+        )
+    
+    fig.update_yaxes(title_text="Intensity (a.u.)", row=1, col=1)
+    fig.update_yaxes(title_text="2次微分", row=2, col=1)
+    fig.update_yaxes(title_text="Prominence", row=3, col=1)
     
     # PDFレポート用にPlotlyグラフを保存
     st.session_state[f"{file_key}_plotly_figure"] = fig
