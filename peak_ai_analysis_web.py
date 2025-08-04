@@ -1962,12 +1962,11 @@ class RamanUIManager:
             st.markdown("**解析結果:**")
             st.markdown(result.ai_analysis)
         
-        # レポートダウンロード
-        self.render_download_section(file_key, result)
-        
         # Q&A機能
         self.render_qa_section(file_key, result)
-    
+
+        # レポートダウンロード
+        self.render_download_section(file_key, result)
     def render_download_section(self, file_key: str, result: AnalysisResult):
         """レポートダウンロードセクション（Q&A・ヒント統合版）"""
         st.subheader("📥 包括的レポートダウンロード")
