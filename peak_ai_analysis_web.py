@@ -1171,7 +1171,7 @@ class RamanPDFReportGenerator:
         user_hint: str = None,
         qa_history: List[Dict] = None
     ) -> bytes:
-        """包括的なPDFレポートを生成"""
+        """包括的なPDFレポートを生成（Q&A・ヒント統合版）"""
         
         pdf_buffer = io.BytesIO()
         
@@ -1187,9 +1187,9 @@ class RamanPDFReportGenerator:
             
             story = []
             
-            # コンテンツ作成
+            # コンテンツ作成（Q&A・ヒント情報を含む）
             story.extend(self._create_title_page(file_key))
-            story.extend(self._create_executive_summary(peak_data, analysis_result))
+            story.extend(self._create_executive_summary(peak_data, analysis_result, qa_history, user_hint))
             
             if plotly_figure:
                 story.extend(self._create_graph_section(plotly_figure, file_key))
@@ -1197,14 +1197,14 @@ class RamanPDFReportGenerator:
             story.extend(self._create_peak_details_section(peak_summary_df, peak_data))
             story.extend(self._create_ai_analysis_section(analysis_result))
             
+            # ユーザーヒント情報（常に追加、ない場合もその旨を記載）
+            story.extend(self._create_additional_info_section(user_hint))
+            
+            # Q&A履歴（常に追加、ない場合もその旨を記載）
+            story.extend(self._create_qa_section(qa_history))
+            
             if relevant_docs:
                 story.extend(self._create_references_section(relevant_docs))
-            
-            if user_hint:
-                story.extend(self._create_additional_info_section(user_hint))
-            
-            if qa_history:
-                story.extend(self._create_qa_section(qa_history))
             
             story.extend(self._create_appendix_section())
             
@@ -1252,8 +1252,8 @@ class RamanPDFReportGenerator:
         
         return content
     
-    def _create_executive_summary(self, peak_data: List[Dict], analysis_result: str) -> List:
-        """実行サマリーを作成"""
+    def _create_executive_summary(self, peak_data: List[Dict], analysis_result: str, qa_history: List[Dict] = None, user_hint: str = None) -> List:
+        """実行サマリーを作成（Q&A・ヒント情報統合版）"""
         content = []
         
         content.append(Paragraph("実行サマリー", self.styles['JapaneseHeading']))
@@ -1262,21 +1262,44 @@ class RamanPDFReportGenerator:
         auto_peaks = len([p for p in peak_data if p.get('peak_type') == 'auto'])
         manual_peaks = len([p for p in peak_data if p.get('peak_type') == 'manual'])
         
+        # 基本統計情報
         summary_text = f"""
         <b>検出ピーク総数:</b> {total_peaks}<br/>
         <b>自動検出:</b> {auto_peaks} ピーク<br/>
         <b>手動追加:</b> {manual_peaks} ピーク<br/>
         <br/>
-        <b>主要検出範囲:</b> {min([p['wavenumber'] for p in peak_data]):.0f} - {max([p['wavenumber'] for p in peak_data]):.0f} cm⁻¹
+        <b>主要検出範囲:</b> {min([p['wavenumber'] for p in peak_data]):.0f} - {max([p['wavenumber'] for p in peak_data]):.0f} cm⁻¹<br/>
         """
+        
+        # ユーザー情報の追加
+        if user_hint and user_hint.strip():
+            summary_text += f"<br/><b>ユーザー提供ヒント:</b> あり<br/>"
+        else:
+            summary_text += f"<br/><b>ユーザー提供ヒント:</b> なし<br/>"
+        
+        # Q&A情報の追加
+        qa_count = len(qa_history) if qa_history else 0
+        summary_text += f"<b>追加質問・回答:</b> {qa_count} 件<br/>"
         
         content.append(Paragraph(summary_text, self.styles['JapaneseNormal']))
         content.append(Spacer(1, 0.3*inch))
         
+        # 初回AI解析結果の要約
         analysis_summary = analysis_result[:200] + "..." if len(analysis_result) > 200 else analysis_result
-        content.append(Paragraph("<b>AI解析結果要約:</b>", self.styles['JapaneseNormal']))
+        content.append(Paragraph("<b>初回AI解析結果要約:</b>", self.styles['JapaneseNormal']))
         content.append(Paragraph(analysis_summary, self.styles['JapaneseNormal']))
         content.append(Spacer(1, 0.2*inch))
+        
+        # Q&Aがある場合の追加情報
+        if qa_count > 0:
+            qa_summary_text = f"""
+            <b>質問応答の概要:</b><br/>
+            初回解析後、ユーザーから {qa_count} 件の追加質問が行われ、
+            それぞれについてAIが詳細な回答を提供しました。
+            質問内容と回答の詳細は本レポートの「追加質問・回答履歴」セクションに記載されています。
+            """
+            content.append(Paragraph(qa_summary_text, self.styles['JapaneseNormal']))
+            content.append(Spacer(1, 0.2*inch))
         
         return content
     
@@ -1380,41 +1403,113 @@ class RamanPDFReportGenerator:
         return content
     
     def _create_additional_info_section(self, user_hint: str) -> List:
-        """補足情報セクションを作成"""
+        """補足情報セクションを作成（強化版）"""
         content = []
         
-        content.append(Paragraph("補足情報", self.styles['JapaneseHeading']))
-        content.append(Paragraph(f"ユーザー提供ヒント: {user_hint}", self.styles['JapaneseNormal']))
+        content.append(PageBreak())
+        content.append(Paragraph("ユーザー提供情報", self.styles['JapaneseHeading']))
+        
+        if user_hint and user_hint.strip():
+            content.append(Paragraph("<b>AIへの補足ヒント:</b>", self.styles['JapaneseNormal']))
+            
+            # 長いヒントの場合は段落分け
+            hint_paragraphs = user_hint.split('\n')
+            for para in hint_paragraphs:
+                if para.strip():
+                    content.append(Paragraph(para.strip(), self.styles['JapaneseNormal']))
+                    content.append(Spacer(1, 0.1*inch))
+        else:
+            content.append(Paragraph("AIへの補足ヒント: （ユーザーからの追加情報は提供されませんでした）", self.styles['JapaneseNormal']))
+        
         content.append(Spacer(1, 0.2*inch))
         
         return content
     
     def _create_qa_section(self, qa_history: List[Dict]) -> List:
-        """Q&Aセクションを作成"""
+        """Q&Aセクションを作成（強化版）"""
         content = []
         
         content.append(PageBreak())
-        content.append(Paragraph("質問応答履歴", self.styles['JapaneseHeading']))
+        content.append(Paragraph("追加質問・回答履歴", self.styles['JapaneseHeading']))
         
-        for i, qa in enumerate(qa_history, 1):
-            qa_text = f"""
-            <b>質問{i}:</b> {qa['question']}<br/>
-            <b>回答{i}:</b> {qa['answer']}<br/>
-            <i>日時: {qa['timestamp']}</i><br/>
+        if qa_history and len(qa_history) > 0:
+            # サマリー情報
+            summary_text = f"""
+            <b>質問総数:</b> {len(qa_history)} 件<br/>
+            <b>最初の質問:</b> {qa_history[0].get('timestamp', 'N/A')}<br/>
+            <b>最後の質問:</b> {qa_history[-1].get('timestamp', 'N/A')}<br/>
             """
+            content.append(Paragraph(summary_text, self.styles['JapaneseNormal']))
+            content.append(Spacer(1, 0.3*inch))
             
-            content.append(Paragraph(qa_text, self.styles['JapaneseNormal']))
+            # 各Q&Aの詳細
+            for i, qa in enumerate(qa_history, 1):
+                # 質問セクション
+                question_style = ParagraphStyle(
+                    name=f'Question{i}',
+                    parent=self.styles['JapaneseNormal'],
+                    fontName=self.japanese_font_name,
+                    fontSize=11,
+                    spaceAfter=6,
+                    textColor=colors.darkblue,
+                    leftIndent=0.2*inch
+                )
+                
+                content.append(Paragraph(f"<b>【質問 {i}】</b> ({qa.get('timestamp', 'N/A')})", question_style))
+                
+                question_text = qa.get('question', '').strip()
+                if question_text:
+                    content.append(Paragraph(f"Q: {question_text}", self.styles['JapaneseNormal']))
+                
+                content.append(Spacer(1, 0.1*inch))
+                
+                # 回答セクション
+                answer_style = ParagraphStyle(
+                    name=f'Answer{i}',
+                    parent=self.styles['JapaneseNormal'],
+                    fontName=self.japanese_font_name,
+                    fontSize=10,
+                    spaceAfter=6,
+                    leftIndent=0.2*inch,
+                    textColor=colors.darkgreen
+                )
+                
+                content.append(Paragraph(f"<b>【回答 {i}】</b>", answer_style))
+                
+                answer_text = qa.get('answer', '').strip()
+                if answer_text:
+                    # 長い回答は段落分け
+                    answer_paragraphs = answer_text.split('\n\n')
+                    for para in answer_paragraphs:
+                        if para.strip():
+                            content.append(Paragraph(f"A: {para.strip()}", self.styles['JapaneseNormal']))
+                            content.append(Spacer(1, 0.05*inch))
+                
+                # 区切り線
+                if i < len(qa_history):
+                    content.append(Spacer(1, 0.2*inch))
+                    content.append(Paragraph("─" * 50, self.styles['JapaneseNormal']))
+                    content.append(Spacer(1, 0.2*inch))
+        else:
+            content.append(Paragraph("追加質問は行われませんでした。", self.styles['JapaneseNormal']))
             content.append(Spacer(1, 0.2*inch))
+            
+            no_qa_info = """
+            このセクションには、初回解析後にユーザーから追加で行われた質問と
+            AIからの回答が記録されます。今回は追加質問がありませんでした。
+            """
+            content.append(Paragraph(no_qa_info, self.styles['JapaneseNormal']))
         
         return content
     
     def _create_appendix_section(self) -> List:
-        """付録セクションを作成"""
+        """付録セクションを作成（包括版）"""
         content = []
         
         content.append(PageBreak())
         content.append(Paragraph("付録", self.styles['JapaneseHeading']))
         
+        # システム情報
         system_info = f"""
         <b>システム情報:</b><br/>
         生成日時: {datetime.now().isoformat()}<br/>
@@ -1425,6 +1520,37 @@ class RamanPDFReportGenerator:
         """
         
         content.append(Paragraph(system_info, self.styles['JapaneseNormal']))
+        content.append(Spacer(1, 0.3*inch))
+        
+        # レポート内容の説明
+        report_description = """
+        <b>レポート内容について:</b><br/>
+        本PDFレポートには以下の情報が包括的に含まれています：<br/>
+        <br/>
+        • <b>実行サマリー:</b> 解析の概要と統計情報<br/>
+        • <b>スペクトルグラフ:</b> ピーク検出結果の可視化<br/>
+        • <b>ピーク詳細:</b> 自動検出・手動追加ピークの一覧<br/>
+        • <b>初回AI解析結果:</b> メインの解析内容<br/>
+        • <b>ユーザー提供情報:</b> AIへの補足ヒント（提供された場合）<br/>
+        • <b>追加質問・回答履歴:</b> 初回解析後の全てのQ&A<br/>
+        • <b>参考文献:</b> RAGシステムで参照された文献情報<br/>
+        • <b>付録:</b> システム情報と利用上の注意<br/>
+        """
+        
+        content.append(Paragraph(report_description, self.styles['JapaneseNormal']))
+        content.append(Spacer(1, 0.3*inch))
+        
+        # 利用上の注意
+        usage_notes = """
+        <b>利用上の注意:</b><br/>
+        • 本レポートの解析結果は参考情報として提供されます<br/>
+        • 重要な判断を行う場合は、専門家による検証を推奨します<br/>
+        • 測定条件、前処理、装置較正等が結果に影響する可能性があります<br/>
+        • 追加質問・回答は解析結果の理解を深めるための補助情報です<br/>
+        • ユーザー提供ヒントはAI解析の方向性に影響を与えています<br/>
+        """
+        
+        content.append(Paragraph(usage_notes, self.styles['JapaneseNormal']))
         
         return content
     
@@ -1508,8 +1634,8 @@ class RamanReportManager:
         if self.pdf_available:
             self.pdf_generator = RamanPDFReportGenerator()
     
-    def generate_text_report(self, result: AnalysisResult) -> str:
-        """テキストレポート生成"""
+    def generate_comprehensive_text_report(self, result: AnalysisResult, qa_history: List[Dict] = None) -> str:
+        """包括的なテキストレポート生成（Q&A履歴・ユーザーヒント含む）"""
         peak_df = pd.DataFrame([
             {
                 'ピーク番号': i+1,
@@ -1522,27 +1648,98 @@ class RamanReportManager:
         ])
         
         report_lines = [
-            "ラマンスペクトル解析レポート - 完全リファクタリング版",
-            "=" * 60,
+            "ラマンスペクトル解析レポート - 完全版（Q&A・ヒント含む）",
+            "=" * 70,
             f"ファイル名: {result.file_name}",
             f"解析日時: {result.timestamp}",
             f"使用モデル: {result.model}",
+            f"レポート生成日時: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             "",
+            "=== ユーザー提供情報 ===",
+        ]
+        
+        # ユーザーヒント情報
+        if result.user_hint and result.user_hint.strip():
+            report_lines.extend([
+                f"AIへの補足ヒント: {result.user_hint}",
+                ""
+            ])
+        else:
+            report_lines.extend([
+                "AIへの補足ヒント: （なし）",
+                ""
+            ])
+        
+        # ピーク情報
+        report_lines.extend([
             "=== 検出ピーク情報 ===",
             peak_df.to_string(index=False),
             "",
-            "=== AI解析結果 ===",
+            "=== 初回AI解析結果 ===",
             result.ai_analysis,
-            "",
-            "=== 参照文献 ===",
-        ]
+            ""
+        ])
         
-        for i, doc in enumerate(result.relevant_docs, 1):
-            filename = doc.get('metadata', {}).get('filename', f'文献{i}')
-            similarity = doc.get('similarity_score', 0.0)
-            report_lines.append(f"{i}. {filename}（類似度: {similarity:.3f}）")
+        # Q&A履歴セクション
+        if qa_history and len(qa_history) > 0:
+            report_lines.extend([
+                "=== 追加質問・回答履歴 ===",
+                f"質問総数: {len(qa_history)}",
+                ""
+            ])
+            
+            for i, qa in enumerate(qa_history, 1):
+                report_lines.extend([
+                    f"【質問 {i}】（{qa.get('timestamp', 'N/A')}）",
+                    f"Q: {qa.get('question', '')}",
+                    "",
+                    f"【回答 {i}】",
+                    f"A: {qa.get('answer', '')}",
+                    "",
+                    "-" * 50,
+                    ""
+                ])
+        else:
+            report_lines.extend([
+                "=== 追加質問・回答履歴 ===",
+                "追加質問はありませんでした。",
+                ""
+            ])
+        
+        # 参照文献
+        report_lines.extend([
+            "=== 参照文献 ===",
+        ])
+        
+        if result.relevant_docs and len(result.relevant_docs) > 0:
+            for i, doc in enumerate(result.relevant_docs, 1):
+                filename = doc.get('metadata', {}).get('filename', f'文献{i}')
+                similarity = doc.get('similarity_score', 0.0)
+                preview = doc.get('text', '')[:200] + "..." if len(doc.get('text', '')) > 200 else doc.get('text', '')
+                report_lines.extend([
+                    f"{i}. {filename}（類似度: {similarity:.3f}）",
+                    f"   内容抜粋: {preview}",
+                    ""
+                ])
+        else:
+            report_lines.append("参照文献は使用されませんでした。")
+        
+        # フッター情報
+        report_lines.extend([
+            "",
+            "=" * 70,
+            "【レポートについて】",
+            "本レポートは RamanEye AI Analysis System v3.0 によって自動生成されました。",
+            "初回解析結果に加えて、ユーザーからの追加質問とAIの回答も含まれています。",
+            "結果の解釈および活用については、専門家による検証を推奨します。",
+            "=" * 70
+        ])
         
         return "\n".join(report_lines)
+    
+    def generate_text_report(self, result: AnalysisResult) -> str:
+        """標準テキストレポート生成（後方互換性）"""
+        return self.generate_comprehensive_text_report(result, qa_history=None)
     
     def generate_pdf_report(self, result: AnalysisResult, qa_history: List[Dict] = None, 
                            plotly_figure: go.Figure = None) -> bytes:
@@ -1772,54 +1969,93 @@ class RamanUIManager:
         self.render_qa_section(file_key, result)
     
     def render_download_section(self, file_key: str, result: AnalysisResult):
-        """レポートダウンロードセクション"""
-        st.subheader("📥 レポートダウンロード")
+        """レポートダウンロードセクション（Q&A・ヒント統合版）"""
+        st.subheader("📥 包括的レポートダウンロード")
+        
+        # Q&A履歴を取得
+        qa_history = self.data_manager.load_qa_history(file_key)
+        
+        # レポート情報の表示
+        info_text = f"""
+        **レポートに含まれる内容:**
+        - 検出ピーク詳細情報
+        - 初回AI解析結果
+        - AIへの補足ヒント: {'あり' if result.user_hint and result.user_hint.strip() else 'なし'}
+        - 追加質問・回答: {len(qa_history)}件
+        - 参照文献情報: {len(result.relevant_docs)}件
+        """
+        st.info(info_text)
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            text_report = self.report_manager.generate_text_report(result)
+            # 包括的テキストレポート
+            comprehensive_text_report = self.report_manager.generate_comprehensive_text_report(result, qa_history)
             st.download_button(
-                label="📄 テキストレポート",
-                data=text_report,
-                file_name=f"raman_analysis_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                label="📄 完全版テキストレポート",
+                data=comprehensive_text_report,
+                file_name=f"raman_comprehensive_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
                 mime="text/plain",
-                key=f"download_text_{file_key}"
+                key=f"download_comprehensive_text_{file_key}",
+                help="初回解析結果、Q&A履歴、ユーザーヒントを全て含む完全版レポート"
             )
         
         with col2:
             if self.report_manager.pdf_available:
-                if st.button(f"📊 PDFレポート生成", key=f"generate_pdf_{file_key}"):
+                if st.button(f"📊 完全版PDFレポート生成", key=f"generate_comprehensive_pdf_{file_key}"):
                     try:
-                        qa_history = self.data_manager.load_qa_history(file_key)
                         plotly_figure = self.data_manager.load_plotly_figure(file_key)
                         pdf_bytes = self.report_manager.generate_pdf_report(result, qa_history, plotly_figure)
                         
                         st.download_button(
-                            label="📊 PDFダウンロード",
+                            label="📊 完全版PDFダウンロード",
                             data=pdf_bytes,
-                            file_name=f"raman_report_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                            file_name=f"raman_comprehensive_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                             mime="application/pdf",
-                            key=f"download_pdf_{file_key}"
+                            key=f"download_comprehensive_pdf_{file_key}",
+                            help="グラフ、解析結果、Q&A履歴を含む包括的PDFレポート"
                         )
-                        st.success("✅ PDFレポートが生成されました！")
+                        st.success("✅ 完全版PDFレポートが生成されました！")
                     except Exception as e:
                         st.error(f"PDFレポート生成エラー: {e}")
             else:
                 st.info("PDF機能は利用できません")
         
         with col3:
-            qa_history = self.data_manager.load_qa_history(file_key)
             if qa_history:
                 qa_report = self.report_manager.generate_qa_report(file_key, qa_history)
                 st.download_button(
-                    label="💬 Q&A履歴",
+                    label="💬 Q&A履歴のみ",
                     data=qa_report,
-                    file_name=f"qa_history_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                    file_name=f"qa_only_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
                     mime="text/plain",
-                    key=f"download_qa_{file_key}"
+                    key=f"download_qa_only_{file_key}",
+                    help="追加質問と回答のみを抜き出したレポート"
                 )
-    
+            else:
+                st.info("Q&A履歴なし")
+        
+        # レポート内容のプレビュー
+        if qa_history or (result.user_hint and result.user_hint.strip()):
+            with st.expander("👀 レポート内容プレビュー", expanded=False):
+                
+                if result.user_hint and result.user_hint.strip():
+                    st.markdown("**🔹 AIへの補足ヒント:**")
+                    st.text(result.user_hint)
+                    st.markdown("---")
+                
+                if qa_history:
+                    st.markdown(f"**💬 追加質問・回答履歴 ({len(qa_history)}件):**")
+                    for i, qa in enumerate(qa_history[-2:], 1):  # 最新2件のみプレビュー
+                        st.markdown(f"**Q{i}:** {qa.get('question', '')[:100]}...")
+                        st.markdown(f"**A{i}:** {qa.get('answer', '')[:200]}...")
+                        if i < len(qa_history[-2:]):
+                            st.markdown("---")
+                    
+                    if len(qa_history) > 2:
+                        st.info(f"※ 他 {len(qa_history) - 2} 件の質問・回答は完全版レポートに含まれます")
+                else:
+                    st.info("追加質問はありません")    
     def render_qa_section(self, file_key: str, result: AnalysisResult):
         """Q&Aセクション"""
         st.markdown("---")
