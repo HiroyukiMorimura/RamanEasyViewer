@@ -70,7 +70,7 @@ class RamanEyeApp:
         # ページ設定（favicon.icoを追加）
         st.set_page_config(
             page_title="RamanEye Easy Viewer", 
-            page_icon="favicon.ico",  # favicon.icoを指定
+            page_icon="./favicon.ico",  # favicon.icoを指定
             layout="wide",
             initial_sidebar_state="expanded"
         )
