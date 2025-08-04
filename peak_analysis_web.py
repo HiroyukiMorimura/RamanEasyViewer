@@ -94,7 +94,7 @@ def optimize_thresholds_via_gridsearch(
 
 def peak_analysis_mode():
     """
-    Peak analysis mode
+    Peak analysis mode - 修正版
     """
     st.header("ラマンピークファインダー")
     
@@ -164,16 +164,22 @@ def peak_analysis_mode():
         key="prominence_threshold"
     )
     
-    # ファイルアップロード
-    uploaded_files = st.file_uploader(
+    # ファイルアップロード - 修正版
+    uploaded_file = st.file_uploader(
         "ラマンスペクトルをアップロードしてください（単数）",
         type=['csv', 'txt'],
-        accept_multiple_files=False,
+        accept_multiple_files=False,  # 単一ファイル
         key="mv_uploader"
     )
     
-    # アップロードファイル変更検出
-    new_filenames = [f.name for f in uploaded_files] if uploaded_files else []
+    # アップロードファイル変更検出 - 修正版
+    if uploaded_file is not None:
+        new_filenames = [uploaded_file.name]
+        uploaded_files = [uploaded_file]  # リスト形式に統一
+    else:
+        new_filenames = []
+        uploaded_files = []
+    
     prev_filenames = st.session_state.get("uploaded_filenames", [])
 
     # 設定変更検出
@@ -199,7 +205,7 @@ def peak_analysis_mode():
     all_averemoval_spectra = []
     all_wavenum = []
     
-    if uploaded_files:
+    if uploaded_files:  # 修正版：uploaded_filesがリストになっている
         config_keys = [
             "spectrum_type_select",
             "second_deriv_smooth",
