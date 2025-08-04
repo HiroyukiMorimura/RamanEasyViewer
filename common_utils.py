@@ -11,6 +11,7 @@ from scipy.signal import savgol_filter, find_peaks, peak_prominences
 from scipy.sparse.linalg import spsolve
 from scipy.sparse import csc_matrix, eye, diags
 from pathlib import Path
+import io
 
 def detect_file_type(data):
     """
@@ -31,26 +32,52 @@ def detect_file_type(data):
     except:
         return "unknown"
 
+def safe_seek(file_obj):
+    """
+    ファイルオブジェクトを安全にseekする関数
+    """
+    try:
+        if hasattr(file_obj, 'seek'):
+            file_obj.seek(0)
+    except Exception as e:
+        print(f"Warning: seek操作に失敗しました: {e}")
+
 def read_csv_file(uploaded_file, file_extension):
     """
     Read a CSV or TXT file into a DataFrame based on file extension.
     """
     try:
-        uploaded_file.seek(0)
+        safe_seek(uploaded_file)
         if file_extension == "csv":
             data = pd.read_csv(uploaded_file, sep=',', header=0, index_col=None, on_bad_lines='skip')
         else:
             data = pd.read_csv(uploaded_file, sep='\t', header=0, index_col=None, on_bad_lines='skip')
         return data
     except UnicodeDecodeError:
-        uploaded_file.seek(0)
+        safe_seek(uploaded_file)
         if file_extension == "csv":
             data = pd.read_csv(uploaded_file, sep=',', encoding='shift_jis', header=0, index_col=None, on_bad_lines='skip')
         else:
             data = pd.read_csv(uploaded_file, sep='\t', encoding='shift_jis', header=0, index_col=None, on_bad_lines='skip')
         return data
     except Exception as e:
+        print(f"Error reading file: {e}")
         return None
+
+def get_file_name(uploaded_file):
+    """
+    アップロードされたファイルから安全にファイル名を取得する関数
+    """
+    try:
+        if hasattr(uploaded_file, 'name'):
+            return uploaded_file.name
+        elif hasattr(uploaded_file, 'filename'):
+            return uploaded_file.filename
+        else:
+            return "unknown_file"
+    except Exception as e:
+        print(f"Warning: ファイル名の取得に失敗しました: {e}")
+        return "unknown_file"
 
 def find_index(rs_array, rs_focused):
     '''
@@ -216,13 +243,13 @@ def try_read_wasatch_file(uploaded_file, skiprows_list=None):
     
     for skiprows in skiprows_list:
         try:
-            uploaded_file.seek(0)
+            safe_seek(uploaded_file)
             # UTF-8を先に試す
             try:
                 data = pd.read_csv(uploaded_file, skiprows=skiprows, nrows=None)
             except UnicodeDecodeError:
                 # UTF-8で失敗した場合はshift-jisを試す
-                uploaded_file.seek(0)
+                safe_seek(uploaded_file)
                 data = pd.read_csv(uploaded_file, encoding='shift-jis', skiprows=skiprows, nrows=None)
             
             # Wavelength列とProcessed列の存在を確認
@@ -250,120 +277,146 @@ def process_spectrum_file(uploaded_file, start_wavenum, end_wavenum, dssn_th, sa
     """
     スペクトルファイルを処理する共通関数
     """
-    file_name = uploaded_file.name
+    # 安全にファイル名を取得
+    file_name = get_file_name(uploaded_file)
     file_extension = file_name.split('.')[-1].lower()
+    
+    # ファイルオブジェクトの検証
+    if uploaded_file is None:
+        print("ERROR: uploaded_fileがNoneです")
+        return None, None, None, None, None, file_name
+    
+    # bytesオブジェクトの場合はStringIOに変換
+    if isinstance(uploaded_file, bytes):
+        try:
+            uploaded_file = io.StringIO(uploaded_file.decode('utf-8'))
+        except UnicodeDecodeError:
+            try:
+                uploaded_file = io.StringIO(uploaded_file.decode('shift-jis'))
+            except UnicodeDecodeError:
+                print("ERROR: バイトデータのデコードに失敗しました")
+                return None, None, None, None, None, file_name
     
     data = read_csv_file(uploaded_file, file_extension)
     if data is None:
+        print(f"ERROR: ファイル {file_name} の読み込みに失敗しました")
         return None, None, None, None, None, file_name
     
     file_type = detect_file_type(data)
-    uploaded_file.seek(0)
+    safe_seek(uploaded_file)
     
     if file_type == "unknown":
+        print(f"ERROR: 未知のファイル形式です: {file_name}")
         return None, None, None, None, None, file_name
     
     # 各ファイルタイプに応じた処理
-    if file_type == "wasatch":
-        lambda_ex = 785
-        
-        # 複数のskiprows値を試行錯誤
-        data, successful_skiprows = try_read_wasatch_file(uploaded_file)
-        
-        if data is None:
-            print(f"ERROR: Wasatchファイル {file_name} の読み込みに失敗しました")
-            return None, None, None, None, None, file_name
-        
-        try:
-            pre_wavelength = np.array(data["Wavelength"].values)
-            pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
+    try:
+        if file_type == "wasatch":
+            lambda_ex = 785
             
-            # Processed列を優先的に使用、なければ他の数値列を使用
-            if "Processed" in data.columns:
-                pre_spectra = np.array(data["Processed"].values)
-            else:
-                # Processed列がない場合、Wavelength以外の数値列を使用
-                numeric_columns = data.select_dtypes(include=[np.number]).columns.tolist()
-                spectrum_columns = [col for col in numeric_columns if col != 'Wavelength']
+            # 複数のskiprows値を試行錯誤
+            data, successful_skiprows = try_read_wasatch_file(uploaded_file)
+            
+            if data is None:
+                print(f"ERROR: Wasatchファイル {file_name} の読み込みに失敗しました")
+                return None, None, None, None, None, file_name
+            
+            try:
+                pre_wavelength = np.array(data["Wavelength"].values)
+                pre_wavenum = (1e7 / lambda_ex) - (1e7 / pre_wavelength)
                 
-                if spectrum_columns:
-                    # 最後の数値列をスペクトルデータとして使用
-                    spectrum_column = spectrum_columns[-1]
-                    pre_spectra = np.array(data[spectrum_column].values)
-                    print(f"INFO: Processed列の代わりに{spectrum_column}列をスペクトルデータとして使用")
+                # Processed列を優先的に使用、なければ他の数値列を使用
+                if "Processed" in data.columns:
+                    pre_spectra = np.array(data["Processed"].values)
                 else:
-                    print(f"ERROR: スペクトルデータに使用できる数値列が見つかりません")
-                    return None, None, None, None, None, file_name
+                    # Processed列がない場合、Wavelength以外の数値列を使用
+                    numeric_columns = data.select_dtypes(include=[np.number]).columns.tolist()
+                    spectrum_columns = [col for col in numeric_columns if col != 'Wavelength']
                     
-        except KeyError as e:
-            print(f"ERROR: 必要な列が見つかりません: {e}")
-            print(f"利用可能な列: {list(data.columns)}")
-            return None, None, None, None, None, file_name
-        except Exception as e:
-            print(f"ERROR: Wasatchファイルの処理中にエラーが発生しました: {e}")
-            return None, None, None, None, None, file_name
-        
-    elif file_type == "ramaneye_old_old":
-        df_transposed = data.set_index("WaveNumber").T
-        df_transposed.columns = ["intensity"]
-        df_transposed.index = df_transposed.index.astype(float)
-        df_transposed = df_transposed.sort_index()
-        
-        pre_wavenum = df_transposed.index.to_numpy()
-        pre_spectra = df_transposed["intensity"].to_numpy()
-        
-        if pre_wavenum[0] >= pre_wavenum[1]:
-            pre_wavenum = pre_wavenum[::-1]
-            pre_spectra = pre_spectra[::-1]
+                    if spectrum_columns:
+                        # 最後の数値列をスペクトルデータとして使用
+                        spectrum_column = spectrum_columns[-1]
+                        pre_spectra = np.array(data[spectrum_column].values)
+                        print(f"INFO: Processed列の代わりに{spectrum_column}列をスペクトルデータとして使用")
+                    else:
+                        print(f"ERROR: スペクトルデータに使用できる数値列が見つかりません")
+                        return None, None, None, None, None, file_name
+                        
+            except KeyError as e:
+                print(f"ERROR: 必要な列が見つかりません: {e}")
+                print(f"利用可能な列: {list(data.columns)}")
+                return None, None, None, None, None, file_name
+            except Exception as e:
+                print(f"ERROR: Wasatchファイルの処理中にエラーが発生しました: {e}")
+                return None, None, None, None, None, file_name
             
-    elif file_type == "ramaneye_old":
-        # WaveNumber列を取得
-        pre_wavenum = np.array(data["WaveNumber"].values)
-        # 最後の列（スペクトラムデータ）を取得
-        pre_spectra = np.array(data.iloc[:, -1].values)
-        
-        # データの長さチェック
-        if len(pre_wavenum) != len(pre_spectra):
-            return None, None, None, None, None, file_name
-        
-        if len(pre_wavenum) > 1 and pre_wavenum[0] >= pre_wavenum[1]:
-            pre_wavenum = pre_wavenum[::-1]
-            pre_spectra = pre_spectra[::-1]
+        elif file_type == "ramaneye_old_old":
+            df_transposed = data.set_index("WaveNumber").T
+            df_transposed.columns = ["intensity"]
+            df_transposed.index = df_transposed.index.astype(float)
+            df_transposed = df_transposed.sort_index()
             
-    elif file_type == "ramaneye_new":
-        data = pd.read_csv(uploaded_file, skiprows=9)
-        pre_wavenum = np.array(data["WaveNumber"].values)
-        pre_spectra = np.array(data.iloc[:, -1].values)
-        
-        if len(pre_wavenum) > 1 and pre_wavenum[0] >= pre_wavenum[1]:
-            pre_wavenum = pre_wavenum[::-1]
-            pre_spectra = pre_spectra[::-1]
+            pre_wavenum = df_transposed.index.to_numpy()
+            pre_spectra = df_transposed["intensity"].to_numpy()
             
-    elif file_type == "eagle":
-        data_transposed = data.transpose()
-        header = data_transposed.iloc[:3]
-        reversed_data = data_transposed.iloc[3:].iloc[::-1]
-        data_transposed = pd.concat([header, reversed_data], ignore_index=True)
-        pre_wavenum = np.array(data_transposed.iloc[3:, 0])
-        pre_spectra = np.array(data_transposed.iloc[3:, 1])
-    
-    # 波数範囲の切り出し
-    start_index = find_index(pre_wavenum, start_wavenum)
-    end_index = find_index(pre_wavenum, end_wavenum)
-    
-    wavenum = np.array(pre_wavenum[start_index:end_index+1])
-    spectra = np.array(pre_spectra[start_index:end_index+1])
-    
-    # スパイク除去とベースライン補正
-    spectra_spikerm = remove_outliers_and_interpolate(spectra)
-    mveAve_spectra = signal.medfilt(spectra_spikerm, savgol_wsize)
-    lambda_ = 10e2
-    baseline = airPLS(mveAve_spectra, dssn_th, lambda_, 2, 30)
-    BSremoval_specta = spectra_spikerm - baseline
-    BSremoval_specta_pos = BSremoval_specta + abs(np.minimum(spectra_spikerm, 0))
-    
-    # 移動平均後のスペクトル
-    Averemoval_specta = mveAve_spectra - baseline
-    Averemoval_specta_pos = Averemoval_specta + abs(np.minimum(mveAve_spectra, 0))
-    
-    return wavenum, spectra, BSremoval_specta_pos, Averemoval_specta_pos, file_type, file_name
+            if pre_wavenum[0] >= pre_wavenum[1]:
+                pre_wavenum = pre_wavenum[::-1]
+                pre_spectra = pre_spectra[::-1]
+                
+        elif file_type == "ramaneye_old":
+            # WaveNumber列を取得
+            pre_wavenum = np.array(data["WaveNumber"].values)
+            # 最後の列（スペクトラムデータ）を取得
+            pre_spectra = np.array(data.iloc[:, -1].values)
+            
+            # データの長さチェック
+            if len(pre_wavenum) != len(pre_spectra):
+                print(f"ERROR: 波数とスペクトラムのデータ長が一致しません")
+                return None, None, None, None, None, file_name
+            
+            if len(pre_wavenum) > 1 and pre_wavenum[0] >= pre_wavenum[1]:
+                pre_wavenum = pre_wavenum[::-1]
+                pre_spectra = pre_spectra[::-1]
+                
+        elif file_type == "ramaneye_new":
+            safe_seek(uploaded_file)
+            data = pd.read_csv(uploaded_file, skiprows=9)
+            pre_wavenum = np.array(data["WaveNumber"].values)
+            pre_spectra = np.array(data.iloc[:, -1].values)
+            
+            if len(pre_wavenum) > 1 and pre_wavenum[0] >= pre_wavenum[1]:
+                pre_wavenum = pre_wavenum[::-1]
+                pre_spectra = pre_spectra[::-1]
+                
+        elif file_type == "eagle":
+            data_transposed = data.transpose()
+            header = data_transposed.iloc[:3]
+            reversed_data = data_transposed.iloc[3:].iloc[::-1]
+            data_transposed = pd.concat([header, reversed_data], ignore_index=True)
+            pre_wavenum = np.array(data_transposed.iloc[3:, 0])
+            pre_spectra = np.array(data_transposed.iloc[3:, 1])
+        
+        # 波数範囲の切り出し
+        start_index = find_index(pre_wavenum, start_wavenum)
+        end_index = find_index(pre_wavenum, end_wavenum)
+        
+        wavenum = np.array(pre_wavenum[start_index:end_index+1])
+        spectra = np.array(pre_spectra[start_index:end_index+1])
+        
+        # スパイク除去とベースライン補正
+        spectra_spikerm = remove_outliers_and_interpolate(spectra)
+        mveAve_spectra = signal.medfilt(spectra_spikerm, savgol_wsize)
+        lambda_ = 10e2
+        baseline = airPLS(mveAve_spectra, dssn_th, lambda_, 2, 30)
+        BSremoval_specta = spectra_spikerm - baseline
+        BSremoval_specta_pos = BSremoval_specta + abs(np.minimum(spectra_spikerm, 0))
+        
+        # 移動平均後のスペクトル
+        Averemoval_specta = mveAve_spectra - baseline
+        Averemoval_specta_pos = Averemoval_specta + abs(np.minimum(mveAve_spectra, 0))
+        
+        return wavenum, spectra, BSremoval_specta_pos, Averemoval_specta_pos, file_type, file_name
+        
+    except Exception as e:
+        print(f"ERROR: ファイル処理中に予期しないエラーが発生しました: {e}")
+        return None, None, None, None, None, file_name
