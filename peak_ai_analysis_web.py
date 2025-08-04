@@ -19,6 +19,7 @@ import requests
 import ssl
 import urllib3
 import glob
+import warnings
 from datetime import datetime
 from typing import List, Dict, Optional
 import plotly.graph_objects as go
@@ -27,6 +28,61 @@ from scipy.signal import savgol_filter, find_peaks, peak_prominences
 from pathlib import Path
 from common_utils import *
 from peak_analysis_web import optimize_thresholds_via_gridsearch
+
+# 警告を抑制
+warnings.filterwarnings('ignore', category=UserWarning, module='scipy.signal._peak_finding')
+
+# システムエラーハンドリング
+def handle_system_warnings():
+    """システム警告とエラーのハンドリング"""
+    try:
+        # inotify制限の確認
+        import subprocess
+        result = subprocess.run(['cat', '/proc/sys/fs/inotify/max_user_instances'], 
+                              capture_output=True, text=True, timeout=2)
+        if result.returncode == 0:
+            max_instances = int(result.stdout.strip())
+            if max_instances < 512:
+                st.sidebar.warning(f"⚠️ システム制限: inotify instances = {max_instances}. "
+                                 f"ファイル監視機能が制限される可能性があります。")
+    except:
+        pass  # システム情報取得失敗は無視
+
+# Streamlit設定の最適化（inotify制限対策）
+if hasattr(st, '_config'):
+    try:
+        # ファイル監視を最小限に抑制
+        st._config.set_option('server.fileWatcherType', 'none')
+        st._config.set_option('server.runOnSave', False)
+    except:
+        pass  # 設定変更に失敗しても続行
+
+# 環境変数でのStreamlit設定（システムレベル対策の提案）
+def suggest_system_optimization():
+    """システム最適化の提案を表示"""
+    if os.path.exists('/proc/sys/fs/inotify/max_user_instances'):
+        with st.sidebar.expander("⚙️ システム最適化のヒント", expanded=False):
+            st.markdown("""
+            **Linux環境でのinotify制限対策:**
+            
+            ```bash
+            # 一時的な増加
+            echo 512 | sudo tee /proc/sys/fs/inotify/max_user_instances
+            
+            # 永続的な設定
+            echo 'fs.inotify.max_user_instances=512' | sudo tee -a /etc/sysctl.conf
+            sudo sysctl -p
+            ```
+            
+            **Streamlit環境変数設定:**
+            ```bash
+            export STREAMLIT_SERVER_FILE_WATCHER_TYPE=none
+            export STREAMLIT_SERVER_RUN_ON_SAVE=false
+            ```
+            """)
+
+# システム最適化提案を表示
+suggest_system_optimization()
 
 # PDF生成関連のインポート（新機能）
 try:
@@ -1965,8 +2021,19 @@ def perform_peak_detection_and_ai_analysis(file_labels, all_wavenum, all_bsremov
             
                 corrected_peaks.append(corrected_idx)
                 
-                local_prom = peak_prominences(-second_derivative, [corrected_idx])[0][0]
-                corrected_prominences.append(local_prom)
+                # 警告を抑制してprominence計算
+                try:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        local_prom_values = peak_prominences(-second_derivative, [corrected_idx])
+                        local_prom = local_prom_values[0][0] if len(local_prom_values[0]) > 0 else prom
+                        # prominence値が0または負の場合は元の値を使用
+                        if local_prom <= 0:
+                            local_prom = max(0.001, prom)
+                        corrected_prominences.append(local_prom)
+                except Exception:
+                    # エラー時は元のprominence値を使用
+                    corrected_prominences.append(max(0.001, prom))
             
             filtered_peaks = np.array(corrected_peaks)
             filtered_prominences = np.array(corrected_prominences)
@@ -2232,9 +2299,23 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
     for x, y in st.session_state[f"{file_key}_manual_peaks"]:
         idx = np.argmin(np.abs(result['wavenum'] - x))
         try:
-            prom = peak_prominences(-result['second_derivative'], [idx])[0][0]
-        except:
-            prom = 0.0
+            # scipy警告を抑制してprominence計算
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                prom_values = peak_prominences(-result['second_derivative'], [idx])
+                prom = prom_values[0][0] if len(prom_values[0]) > 0 else 0.0
+                # prominence値が0または負の場合のフォールバック
+                if prom <= 0:
+                    # 近傍の最大値を使用してprominenceを推定
+                    window_start = max(0, idx - 5)
+                    window_end = min(len(result['second_derivative']), idx + 6)
+                    local_values = -result['second_derivative'][window_start:window_end]
+                    if len(local_values) > 0:
+                        prom = max(0.001, np.max(local_values) - np.min(local_values))
+                    else:
+                        prom = 0.001  # 最小値を設定
+        except Exception as e:
+            prom = 0.001  # エラー時のフォールバック値
         
         final_peak_data.append({
             'wavenumber': x,
@@ -2421,7 +2502,7 @@ def perform_ai_analysis(file_key, final_peak_data, user_hint, llm_connector, pea
             st.info("OpenAI APIの接続を確認してください。有効なAPIキーが設定されていることを確認してください。")
 
 def generate_pdf_report_from_saved_data(file_key, final_peak_data, analysis_result, peak_summary_df, relevant_docs, user_hint):
-    """保存されたデータからPDFレポート生成を実行"""
+    """保存されたデータからPDFレポート生成を実行（エラーハンドリング強化版）"""
     
     try:
         with st.spinner("PDFレポートを生成中..."):
@@ -2434,20 +2515,28 @@ def generate_pdf_report_from_saved_data(file_key, final_peak_data, analysis_resu
             # Q&A履歴を取得
             qa_history = st.session_state.get(f"{file_key}_qa_history", [])
             
-            # PDFを生成
-            pdf_bytes = pdf_generator.generate_comprehensive_pdf_report(
-                file_key=file_key,
-                peak_data=final_peak_data,
-                analysis_result=analysis_result,
-                peak_summary_df=peak_summary_df,
-                plotly_figure=plotly_figure,
-                relevant_docs=relevant_docs,
-                user_hint=user_hint,
-                qa_history=qa_history
-            )
+            # 警告を抑制してPDFを生成
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", UserWarning)
+                warnings.simplefilter("ignore", RuntimeWarning)
+                
+                # PDFを生成
+                pdf_bytes = pdf_generator.generate_comprehensive_pdf_report(
+                    file_key=file_key,
+                    peak_data=final_peak_data,
+                    analysis_result=analysis_result,
+                    peak_summary_df=peak_summary_df,
+                    plotly_figure=plotly_figure,
+                    relevant_docs=relevant_docs,
+                    user_hint=user_hint,
+                    qa_history=qa_history
+                )
             
             # 一時ファイルをクリーンアップ
-            pdf_generator.cleanup_temp_files()
+            try:
+                pdf_generator.cleanup_temp_files()
+            except Exception as cleanup_error:
+                st.warning(f"一時ファイルクリーンアップ警告: {cleanup_error}")
             
             # ダウンロードボタンを表示
             st.download_button(
@@ -2462,10 +2551,14 @@ def generate_pdf_report_from_saved_data(file_key, final_peak_data, analysis_resu
             
     except Exception as e:
         st.error(f"PDFレポート生成エラー: {str(e)}")
-        st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow, kaleido）がインストールされていることを確認してください。")
+        st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow）がインストールされていることを確認してください。")
+        
+        # デバッグ情報（開発時のみ）
+        if st.sidebar.checkbox("🔧 デバッグ情報を表示", value=False):
+            st.exception(e)
 
 def generate_pdf_report(file_key, final_peak_data, analysis_result, peak_summary_df, relevant_docs, user_hint):
-    """PDFレポート生成の実行"""
+    """PDFレポート生成の実行（エラーハンドリング強化版）"""
     
     try:
         with st.spinner("PDFレポートを生成中..."):
@@ -2478,20 +2571,28 @@ def generate_pdf_report(file_key, final_peak_data, analysis_result, peak_summary
             # Q&A履歴を取得
             qa_history = st.session_state.get(f"{file_key}_qa_history", [])
             
-            # PDFを生成
-            pdf_bytes = pdf_generator.generate_comprehensive_pdf_report(
-                file_key=file_key,
-                peak_data=final_peak_data,
-                analysis_result=analysis_result,
-                peak_summary_df=peak_summary_df,
-                plotly_figure=plotly_figure,
-                relevant_docs=relevant_docs,
-                user_hint=user_hint,
-                qa_history=qa_history
-            )
+            # 警告を抑制してPDFを生成
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", UserWarning)
+                warnings.simplefilter("ignore", RuntimeWarning)
+                
+                # PDFを生成
+                pdf_bytes = pdf_generator.generate_comprehensive_pdf_report(
+                    file_key=file_key,
+                    peak_data=final_peak_data,
+                    analysis_result=analysis_result,
+                    peak_summary_df=peak_summary_df,
+                    plotly_figure=plotly_figure,
+                    relevant_docs=relevant_docs,
+                    user_hint=user_hint,
+                    qa_history=qa_history
+                )
             
             # 一時ファイルをクリーンアップ
-            pdf_generator.cleanup_temp_files()
+            try:
+                pdf_generator.cleanup_temp_files()
+            except Exception as cleanup_error:
+                st.warning(f"一時ファイルクリーンアップ警告: {cleanup_error}")
             
             # ダウンロードボタンを表示
             st.download_button(
@@ -2506,4 +2607,8 @@ def generate_pdf_report(file_key, final_peak_data, analysis_result, peak_summary
             
     except Exception as e:
         st.error(f"PDFレポート生成エラー: {str(e)}")
-        st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow, kaleido）がインストールされていることを確認してください。")
+        st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow）がインストールされていることを確認してください。")
+        
+        # デバッグ情報（開発時のみ）
+        if st.sidebar.checkbox("🔧 デバッグ情報を表示", value=False):
+            st.exception(e)
