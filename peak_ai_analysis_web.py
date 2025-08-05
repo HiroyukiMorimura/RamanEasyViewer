@@ -971,6 +971,8 @@ class RamanPDFReportGenerator:
             # システムにある日本語フォントを探す
             font_paths = [
             # Windows - 日本語フォント
+            "C:/Windows/Fonts/YuGothB.ttc",
+            "C:/Windows/Fonts/yumin.ttf",
             "C:/Windows/Fonts/msgothic.ttc",
             "C:/Windows/Fonts/meiryo.ttc", 
             "C:/Windows/Fonts/meiryob.ttc",
