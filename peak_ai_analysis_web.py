@@ -19,6 +19,7 @@ import requests
 import ssl
 import urllib3
 import glob
+import warnings
 from datetime import datetime
 from typing import List, Dict, Optional
 import plotly.graph_objects as go
@@ -27,6 +28,61 @@ from scipy.signal import savgol_filter, find_peaks, peak_prominences
 from pathlib import Path
 from common_utils import *
 from peak_analysis_web import optimize_thresholds_via_gridsearch
+
+# 警告を抑制
+warnings.filterwarnings('ignore', category=UserWarning, module='scipy.signal._peak_finding')
+
+# システムエラーハンドリング
+def handle_system_warnings():
+    """システム警告とエラーのハンドリング"""
+    try:
+        # inotify制限の確認
+        import subprocess
+        result = subprocess.run(['cat', '/proc/sys/fs/inotify/max_user_instances'], 
+                              capture_output=True, text=True, timeout=2)
+        if result.returncode == 0:
+            max_instances = int(result.stdout.strip())
+            if max_instances < 512:
+                st.sidebar.warning(f"⚠️ システム制限: inotify instances = {max_instances}. "
+                                 f"ファイル監視機能が制限される可能性があります。")
+    except:
+        pass  # システム情報取得失敗は無視
+
+# Streamlit設定の最適化（inotify制限対策）
+if hasattr(st, '_config'):
+    try:
+        # ファイル監視を最小限に抑制
+        st._config.set_option('server.fileWatcherType', 'none')
+        st._config.set_option('server.runOnSave', False)
+    except:
+        pass  # 設定変更に失敗しても続行
+
+# 環境変数でのStreamlit設定（システムレベル対策の提案）
+def suggest_system_optimization():
+    """システム最適化の提案を表示"""
+    if os.path.exists('/proc/sys/fs/inotify/max_user_instances'):
+        with st.sidebar.expander("⚙️ システム最適化のヒント", expanded=False):
+            st.markdown("""
+            **Linux環境でのinotify制限対策:**
+            
+            ```bash
+            # 一時的な増加
+            echo 512 | sudo tee /proc/sys/fs/inotify/max_user_instances
+            
+            # 永続的な設定
+            echo 'fs.inotify.max_user_instances=512' | sudo tee -a /etc/sysctl.conf
+            sudo sysctl -p
+            ```
+            
+            **Streamlit環境変数設定:**
+            ```bash
+            export STREAMLIT_SERVER_FILE_WATCHER_TYPE=none
+            export STREAMLIT_SERVER_RUN_ON_SAVE=false
+            ```
+            """)
+
+# システム最適化提案を表示
+suggest_system_optimization()
 
 # PDF生成関連のインポート（新機能）
 try:
@@ -1965,8 +2021,19 @@ def perform_peak_detection_and_ai_analysis(file_labels, all_wavenum, all_bsremov
             
                 corrected_peaks.append(corrected_idx)
                 
-                local_prom = peak_prominences(-second_derivative, [corrected_idx])[0][0]
-                corrected_prominences.append(local_prom)
+                # 警告を抑制してprominence計算
+                try:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        local_prom_values = peak_prominences(-second_derivative, [corrected_idx])
+                        local_prom = local_prom_values[0][0] if len(local_prom_values[0]) > 0 else prom
+                        # prominence値が0または負の場合は元の値を使用
+                        if local_prom <= 0:
+                            local_prom = max(0.001, prom)
+                        corrected_prominences.append(local_prom)
+                except Exception:
+                    # エラー時は元のprominence値を使用
+                    corrected_prominences.append(max(0.001, prom))
             
             filtered_peaks = np.array(corrected_peaks)
             filtered_prominences = np.array(corrected_prominences)
@@ -2030,18 +2097,115 @@ def render_peak_analysis_with_ai(result, spectrum_type, llm_connector, user_hint
     render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, user_hint, llm_ready)
 
 def render_interactive_plot(result, file_key, spectrum_type):
-    """インタラクティブプロットを描画（PDF用に保存機能付き）"""
-    # 除外を反映したピークインデックス
+    """インタラクティブプロットを描画（peak_analysis_web.pyと同じ方式）"""
+    st.subheader(f"📊 {file_key} - {spectrum_type}")
+    
+    # ---- 手動制御UI（peak_analysis_web.pyから移植） ----
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.write("**🔹 ピーク手動追加**")
+        add_wavenum = st.number_input(
+            "追加する波数 (cm⁻¹):",
+            min_value=float(result['wavenum'].min()),
+            max_value=float(result['wavenum'].max()),
+            value=float(result['wavenum'][len(result['wavenum'])//2]),
+            step=1.0,
+            key=f"add_wavenum_{file_key}"
+        )
+        
+        if st.button(f"波数 {add_wavenum:.1f} のピークを追加", key=f"add_peak_{file_key}"):
+            # 重複チェック（±2 cm⁻¹以内）
+            is_duplicate = any(abs(existing_wn - add_wavenum) < 2.0 
+                             for existing_wn in st.session_state[f"{file_key}_manual_peaks"])
+            
+            if not is_duplicate:
+                st.session_state[f"{file_key}_manual_peaks"].append(add_wavenum)
+                st.success(f"波数 {add_wavenum:.1f} cm⁻¹ にピークを追加しました")
+                st.rerun()
+            else:
+                st.warning("近接する位置にすでにピークが存在します")
+    
+    with col2:
+        st.write("**🔸 検出ピーク除外**")
+        if len(result['detected_peaks']) > 0:
+            # 検出ピークの選択肢を作成
+            detected_options = []
+            for i, idx in enumerate(result['detected_peaks']):
+                wn = result['wavenum'][idx]
+                intensity = result['spectrum'][idx]
+                status = "除外済み" if idx in st.session_state[f"{file_key}_excluded_peaks"] else "有効"
+                detected_options.append(f"ピーク{i+1}: {wn:.1f} cm⁻¹ ({intensity:.3f}) - {status}")
+            
+            selected_peak = st.selectbox(
+                "除外/復活させるピークを選択:",
+                options=range(len(detected_options)),
+                format_func=lambda x: detected_options[x],
+                key=f"select_peak_{file_key}"
+            )
+            
+            peak_idx = result['detected_peaks'][selected_peak]
+            is_excluded = peak_idx in st.session_state[f"{file_key}_excluded_peaks"]
+            
+            if is_excluded:
+                if st.button(f"ピーク{selected_peak+1}を復活", key=f"restore_peak_{file_key}"):
+                    st.session_state[f"{file_key}_excluded_peaks"].remove(peak_idx)
+                    st.success(f"ピーク{selected_peak+1}を復活させました")
+                    st.rerun()
+            else:
+                if st.button(f"ピーク{selected_peak+1}を除外", key=f"exclude_peak_{file_key}"):
+                    st.session_state[f"{file_key}_excluded_peaks"].add(peak_idx)
+                    st.success(f"ピーク{selected_peak+1}を除外しました")
+                    st.rerun()
+        else:
+            st.info("検出されたピークがありません")
+
+    # ---- 手動追加ピーク管理テーブル ----
+    if st.session_state[f"{file_key}_manual_peaks"]:
+        st.write("**📝 手動追加ピーク一覧**")
+        manual_peaks = st.session_state[f"{file_key}_manual_peaks"]
+        
+        # テーブル作成
+        manual_data = []
+        for i, wn in enumerate(manual_peaks):
+            idx = np.argmin(np.abs(result['wavenum'] - wn))
+            intensity = result['spectrum'][idx]
+            manual_data.append({
+                '番号': i + 1,
+                '波数 (cm⁻¹)': f"{wn:.1f}",
+                '強度': f"{intensity:.3f}"
+            })
+        
+        manual_df = pd.DataFrame(manual_data)
+        st.dataframe(manual_df, use_container_width=True)
+        
+        # 削除選択
+        if len(manual_peaks) > 0:
+            col_del1, col_del2 = st.columns([3, 1])
+            with col_del1:
+                delete_idx = st.selectbox(
+                    "削除する手動ピークを選択:",
+                    options=range(len(manual_peaks)),
+                    format_func=lambda x: f"ピーク{x+1}: {manual_peaks[x]:.1f} cm⁻¹",
+                    key=f"delete_manual_{file_key}"
+                )
+            with col_del2:
+                if st.button("削除", key=f"delete_manual_btn_{file_key}"):
+                    removed_wn = st.session_state[f"{file_key}_manual_peaks"].pop(delete_idx)
+                    st.success(f"波数 {removed_wn:.1f} cm⁻¹ のピークを削除しました")
+                    st.rerun()
+
+    # ---- フィルタリング済みピーク配列（peak_analysis_web.pyと同じ） ----
     filtered_peaks = [
-        i for i in result['detected_peaks']
+        i for i in result["detected_peaks"]
         if i not in st.session_state[f"{file_key}_excluded_peaks"]
     ]
     filtered_prominences = [
-        prom for i, prom in zip(result['detected_peaks'], result['detected_prominences'])
+        prom for i, prom in zip(result["detected_peaks"], result["detected_prominences"])
         if i not in st.session_state[f"{file_key}_excluded_peaks"]
     ]
-
-    # peak_analysis_web.pyと同様の設定でサブプロットを作成
+    
+    # ---- 静的プロット描画（peak_analysis_web.pyから完全移植） ----
     fig = make_subplots(
         rows=3, cols=1,
         shared_xaxes=True,
@@ -2088,13 +2252,13 @@ def render_interactive_plot(result, file_key, spectrum_type):
             row=1, col=1
         )
 
-    # 手動ピーク
-    for x, y in st.session_state[f"{file_key}_manual_peaks"]:
-        idx = np.argmin(np.abs(result['wavenum'] - x))
+    # 手動ピーク（peak_analysis_web.pyと同じ処理）
+    for wn in st.session_state[f"{file_key}_manual_peaks"]:
+        idx = np.argmin(np.abs(result['wavenum'] - wn))
         intensity = result['spectrum'][idx]
         fig.add_trace(
             go.Scatter(
-                x=[x],
+                x=[wn],
                 y=[intensity],
                 mode='markers+text',
                 marker=dict(color='green', size=10, symbol='star'),
@@ -2142,10 +2306,8 @@ def render_interactive_plot(result, file_key, spectrum_type):
             row=3, col=1
         )
 
-    # peak_analysis_web.pyと同様のレイアウト設定
     fig.update_layout(height=800, margin=dict(t=80, b=150))
     
-    # X軸とY軸のタイトル設定（peak_analysis_web.pyと同様）
     for r in [1, 2, 3]:
         fig.update_xaxes(
             showticklabels=True,
@@ -2161,46 +2323,9 @@ def render_interactive_plot(result, file_key, spectrum_type):
     # PDFレポート用にPlotlyグラフを保存
     st.session_state[f"{file_key}_plotly_figure"] = fig
     
-    # クリック処理
-    if plotly_events:
-        event_key = f"{file_key}_click_event"
-        clicked_points = plotly_events(
-            fig,
-            click_event=True,
-            hover_event=False,
-            select_event=False,
-            override_height=800,
-            key=event_key
-        )
-        
-        clicked_main = [pt for pt in clicked_points if pt["curveNumber"] == 0]
-        
-        if clicked_main:
-            pt = clicked_main[-1]
-            click_id = str(pt['x']) + str(pt['y'])
-        
-            last_click_id = st.session_state.get(f"{event_key}_last", None)
-            if click_id != last_click_id:
-                st.session_state[f"{event_key}_last"] = click_id
-        
-                x = pt['x']
-                y = pt['y']
-                wavenum_arr = result['wavenum']
-                idx = np.argmin(np.abs(wavenum_arr - x))
-        
-                # 自動検出ピークならトグル
-                if idx in result['detected_peaks']:
-                    if idx in st.session_state[f"{file_key}_excluded_peaks"]:
-                        st.session_state[f"{file_key}_excluded_peaks"].remove(idx)
-                    else:
-                        st.session_state[f"{file_key}_excluded_peaks"].add(idx)
-                else:
-                    # 手動ピークの追加
-                    is_duplicate = any(abs(existing_x - x) < 1.0 for existing_x, _ in st.session_state[f"{file_key}_manual_peaks"])
-                    if not is_duplicate:
-                        st.session_state[f"{file_key}_manual_peaks"].append((x, y))
-    else:
-        st.plotly_chart(fig, use_container_width=True)
+    # グラフ表示（peak_analysis_web.pyと同じ）
+    st.plotly_chart(fig, use_container_width=True)
+    
 
 def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, user_hint, llm_ready):
     """AI解析セクションを描画"""
@@ -2232,9 +2357,23 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
     for x, y in st.session_state[f"{file_key}_manual_peaks"]:
         idx = np.argmin(np.abs(result['wavenum'] - x))
         try:
-            prom = peak_prominences(-result['second_derivative'], [idx])[0][0]
-        except:
-            prom = 0.0
+            # scipy警告を抑制してprominence計算
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                prom_values = peak_prominences(-result['second_derivative'], [idx])
+                prom = prom_values[0][0] if len(prom_values[0]) > 0 else 0.0
+                # prominence値が0または負の場合のフォールバック
+                if prom <= 0:
+                    # 近傍の最大値を使用してprominenceを推定
+                    window_start = max(0, idx - 5)
+                    window_end = min(len(result['second_derivative']), idx + 6)
+                    local_values = -result['second_derivative'][window_start:window_end]
+                    if len(local_values) > 0:
+                        prom = max(0.001, np.max(local_values) - np.min(local_values))
+                    else:
+                        prom = 0.001  # 最小値を設定
+        except Exception as e:
+            prom = 0.001  # エラー時のフォールバック値
         
         final_peak_data.append({
             'wavenumber': x,
@@ -2421,7 +2560,7 @@ def perform_ai_analysis(file_key, final_peak_data, user_hint, llm_connector, pea
             st.info("OpenAI APIの接続を確認してください。有効なAPIキーが設定されていることを確認してください。")
 
 def generate_pdf_report_from_saved_data(file_key, final_peak_data, analysis_result, peak_summary_df, relevant_docs, user_hint):
-    """保存されたデータからPDFレポート生成を実行"""
+    """保存されたデータからPDFレポート生成を実行（エラーハンドリング強化版）"""
     
     try:
         with st.spinner("PDFレポートを生成中..."):
@@ -2434,20 +2573,28 @@ def generate_pdf_report_from_saved_data(file_key, final_peak_data, analysis_resu
             # Q&A履歴を取得
             qa_history = st.session_state.get(f"{file_key}_qa_history", [])
             
-            # PDFを生成
-            pdf_bytes = pdf_generator.generate_comprehensive_pdf_report(
-                file_key=file_key,
-                peak_data=final_peak_data,
-                analysis_result=analysis_result,
-                peak_summary_df=peak_summary_df,
-                plotly_figure=plotly_figure,
-                relevant_docs=relevant_docs,
-                user_hint=user_hint,
-                qa_history=qa_history
-            )
+            # 警告を抑制してPDFを生成
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", UserWarning)
+                warnings.simplefilter("ignore", RuntimeWarning)
+                
+                # PDFを生成
+                pdf_bytes = pdf_generator.generate_comprehensive_pdf_report(
+                    file_key=file_key,
+                    peak_data=final_peak_data,
+                    analysis_result=analysis_result,
+                    peak_summary_df=peak_summary_df,
+                    plotly_figure=plotly_figure,
+                    relevant_docs=relevant_docs,
+                    user_hint=user_hint,
+                    qa_history=qa_history
+                )
             
             # 一時ファイルをクリーンアップ
-            pdf_generator.cleanup_temp_files()
+            try:
+                pdf_generator.cleanup_temp_files()
+            except Exception as cleanup_error:
+                st.warning(f"一時ファイルクリーンアップ警告: {cleanup_error}")
             
             # ダウンロードボタンを表示
             st.download_button(
@@ -2462,10 +2609,14 @@ def generate_pdf_report_from_saved_data(file_key, final_peak_data, analysis_resu
             
     except Exception as e:
         st.error(f"PDFレポート生成エラー: {str(e)}")
-        st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow, kaleido）がインストールされていることを確認してください。")
+        st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow）がインストールされていることを確認してください。")
+        
+        # デバッグ情報（開発時のみ）
+        if st.sidebar.checkbox("🔧 デバッグ情報を表示", value=False):
+            st.exception(e)
 
 def generate_pdf_report(file_key, final_peak_data, analysis_result, peak_summary_df, relevant_docs, user_hint):
-    """PDFレポート生成の実行"""
+    """PDFレポート生成の実行（エラーハンドリング強化版）"""
     
     try:
         with st.spinner("PDFレポートを生成中..."):
@@ -2478,20 +2629,28 @@ def generate_pdf_report(file_key, final_peak_data, analysis_result, peak_summary
             # Q&A履歴を取得
             qa_history = st.session_state.get(f"{file_key}_qa_history", [])
             
-            # PDFを生成
-            pdf_bytes = pdf_generator.generate_comprehensive_pdf_report(
-                file_key=file_key,
-                peak_data=final_peak_data,
-                analysis_result=analysis_result,
-                peak_summary_df=peak_summary_df,
-                plotly_figure=plotly_figure,
-                relevant_docs=relevant_docs,
-                user_hint=user_hint,
-                qa_history=qa_history
-            )
+            # 警告を抑制してPDFを生成
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", UserWarning)
+                warnings.simplefilter("ignore", RuntimeWarning)
+                
+                # PDFを生成
+                pdf_bytes = pdf_generator.generate_comprehensive_pdf_report(
+                    file_key=file_key,
+                    peak_data=final_peak_data,
+                    analysis_result=analysis_result,
+                    peak_summary_df=peak_summary_df,
+                    plotly_figure=plotly_figure,
+                    relevant_docs=relevant_docs,
+                    user_hint=user_hint,
+                    qa_history=qa_history
+                )
             
             # 一時ファイルをクリーンアップ
-            pdf_generator.cleanup_temp_files()
+            try:
+                pdf_generator.cleanup_temp_files()
+            except Exception as cleanup_error:
+                st.warning(f"一時ファイルクリーンアップ警告: {cleanup_error}")
             
             # ダウンロードボタンを表示
             st.download_button(
@@ -2506,4 +2665,10 @@ def generate_pdf_report(file_key, final_peak_data, analysis_result, peak_summary
             
     except Exception as e:
         st.error(f"PDFレポート生成エラー: {str(e)}")
-        st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow, kaleido）がインストールされていることを確認してください。")
+        st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow）がインストールされていることを確認してください。")
+        
+        # デバッグ情報（開発時のみ）
+        if st.sidebar.checkbox("🔧 デバッグ情報を表示", value=False):
+            st.exception(e)
+            
+            
