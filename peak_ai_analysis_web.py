@@ -2252,6 +2252,7 @@ def render_peak_analysis_with_ai(result, spectrum_type, llm_connector, user_hint
     # AI解析セクション
     render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, user_hint, llm_ready)
 
+
 def render_interactive_plot(result, file_key, spectrum_type):
     """インタラクティブプロットを描画（peak_analysis_web.pyと同じ方式）"""
     st.subheader(f"📊 {file_key} - {spectrum_type}")
@@ -2333,7 +2334,7 @@ def render_interactive_plot(result, file_key, spectrum_type):
             })
         
         manual_df = pd.DataFrame(manual_data)
-        st.dataframe(manual_df, use_container_width=True)
+        st.dataframe(manual_df, use_container_width=True, key=f"manual_peaks_table_{file_key}")
         
         # 削除選択
         if len(manual_peaks) > 0:
@@ -2479,17 +2480,11 @@ def render_interactive_plot(result, file_key, spectrum_type):
     # PDFレポート用にPlotlyグラフを保存
     st.session_state[f"{file_key}_plotly_figure"] = fig
     
-    # グラフ表示（peak_analysis_web.pyと同じ）
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # PDFレポート用にPlotlyグラフを保存
-    st.session_state[f"{file_key}_plotly_figure"] = fig
-    
-    # 【追加】元のスペクトルデータを保存（PDFレポート用）
+    # 元のスペクトルデータを保存（PDFレポート用）
     save_original_spectrum_data_to_session(result, file_key)
     
-    # グラフ表示（peak_analysis_web.pyと同じ）
-    st.plotly_chart(fig, use_container_width=True)
+    # 【修正】一意のキーを追加してグラフ表示
+    st.plotly_chart(fig, use_container_width=True, key=f"plotly_chart_{file_key}")
 
 def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, user_hint, llm_ready):
     """AI解析セクションを描画"""
