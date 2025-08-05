@@ -1089,21 +1089,6 @@ class RamanPDFReportGenerator:
                 st.info("Kaleidoエンジンでグラフを画像化しました")
             except Exception as kaleido_error:
                 st.warning(f"Kaleidoエンジン使用失敗: {str(kaleido_error)}")
-                
-                # 方法2: matplotlibによる代替画像作成を試行
-                try:
-                    self._create_matplotlib_alternative(fig, img_path, width, height)
-                    success = True
-                    st.info("Matplotlibで代替グラフを作成しました")
-                except Exception as mpl_error:
-                    st.warning(f"Matplotlib代替作成失敗: {str(mpl_error)}")
-                    
-                    # 方法3: 高品質プレースホルダー画像を作成
-                    self._create_enhanced_placeholder_image(img_path, width, height, f"Spectrum Graph: {filename}")
-                    success = True
-                    st.info("高品質プレースホルダー画像を作成しました")
-            
-            return img_path if success else None
             
         except Exception as e:
             st.error(f"グラフ画像変換エラー: {e}")
@@ -1111,55 +1096,7 @@ class RamanPDFReportGenerator:
             placeholder_path = os.path.join(self.temp_dir, f"{filename}_fallback.png")
             self._create_enhanced_placeholder_image(placeholder_path, width, height, f"Graph Error: {filename}")
             return placeholder_path
-    
-    def _create_matplotlib_alternative(self, plotly_fig, save_path, width, height):
-        """MatplotlibでPlotlyグラフの代替画像を作成"""
-        try:
-            import matplotlib.pyplot as plt
-            import matplotlib.patches as patches
-            
-            # 図のサイズを計算（DPI=100として）
-            fig_width = width / 100
-            fig_height = height / 100
-            
-            fig, axes = plt.subplots(3, 1, figsize=(fig_width, fig_height), facecolor='white')
-            fig.suptitle('Raman Spectrum Analysis', fontsize=14, y=0.95)
-            
-            # プレースホルダーとしてサンプルグラフを作成
-            x_sample = np.linspace(400, 2000, 100)
-            
-            # 1段目: スペクトル風のサンプル
-            y1_sample = np.exp(-(x_sample - 1200)**2 / 50000) + 0.5 * np.exp(-(x_sample - 800)**2 / 20000)
-            axes[0].plot(x_sample, y1_sample, 'b-', linewidth=2, label='Spectrum')
-            axes[0].scatter([800, 1200], [0.5, 1.0], c='red', s=50, zorder=5, label='Peaks')
-            axes[0].set_ylabel('Intensity (a.u.)')
-            axes[0].legend()
-            axes[0].grid(True, alpha=0.3)
-            
-            # 2段目: 2次微分風のサンプル
-            y2_sample = -np.gradient(np.gradient(y1_sample))
-            axes[1].plot(x_sample, y2_sample, 'purple', linewidth=1, label='2nd Derivative')
-            axes[1].axhline(y=0, color='black', linestyle='--', alpha=0.5)
-            axes[1].set_ylabel('2nd Derivative')
-            axes[1].legend()
-            axes[1].grid(True, alpha=0.3)
-            
-            # 3段目: Prominence風のサンプル
-            prominence_sample = np.abs(y2_sample) * 100
-            axes[2].scatter(x_sample, prominence_sample, c='orange', s=10, alpha=0.6, label='All Peaks')
-            axes[2].scatter([800, 1200], [50, 80], c='red', s=30, label='Valid Peaks')
-            axes[2].set_xlabel('Wavenumber (cm⁻¹)')
-            axes[2].set_ylabel('Prominence')
-            axes[2].legend()
-            axes[2].grid(True, alpha=0.3)
-            
-            plt.tight_layout()
-            plt.savefig(save_path, dpi=100, bbox_inches='tight', facecolor='white')
-            plt.close()
-            
-        except Exception as e:
-            raise Exception(f"Matplotlib代替作成エラー: {e}")
-    
+
     def _create_enhanced_placeholder_image(self, path, width, height, text):
         """高品質プレースホルダー画像を作成"""
         try:
@@ -1345,9 +1282,11 @@ class RamanPDFReportGenerator:
             story.extend(self._create_executive_summary(peak_data, analysis_result))
             
             # 3. グラフセクション
-            if plotly_figure:
-                story.extend(self._create_graph_section(plotly_figure, file_key))
-            
+            # if plotly_figure:
+            #    story.extend(self._create_graph_section(plotly_figure, file_key))
+            if original_spectrum_data:
+                story.extend(self._create_graph_section_from_original_data(original_spectrum_data, file_key))
+        
             # 4. ピーク詳細テーブル
             story.extend(self._create_peak_details_section(peak_summary_df, peak_data))
             
@@ -1382,6 +1321,238 @@ class RamanPDFReportGenerator:
             st.error(f"PDFレポート生成エラー: {e}")
             raise e
     
+    def _create_graph_section_from_original_data(self, spectrum_data: Dict, file_key: str) -> List:
+        """元のスペクトルデータから直接グラフセクションを作成"""
+        content = []
+        
+        heading_text = self._sanitize_text_for_pdf("スペクトルおよびピーク検出結果" if self.japanese_font_available else "Spectrum and Peak Detection Results")
+        content.append(Paragraph(heading_text, self.styles['JapaneseHeading']))
+        
+        try:
+            # 元データから直接画像を生成
+            img_path = self._create_image_from_original_data(spectrum_data, file_key)
+            
+            if img_path and os.path.exists(img_path):
+                try:
+                    img = Image(img_path, width=7*inch, height=5.6*inch)
+                    content.append(img)
+                    content.append(Spacer(1, 0.2*inch))
+                    st.success("✅ 元のスペクトルデータから直接グラフを生成しました")
+                except Exception as img_error:
+                    st.warning(f"画像追加エラー: {img_error}")
+                    content.append(self._create_text_based_spectrum_info(spectrum_data))
+            else:
+                content.append(self._create_text_based_spectrum_info(spectrum_data))
+            
+        except Exception as e:
+            st.error(f"元データグラフ作成エラー: {e}")
+            content.append(self._create_text_based_spectrum_info(spectrum_data))
+        
+        # グラフの説明
+        if self.japanese_font_available:
+            description = """
+            上図は元のスペクトルデータから直接生成されたラマンスペクトルとピーク検出結果です。
+            赤い点は検出されたピーク、緑の星印は手動で追加されたピークを表示しています。
+            """
+        else:
+            description = """
+            The above figure shows the Raman spectrum and peak detection results generated directly from original data.
+            Red points indicate detected peaks, green stars show manually added peaks.
+            """
+        
+        description = self._sanitize_text_for_pdf(description)
+        content.append(Paragraph(description, self.styles['JapaneseNormal']))
+        content.append(Spacer(1, 0.2*inch))
+        
+        return content
+    
+    def _create_image_from_original_data(self, spectrum_data: Dict, file_key: str) -> str:
+        """元のスペクトルデータから直接画像を生成"""
+        try:
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            import numpy as np
+            
+            # 画像パス
+            img_path = os.path.join(self.temp_dir, f"original_spectrum_{file_key}.png")
+            
+            # データを取得
+            wavenum = spectrum_data.get('wavenum', [])
+            spectrum = spectrum_data.get('spectrum', [])
+            second_derivative = spectrum_data.get('second_derivative', [])
+            detected_peaks = spectrum_data.get('detected_peaks', [])
+            detected_prominences = spectrum_data.get('detected_prominences', [])
+            manual_peaks = spectrum_data.get('manual_peaks', [])
+            excluded_peaks = spectrum_data.get('excluded_peaks', set())
+            all_peaks = spectrum_data.get('all_peaks', [])
+            all_prominences = spectrum_data.get('all_prominences', [])
+            
+            if not wavenum or not spectrum:
+                raise Exception("基本スペクトルデータが不足しています")
+            
+            # numpy配列に変換
+            wavenum = np.array(wavenum)
+            spectrum = np.array(spectrum)
+            if len(second_derivative) > 0:
+                second_derivative = np.array(second_derivative)
+            
+            # 図を作成
+            fig, axes = plt.subplots(3, 1, figsize=(10, 8), facecolor='white')
+            fig.suptitle('Raman Spectrum Analysis', fontsize=14, y=0.95)
+            
+            # 1段目：メインスペクトル
+            axes[0].plot(wavenum, spectrum, 'b-', linewidth=2, label='Spectrum')
+            
+            # 有効な検出ピーク
+            valid_peaks = [i for i in detected_peaks if i not in excluded_peaks]
+            if len(valid_peaks) > 0 and len(valid_peaks) <= len(wavenum):
+                valid_indices = [i for i in valid_peaks if 0 <= i < len(wavenum)]
+                if valid_indices:
+                    axes[0].scatter(wavenum[valid_indices], spectrum[valid_indices], 
+                                   c='red', s=50, label='Detected Peaks', zorder=5)
+            
+            # 除外されたピーク
+            excluded_indices = [i for i in excluded_peaks if 0 <= i < len(wavenum)]
+            if excluded_indices:
+                axes[0].scatter(wavenum[excluded_indices], spectrum[excluded_indices], 
+                               c='gray', s=50, marker='x', label='Excluded Peaks', zorder=5)
+            
+            # 手動ピーク
+            if manual_peaks:
+                manual_x = []
+                manual_y = []
+                for peak_wn in manual_peaks:
+                    # 最も近い波数インデックスを見つける
+                    idx = np.argmin(np.abs(wavenum - peak_wn))
+                    if 0 <= idx < len(spectrum):
+                        manual_x.append(peak_wn)
+                        manual_y.append(spectrum[idx])
+                
+                if manual_x:
+                    axes[0].scatter(manual_x, manual_y, c='green', s=80, marker='*', 
+                                   label='Manual Peaks', zorder=6)
+            
+            axes[0].set_ylabel('Intensity (a.u.)')
+            axes[0].legend()
+            axes[0].grid(True, alpha=0.3)
+            
+            # 2段目：2次微分
+            if len(second_derivative) > 0:
+                axes[1].plot(wavenum, second_derivative, 'purple', linewidth=1, label='2nd Derivative')
+                axes[1].axhline(y=0, color='black', linestyle='--', alpha=0.5)
+            else:
+                # 2次微分データがない場合は簡易計算
+                if len(spectrum) > 4:
+                    simple_2nd_deriv = np.gradient(np.gradient(spectrum))
+                    axes[1].plot(wavenum, simple_2nd_deriv, 'purple', linewidth=1, label='2nd Derivative (Calculated)')
+                    axes[1].axhline(y=0, color='black', linestyle='--', alpha=0.5)
+            
+            axes[1].set_ylabel('2nd Derivative')
+            axes[1].legend()
+            axes[1].grid(True, alpha=0.3)
+            
+            # 3段目：Prominence
+            if len(all_peaks) > 0 and len(all_prominences) > 0:
+                # 全ピークのprominence
+                valid_all_indices = [i for i in all_peaks if 0 <= i < len(wavenum)]
+                if valid_all_indices and len(valid_all_indices) <= len(all_prominences):
+                    axes[2].scatter(wavenum[valid_all_indices], all_prominences[:len(valid_all_indices)], 
+                                   c='orange', s=20, alpha=0.6, label='All Peaks')
+                
+                # 有効なピークのprominence
+                if len(valid_peaks) > 0 and len(detected_prominences) > 0:
+                    valid_prom_indices = [i for i in valid_peaks if 0 <= i < len(wavenum)]
+                    if valid_prom_indices:
+                        # prominenceデータをマッピング
+                        valid_prominences = []
+                        for peak_idx in valid_prom_indices:
+                            # detected_peaksでのインデックスを見つける
+                            try:
+                                orig_idx = list(detected_peaks).index(peak_idx)
+                                if orig_idx < len(detected_prominences):
+                                    valid_prominences.append(detected_prominences[orig_idx])
+                                else:
+                                    valid_prominences.append(0.1)  # デフォルト値
+                            except ValueError:
+                                valid_prominences.append(0.1)
+                        
+                        if valid_prominences:
+                            axes[2].scatter(wavenum[valid_prom_indices], valid_prominences, 
+                                           c='red', s=60, label='Valid Peaks', zorder=5)
+            
+            axes[2].set_xlabel('Wavenumber (cm⁻¹)')
+            axes[2].set_ylabel('Prominence')
+            axes[2].legend()
+            axes[2].grid(True, alpha=0.3)
+            
+            plt.tight_layout()
+            plt.savefig(img_path, dpi=150, bbox_inches='tight', facecolor='white')
+            plt.close()
+            
+            return img_path
+            
+        except Exception as e:
+            st.error(f"元データ画像生成エラー: {e}")
+            st.write(f"デバッグ情報: データキー = {list(spectrum_data.keys())}")
+            return None
+    
+    def _create_text_based_spectrum_info(self, spectrum_data: Dict) -> Paragraph:
+        """テキストベースのスペクトル情報を作成"""
+        try:
+            wavenum = spectrum_data.get('wavenum', [])
+            spectrum = spectrum_data.get('spectrum', [])
+            detected_peaks = spectrum_data.get('detected_peaks', [])
+            manual_peaks = spectrum_data.get('manual_peaks', [])
+            
+            info_text = f"""
+            スペクトル情報 (テキスト表示):
+            • データポイント数: {len(wavenum)}
+            • 波数範囲: {min(wavenum):.1f} - {max(wavenum):.1f} cm⁻¹
+            • 強度範囲: {min(spectrum):.3f} - {max(spectrum):.3f}
+            • 検出ピーク数: {len(detected_peaks)}
+            • 手動ピーク数: {len(manual_peaks)}
+            
+            注: グラフィカル表示でエラーが発生したため、テキスト形式で表示しています。
+            """
+            
+            info_text = self._sanitize_text_for_pdf(info_text)
+            return Paragraph(info_text, self.styles['JapaneseNormal'])
+            
+        except Exception as e:
+            error_text = self._sanitize_text_for_pdf(f"スペクトル情報表示エラー: {e}")
+            return Paragraph(error_text, self.styles['JapaneseNormal'])
+    
+    # render_ai_analysis_section 関数に元データ保存機能を追加
+    
+    def save_original_spectrum_data_to_session(result, file_key):
+        """元のスペクトルデータをセッションに保存"""
+        try:
+            # 有効なピークを計算
+            filtered_peaks = [
+                i for i in result["detected_peaks"]
+                if i not in st.session_state.get(f"{file_key}_excluded_peaks", set())
+            ]
+            
+            # 元データを辞書形式で保存
+            original_data = {
+                'wavenum': result['wavenum'].tolist() if hasattr(result['wavenum'], 'tolist') else list(result['wavenum']),
+                'spectrum': result['spectrum'].tolist() if hasattr(result['spectrum'], 'tolist') else list(result['spectrum']),
+                'second_derivative': result['second_derivative'].tolist() if hasattr(result['second_derivative'], 'tolist') else list(result['second_derivative']),
+                'detected_peaks': list(result['detected_peaks']),
+                'detected_prominences': list(result['detected_prominences']),
+                'manual_peaks': st.session_state.get(f"{file_key}_manual_peaks", []),
+                'excluded_peaks': st.session_state.get(f"{file_key}_excluded_peaks", set()),
+                'all_peaks': list(result.get('all_peaks', [])),
+                'all_prominences': list(result.get('all_prominences', [])),
+                'filtered_peaks': filtered_peaks
+            }
+            
+            st.session_state[f"{file_key}_original_spectrum_data"] = original_data
+            st.success("✅ 元のスペクトルデータを保存しました")
+            
+        except Exception as e:
+            st.warning(f"元データ保存警告: {e}")
     def _create_title_page(self, file_key: str) -> List:
         """タイトルページを作成"""
         content = []
