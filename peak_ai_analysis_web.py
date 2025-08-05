@@ -2451,7 +2451,7 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                         analysis_report += f"{i}. {doc['metadata']['filename']}（類似度: {doc['similarity_score']:.3f}）\n"
                     
                     st.download_button(
-                        label="📄 テキストレポートをダウンロード",
+                        label="テキストレポートをダウンロード",
                         data=analysis_report,
                         file_name=f"raman_analysis_report_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
                         mime="text/plain",
@@ -2461,9 +2461,9 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                 # PDFレポートダウンロード
                 with col2:
                     if PDF_GENERATION_AVAILABLE:
-                        if st.button(f"📊 包括的PDFレポートを生成", key=f"generate_comprehensive_pdf_{file_key}"):
+                        if st.button(f"📊 PDFレポートを生成", key=f"generate_comprehensive_pdf_{file_key}"):
                             try:
-                                with st.spinner("包括的PDFレポートを生成中..."):
+                                with st.spinner("PDFレポートを生成中..."):
                                     # PDFレポートジェネレーターを初期化
                                     pdf_generator = RamanPDFReportGenerator()
                                     
@@ -2495,14 +2495,14 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                                     
                                     # ダウンロードボタンを表示
                                     st.download_button(
-                                        label="📊 包括的PDFレポートをダウンロード",
+                                        label="PDFレポートをダウンロード",
                                         data=pdf_bytes,
                                         file_name=f"raman_comprehensive_report_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                                         mime="application/pdf",
                                         key=f"download_comprehensive_pdf_report_{file_key}"
                                     )
                                     
-                                    st.success("✅ 包括的PDFレポートが正常に生成されました！")
+                                    st.success("✅ PDFレポートが正常に生成されました！")
                                     
                             except Exception as e:
                                 st.error(f"PDFレポート生成エラー: {str(e)}")
