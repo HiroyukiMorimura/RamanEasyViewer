@@ -209,10 +209,10 @@ class LLMConnector:
         ]
         
         selected_model = st.sidebar.selectbox(
-            "OpenAI モデル選択",
+            "AI モデル選択",
             model_options,
             index=0,
-            help="使用するOpenAIモデルを選択してください"
+            help="使用するAIモデルを選択してください"
         )
         
         try:
@@ -243,7 +243,7 @@ class LLMConnector:
                     severity="INFO"
                 )
             
-            st.sidebar.success(f"✅ OpenAI API接続設定完了 ({selected_model})")
+            st.sidebar.success(f"✅ AI API接続設定完了 ({selected_model})")
             return True
             
         except Exception as e:
@@ -277,7 +277,7 @@ class LLMConnector:
     def generate_analysis(self, prompt, temperature=0.3, max_tokens=1024, stream_display=True):
         """強化されたOpenAI API解析実行"""
         if not self.selected_model:
-            raise SecurityException("OpenAI モデルが設定されていません")
+            raise SecurityException("AI モデルが設定されていません")
         
         # プロンプトインジェクション対策
         sanitized_prompt = self._sanitize_prompt(prompt)
