@@ -2440,7 +2440,7 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
 #{past_analysis['analysis']}
 #
 #=== 参照文献 ===
-"""
+
             """
             for i, doc in enumerate(saved_relevant_docs, 1):
                 analysis_report += f"{i}. {doc['metadata']['filename']}（類似度: {doc['similarity_score']:.3f}）\n"
