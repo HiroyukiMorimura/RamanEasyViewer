@@ -2425,23 +2425,22 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
             saved_peak_summary_df = past_analysis.get('peak_summary_df', peak_summary_df)
             saved_relevant_docs = past_analysis.get('relevant_docs', [])
             saved_user_hint = past_analysis.get('user_hint', '')
-            """
+            
             
             # テキストレポート生成
-#            analysis_report = f"""ラマンスペクトル解析レポート
-#ファイル名: {file_key}
-#解析日時: {past_analysis['timestamp']}
-#使用モデル: {past_analysis['model']}
-#
-#=== 検出ピーク情報 ===
-#{saved_peak_summary_df.to_string(index=False)}
-#
-#=== AI解析結果 ===
-#{past_analysis['analysis']}
-#
-#=== 参照文献 ===
+            analysis_report = fラマンスペクトル解析レポート
+ファイル名: {file_key}
+解析日時: {past_analysis['timestamp']}
+使用モデル: {past_analysis['model']}
 
-            """
+=== 検出ピーク情報 ===
+{saved_peak_summary_df.to_string(index=False)}
+
+=== AI解析結果 ===
+{past_analysis['analysis']}
+
+=== 参照文献 ===
+
             for i, doc in enumerate(saved_relevant_docs, 1):
                 analysis_report += f"{i}. {doc['metadata']['filename']}（類似度: {doc['similarity_score']:.3f}）\n"
             
