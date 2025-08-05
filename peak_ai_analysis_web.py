@@ -1650,45 +1650,7 @@ def render_qa_section(file_key, analysis_context, llm_connector):
     
     elif submit_button and not user_question.strip():
         st.warning("質問内容を入力してください。")
-    """
-    # 質問履歴のダウンロード
-    if st.session_state[qa_history_key]:
-        qa_report = generate_qa_report(file_key, st.session_state[qa_history_key])
-        st.download_button(
-            label="📥 質問履歴をダウンロード",
-            data=qa_report,
-            file_name=f"qa_history_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-            mime="text/plain",
-            key=f"download_qa_{file_key}_{len(st.session_state[qa_history_key])}"
-        )
-    """
-"""
-def generate_qa_report(file_key, qa_history):
-    """質問履歴レポートを生成する関数"""
-    report_lines = [
-        "ラマンスペクトル解析 - 質問履歴レポート",
-        "=" * 50,
-        f"ファイル名: {file_key}",
-        f"レポート生成日時: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        f"質問総数: {len(qa_history)}",
-        "",
-        "=" * 50,
-        "質問履歴",
-        "=" * 50,
-        ""
-    ]
-    
-    for i, qa in enumerate(qa_history, 1):
-        report_lines.extend([
-            f"質問{i}: {qa['question']}",
-            f"回答{i}: {qa['answer']}",
-            f"質問日時: {qa['timestamp']}",
-            "-" * 30,
-            ""
-        ])
-    
-    return "\n".join(report_lines)
-    """
+        
 def peak_ai_analysis_mode():
     """強化されたPeak AI analysis mode"""
     if not PDF_AVAILABLE:
