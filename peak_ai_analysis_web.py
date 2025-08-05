@@ -2534,7 +2534,7 @@ def perform_ai_analysis(file_key, final_peak_data, user_hint, llm_connector, pea
 """
             for i, doc in enumerate(relevant_docs, 1):
                 analysis_report += f"{i}. {doc['metadata']['filename']}（類似度: {doc['similarity_score']:.3f}）\n"
-
+            """
             # ダウンロードボタンのセクション
             st.subheader("📥 レポートダウンロード")
             
@@ -2557,7 +2557,7 @@ def perform_ai_analysis(file_key, final_peak_data, user_hint, llm_connector, pea
                         generate_pdf_report(file_key, final_peak_data, full_response, peak_summary_df, relevant_docs, user_hint)
                 else:
                     st.info("PDFレポート機能は利用できません（必要ライブラリ未インストール）")
-
+        """
         except Exception as e:
             st.error(f"AI解析中にエラーが発生しました: {str(e)}")
             st.info("OpenAI APIの接続を確認してください。有効なAPIキーが設定されていることを確認してください。")
