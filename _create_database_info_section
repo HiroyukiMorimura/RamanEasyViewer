@@ -1280,7 +1280,7 @@ class RamanPDFReportGenerator:
         except Exception as e:
             st.warning(f"プレースホルダー画像作成エラー: {e}")
     
-    def generate_comprehensive_pdf_report(
+    def generate_pdf_report(
         self, 
         file_key: str,
         peak_data: List[Dict],
@@ -1290,8 +1290,11 @@ class RamanPDFReportGenerator:
         relevant_docs: List[Dict] = None,
         user_hint: str = None,
         qa_history: List[Dict] = None
+        database_info: Dict = None,  # この行を追加
+        database_files: List[str] = None  # この行を追加
     ) -> bytes:
-        """包括的なPDFレポートを生成"""
+
+        """PDFレポートを生成"""
         
         if not PDF_GENERATION_AVAILABLE:
             raise Exception("PDF生成ライブラリが利用できません")
@@ -2474,7 +2477,7 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                                     qa_history = st.session_state[qa_history_key]
                                     
                                     # PDFを生成
-                                    pdf_bytes = pdf_generator.generate_comprehensive_pdf_report(
+                                    pdf_bytes = pdf_generator.generate_pdf_report(
                                         file_key=file_key,
                                         peak_data=saved_peak_data,
                                         analysis_result=past_analysis['analysis'],
@@ -2506,7 +2509,7 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                                     
                             except Exception as e:
                                 st.error(f"PDFレポート生成エラー: {str(e)}")
-                                st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow）がインストールされていることを確認してください。")
+                                # st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow）がインストールされていることを確認してください。")
                     else:
                         st.info("PDFレポート機能は利用できません（必要ライブラリ未インストール）")
                 
