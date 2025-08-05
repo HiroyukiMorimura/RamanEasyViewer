@@ -2464,13 +2464,13 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                 else:
                     st.info("PDFレポート機能は利用できません（必要ライブラリ未インストール）")
             
-        # 質問応答セクションを表示
-        if llm_ready:
-            render_qa_section(
-                file_key=file_key,
-                analysis_context=st.session_state[f"{file_key}_ai_analysis"]['analysis_context'],
-                llm_connector=llm_connector
-            )
+    # 質問応答セクションを表示
+    if llm_ready:
+        render_qa_section(
+　          file_key=file_key,
+            analysis_context=st.session_state[f"{file_key}_ai_analysis"]['analysis_context'],
+            llm_connector=llm_connector
+        )
             
     else:
         st.info("確定されたピークがありません。ピーク検出を実行するか、手動でピークを追加してください。")
