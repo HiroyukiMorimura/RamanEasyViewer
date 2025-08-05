@@ -1650,7 +1650,7 @@ def render_qa_section(file_key, analysis_context, llm_connector):
     
     elif submit_button and not user_question.strip():
         st.warning("質問内容を入力してください。")
-    
+    """
     # 質問履歴のダウンロード
     if st.session_state[qa_history_key]:
         qa_report = generate_qa_report(file_key, st.session_state[qa_history_key])
@@ -1661,7 +1661,8 @@ def render_qa_section(file_key, analysis_context, llm_connector):
             mime="text/plain",
             key=f"download_qa_{file_key}_{len(st.session_state[qa_history_key])}"
         )
-
+    """
+"""
 def generate_qa_report(file_key, qa_history):
     """質問履歴レポートを生成する関数"""
     report_lines = [
@@ -1687,7 +1688,7 @@ def generate_qa_report(file_key, qa_history):
         ])
     
     return "\n".join(report_lines)
-
+    """
 def peak_ai_analysis_mode():
     """強化されたPeak AI analysis mode"""
     if not PDF_AVAILABLE:
@@ -2415,16 +2416,12 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                 st.markdown("**解析結果:**")
                 st.markdown(past_analysis['analysis'])
             
-            # レポートダウンロードセクション（過去の解析結果用）
-            # st.subheader("📥 レポートダウンロード")
-            
             # 解析結果から必要なデータを取得
             past_analysis = st.session_state[f"{file_key}_ai_analysis"]
             saved_peak_data = past_analysis.get('peak_data', final_peak_data)
             saved_peak_summary_df = past_analysis.get('peak_summary_df', peak_summary_df)
             saved_relevant_docs = past_analysis.get('relevant_docs', [])
             saved_user_hint = past_analysis.get('user_hint', '')
-            
             
             # テキストレポート生成
             analysis_report = f"""ラマンスペクトル解析レポート
@@ -2497,160 +2494,6 @@ def perform_ai_analysis(file_key, final_peak_data, user_hint, llm_connector, pea
                 'user_hint': user_hint
             }
 
-            # テキストレポート生成（既存）
-            analysis_report = f"""ラマンスペクトル解析レポート
-ファイル名: {file_key}
-解析日時: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-使用モデル: {model_info}
-
-=== 検出ピーク情報 ===
-{peak_summary_df.to_string(index=False)}
-
-=== AI解析結果 ===
-{full_response}
-
-=== 参照文献 ===
-"""
-            for i, doc in enumerate(relevant_docs, 1):
-                analysis_report += f"{i}. {doc['metadata']['filename']}（類似度: {doc['similarity_score']:.3f}）\n"
-            """
-            # ダウンロードボタンのセクション
-            st.subheader("📥 レポートダウンロード")
-            
-            col1, col2 = st.columns(2)
-            
-            # テキストレポートダウンロード
-            with col1:
-                st.download_button(
-                    label="📄 テキストレポートをダウンロード",
-                    data=analysis_report,
-                    file_name=f"raman_analysis_report_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                    mime="text/plain",
-                    key=f"download_text_report_{file_key}"
-                )
-            
-            # PDFレポートダウンロード
-            with col2:
-                if PDF_GENERATION_AVAILABLE:
-                    if st.button(f"📊 PDFレポートを生成", key=f"generate_pdf_{file_key}"):
-                        generate_pdf_report(file_key, final_peak_data, full_response, peak_summary_df, relevant_docs, user_hint)
-                else:
-                    st.info("PDFレポート機能は利用できません（必要ライブラリ未インストール）")
-        """
         except Exception as e:
             st.error(f"AI解析中にエラーが発生しました: {str(e)}")
             st.info("OpenAI APIの接続を確認してください。有効なAPIキーが設定されていることを確認してください。")
-
-def generate_pdf_report_from_saved_data(file_key, final_peak_data, analysis_result, peak_summary_df, relevant_docs, user_hint):
-    """保存されたデータからPDFレポート生成を実行（エラーハンドリング強化版）"""
-    
-    try:
-        with st.spinner("PDFレポートを生成中..."):
-            # PDFレポートジェネレーターを初期化
-            pdf_generator = RamanPDFReportGenerator()
-            
-            # 現在表示されているPlotlyグラフを取得
-            plotly_figure = st.session_state.get(f"{file_key}_plotly_figure", None)
-            
-            # Q&A履歴を取得
-            qa_history = st.session_state.get(f"{file_key}_qa_history", [])
-            
-            # 警告を抑制してPDFを生成
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", UserWarning)
-                warnings.simplefilter("ignore", RuntimeWarning)
-                
-                # PDFを生成
-                pdf_bytes = pdf_generator.generate_comprehensive_pdf_report(
-                    file_key=file_key,
-                    peak_data=final_peak_data,
-                    analysis_result=analysis_result,
-                    peak_summary_df=peak_summary_df,
-                    plotly_figure=plotly_figure,
-                    relevant_docs=relevant_docs,
-                    user_hint=user_hint,
-                    qa_history=qa_history
-                )
-            
-            # 一時ファイルをクリーンアップ
-            try:
-                pdf_generator.cleanup_temp_files()
-            except Exception as cleanup_error:
-                st.warning(f"一時ファイルクリーンアップ警告: {cleanup_error}")
-            
-            # ダウンロードボタンを表示
-            st.download_button(
-                label="📊 PDFレポートをダウンロード",
-                data=pdf_bytes,
-                file_name=f"raman_comprehensive_report_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                mime="application/pdf",
-                key=f"download_pdf_report_saved_{file_key}"
-            )
-            
-            st.success("✅ PDFレポートが正常に生成されました！")
-            
-    except Exception as e:
-        st.error(f"PDFレポート生成エラー: {str(e)}")
-        st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow）がインストールされていることを確認してください。")
-        
-        # デバッグ情報（開発時のみ）
-        if st.sidebar.checkbox("🔧 デバッグ情報を表示", value=False):
-            st.exception(e)
-
-def generate_pdf_report(file_key, final_peak_data, analysis_result, peak_summary_df, relevant_docs, user_hint):
-    """PDFレポート生成の実行（エラーハンドリング強化版）"""
-    
-    try:
-        with st.spinner("PDFレポートを生成中..."):
-            # PDFレポートジェネレーターを初期化
-            pdf_generator = RamanPDFReportGenerator()
-            
-            # 現在表示されているPlotlyグラフを取得
-            plotly_figure = st.session_state.get(f"{file_key}_plotly_figure", None)
-            
-            # Q&A履歴を取得
-            qa_history = st.session_state.get(f"{file_key}_qa_history", [])
-            
-            # 警告を抑制してPDFを生成
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", UserWarning)
-                warnings.simplefilter("ignore", RuntimeWarning)
-                
-                # PDFを生成
-                pdf_bytes = pdf_generator.generate_comprehensive_pdf_report(
-                    file_key=file_key,
-                    peak_data=final_peak_data,
-                    analysis_result=analysis_result,
-                    peak_summary_df=peak_summary_df,
-                    plotly_figure=plotly_figure,
-                    relevant_docs=relevant_docs,
-                    user_hint=user_hint,
-                    qa_history=qa_history
-                )
-            
-            # 一時ファイルをクリーンアップ
-            try:
-                pdf_generator.cleanup_temp_files()
-            except Exception as cleanup_error:
-                st.warning(f"一時ファイルクリーンアップ警告: {cleanup_error}")
-            
-            # ダウンロードボタンを表示
-            st.download_button(
-                label="📊 PDFレポートをダウンロード",
-                data=pdf_bytes,
-                file_name=f"raman_comprehensive_report_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                mime="application/pdf",
-                key=f"download_pdf_report_{file_key}"
-            )
-            
-            st.success("✅ PDFレポートが正常に生成されました！")
-            
-    except Exception as e:
-        st.error(f"PDFレポート生成エラー: {str(e)}")
-        st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow）がインストールされていることを確認してください。")
-        
-        # デバッグ情報（開発時のみ）
-        if st.sidebar.checkbox("🔧 デバッグ情報を表示", value=False):
-            st.exception(e)
-            
-            
