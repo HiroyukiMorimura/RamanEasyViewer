@@ -1277,8 +1277,8 @@ class RamanPDFReportGenerator:
         user_hint: str = None,
         qa_history: List[Dict] = None,
         database_info: Dict = None,  # この行を追加
-        database_files: List[str] = None  # この行を追加
-        original_spectrum_data: Dict = None  # この行を追加
+        database_files: List[str] = None,  # この行を追加
+        original_spectrum_data: Dict = None,  # この行を追加
     ) -> bytes:
 
         """PDFレポートを生成"""
@@ -2689,8 +2689,8 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                                         user_hint=saved_user_hint,
                                         qa_history=qa_history,
                                         database_info=database_info,
-                                        database_files=database_files
-                                        original_spectrum_data=original_spectrum_data
+                                        database_files=database_files,
+                                        original_spectrum_data=original_spectrum_data,
                                     )
                                     
                                     # 一時ファイルをクリーンアップ
