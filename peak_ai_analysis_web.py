@@ -1850,8 +1850,8 @@ def perform_peak_analysis_with_ai(llm_connector, user_hint, llm_ready):
         key="file_uploader",
     )
     
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    st.sidebar.write("OPENAI_API_KEY is set? ", bool(os.getenv("OPENAI_API_KEY")))
+    # openai_api_key = os.getenv("OPENAI_API_KEY")
+    # st.sidebar.write("OPENAI_API_KEY is set? ", bool(os.getenv("OPENAI_API_KEY")))
     
     # アップロードファイル変更検出
     if uploaded_files:
@@ -2406,7 +2406,6 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
         if st.button(f"AI解析を実行 - {file_key}", key=f"ai_analysis_{file_key}", disabled=ai_button_disabled):
             perform_ai_analysis(file_key, final_peak_data, user_hint, llm_connector, peak_summary_df)
         
-
         # 過去の解析結果表示
         if f"{file_key}_ai_analysis" in st.session_state:
             with st.expander("📜 過去の解析結果を表示"):
@@ -2417,7 +2416,7 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                 st.markdown(past_analysis['analysis'])
             
             # レポートダウンロードセクション（過去の解析結果用）
-            st.subheader("📥 レポートダウンロード")
+            # st.subheader("📥 レポートダウンロード")
             
             # 解析結果から必要なデータを取得
             past_analysis = st.session_state[f"{file_key}_ai_analysis"]
