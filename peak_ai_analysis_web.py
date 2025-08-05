@@ -2378,30 +2378,6 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                 st.markdown("**解析結果:**")
                 st.markdown(past_analysis['analysis'])
             
-            # 解析結果から必要なデータを取得
-            past_analysis = st.session_state[f"{file_key}_ai_analysis"]
-            saved_peak_data = past_analysis.get('peak_data', final_peak_data)
-            saved_peak_summary_df = past_analysis.get('peak_summary_df', peak_summary_df)
-            saved_relevant_docs = past_analysis.get('relevant_docs', [])
-            saved_user_hint = past_analysis.get('user_hint', '')
-            
-            # テキストレポート生成
-            analysis_report = f"""ラマンスペクトル解析レポート
-ファイル名: {file_key}
-解析日時: {past_analysis['timestamp']}
-使用モデル: {past_analysis['model']}
-
-=== 検出ピーク情報 ===
-{saved_peak_summary_df.to_string(index=False)}
-
-=== AI解析結果 ===
-{past_analysis['analysis']}
-
-=== 参照文献 ===
-"""
-
-            for i, doc in enumerate(saved_relevant_docs, 1):
-                analysis_report += f"{i}. {doc['metadata']['filename']}（類似度: {doc['similarity_score']:.3f}）\n"
             
             # 質問応答セクションを表示
             if llm_ready:
@@ -2413,7 +2389,7 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
 
             # レポートダウンロードセクション（追加質問の下）
             st.markdown("---")
-            st.subheader("📊 包括的レポートダウンロード")
+            st.subheader("レポートダウンロード")
             
             # 過去の解析結果があるかチェック
             if f"{file_key}_ai_analysis" in st.session_state:
@@ -2466,6 +2442,7 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
         
         === 追加質問履歴 ===
         """
+                    qa_history_key = f"{file_key}_qa_history"  # この行を追加
                     for i, qa in enumerate(st.session_state[qa_history_key], 1):
                         analysis_report += f"質問{i}: {qa['question']}\n回答{i}: {qa['answer']}\n質問日時: {qa['timestamp']}\n\n"
                     
