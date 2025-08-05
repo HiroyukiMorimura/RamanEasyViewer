@@ -2445,26 +2445,6 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
             for i, doc in enumerate(saved_relevant_docs, 1):
                 analysis_report += f"{i}. {doc['metadata']['filename']}（類似度: {doc['similarity_score']:.3f}）\n"
             
-            col1, col2 = st.columns(2)
-            
-            # テキストレポートダウンロード
-            with col1:
-                st.download_button(
-                    label="📄 テキストレポートをダウンロード",
-                    data=analysis_report,
-                    file_name=f"raman_analysis_report_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                    mime="text/plain",
-                    key=f"download_text_report_past_{file_key}"
-                )
-            
-            # PDFレポートダウンロード
-            with col2:
-                if PDF_GENERATION_AVAILABLE:
-                    if st.button(f"📊 PDFレポートを生成", key=f"generate_pdf_past_{file_key}"):
-                        generate_pdf_report_from_saved_data(file_key, saved_peak_data, past_analysis['analysis'], saved_peak_summary_df, saved_relevant_docs, saved_user_hint)
-                else:
-                    st.info("PDFレポート機能は利用できません（必要ライブラリ未インストール）")
-            
             # 質問応答セクションを表示
             if llm_ready:
                 render_qa_section(
