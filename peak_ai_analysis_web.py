@@ -992,7 +992,28 @@ class RamanPDFReportGenerator:
         
         # レポートスタイルの設定
         self.setup_styles()
-    
+        
+    def _sanitize_text_for_pdf(self, text: str) -> str:
+        """PDFに安全なテキストに変換"""
+        if text is None:
+            return ""
+        
+        # HTMLエスケープ処理
+        text = str(text)
+        text = text.replace('&', '&amp;')
+        text = text.replace('<', '&lt;')
+        text = text.replace('>', '&gt;')
+        text = text.replace('"', '&quot;')
+        text = text.replace("'", '&#39;')
+        
+        # 改行の正規化
+        text = text.replace('\r\n', '\n').replace('\r', '\n')
+        
+        # 制御文字を除去
+        import re
+        text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', text)
+        
+        return text
     def setup_japanese_font(self):
         """日本語フォントの設定（フォールバック戦略強化）"""
         self.japanese_font_available = False
