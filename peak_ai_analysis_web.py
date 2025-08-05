@@ -970,22 +970,34 @@ class RamanPDFReportGenerator:
         try:
             # システムにある日本語フォントを探す
             font_paths = [
-                # Windows
-                "C:/Windows/Fonts/msgothic.ttc",
-                "C:/Windows/Fonts/meiryo.ttc", 
-                "C:/Windows/Fonts/NotoSansCJK-Regular.ttc",
-                "C:/Windows/Fonts/YuGothic.ttc",
-                # macOS
-                "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
-                "/System/Library/Fonts/NotoSansCJK.ttc",
-                "/Library/Fonts/NotoSansCJK.ttc",
-                # Linux (より多くのパスを試行)
-                "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-                "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                "/usr/share/fonts/TTF/DejaVuSans.ttf",
-                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
-            ]
+            # Windows - 日本語フォント
+            "C:/Windows/Fonts/msgothic.ttc",
+            "C:/Windows/Fonts/meiryo.ttc", 
+            "C:/Windows/Fonts/meiryob.ttc",
+            "C:/Windows/Fonts/YuGothic.ttc",
+            "C:/Windows/Fonts/YuGothM.ttc",
+            "C:/Windows/Fonts/NotoSansCJK-Regular.ttc",
+            "C:/Windows/Fonts/NotoSansJP-Regular.otf",
+            
+            # macOS - 日本語フォント
+            "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc",
+            "/System/Library/Fonts/ヒラギノ角ゴ ProN W3.otf",
+            "/Library/Fonts/NotoSansCJK.ttc",
+            "/Library/Fonts/NotoSansJP-Regular.otf",
+            
+            # Linux - 日本語フォント優先
+            "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/truetype/noto/NotoSansJP-Regular.ttf",
+            "/usr/share/fonts/opentype/noto/NotoSansJP-Regular.otf",
+            "/usr/share/fonts/truetype/vlgothic/VL-Gothic-Regular.ttf",
+            "/usr/share/fonts/truetype/vlgothic/VL-PGothic-Regular.ttf",
+            
+            # 汎用フォント（最後の手段）
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/TTF/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
+        ]
             
             for font_path in font_paths:
                 if os.path.exists(font_path):
@@ -2024,8 +2036,8 @@ def perform_peak_detection_and_ai_analysis(file_labels, all_wavenum, all_bsremov
         peak_results.append(peak_data)
         
         # 結果を表示
-        st.write(f"**{file_name}**")
-        st.write(f"検出されたピーク数: {len(filtered_peaks)} (2次微分 + prominence判定)")
+        # st.write(f"**{file_name}**")
+        # st.write(f"検出されたピーク数: {len(filtered_peaks)} ")
         
         # ピーク情報をテーブルで表示
         if len(filtered_peaks) > 0:
