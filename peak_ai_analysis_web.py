@@ -2495,7 +2495,7 @@ def perform_ai_analysis(file_key, final_peak_data, user_hint, llm_connector, pea
             )
             
             # OpenAI APIで解析を実行
-            st.success("OpenAI APIの応答（リアルタイム表示）")
+            st.success("AIによる回答")
             full_response = llm_connector.generate_analysis(analysis_prompt)
 
             # 処理時間の表示
