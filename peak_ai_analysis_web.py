@@ -968,6 +968,7 @@ class RamanPDFReportGenerator:
     def setup_japanese_font(self):
         """日本語フォントの設定（フォールバック戦略強化）"""
         self.japanese_font_available = False
+        pdfmetrics.registerFont(UnicodeCIDFont('HeiseiMin-W3'))
         self.japanese_font_name = 'HeiseiMin-W3'  # デフォルトを必ず定義
 
         try:
