@@ -2406,7 +2406,7 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
         if st.button(f"AI解析を実行 - {file_key}", key=f"ai_analysis_{file_key}", disabled=ai_button_disabled):
             perform_ai_analysis(file_key, final_peak_data, user_hint, llm_connector, peak_summary_df)
         
-        """
+
         # 過去の解析結果表示
         if f"{file_key}_ai_analysis" in st.session_state:
             with st.expander("📜 過去の解析結果を表示"):
@@ -2463,7 +2463,7 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                         generate_pdf_report_from_saved_data(file_key, saved_peak_data, past_analysis['analysis'], saved_peak_summary_df, saved_relevant_docs, saved_user_hint)
                 else:
                     st.info("PDFレポート機能は利用できません（必要ライブラリ未インストール）")
-            """
+            
         # 質問応答セクションを表示
         if llm_ready:
             render_qa_section(
