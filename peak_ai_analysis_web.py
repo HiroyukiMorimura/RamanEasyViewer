@@ -1523,8 +1523,6 @@ class RamanPDFReportGenerator:
             error_text = self._sanitize_text_for_pdf(f"スペクトル情報表示エラー: {e}")
             return Paragraph(error_text, self.styles['JapaneseNormal'])
     
-    # render_ai_analysis_section 関数に元データ保存機能を追加
-    
     def save_original_spectrum_data_to_session(result, file_key):
         """元のスペクトルデータをセッションに保存"""
         try:
@@ -2704,24 +2702,7 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                                 # st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow）がインストールされていることを確認してください。")
                     else:
                         st.info("PDFレポート機能は利用できません（必要ライブラリ未インストール）")
-                
-                # レポートに含まれる情報の説明
-                with st.expander("📋 PDFレポートに含まれる情報", expanded=False):
-                    st.markdown("""
-                    **包括的PDFレポートには以下の情報が含まれます：**
-                    
-                    1. **実行サマリー** - ピーク統計と解析結果要約
-                    2. **論文データベース情報** - 使用した文献ファイル一覧
-                    3. **AIへの補足ヒント** - ユーザーが入力したヒント情報
-                    4. **スペクトルグラフ** - Plotlyで生成されたピーク検出結果
-                    5. **検出ピーク詳細** - ピーク位置、強度、卓立度の詳細テーブル
-                    6. **AI解析結果** - OpenAI GPTによる詳細解析
-                    7. **質問応答履歴** - 追加質問とその回答の全履歴
-                    8. **参考文献** - RAGで使用された関連文献
-                    9. **付録** - システム情報とメタデータ
-                    
-                    全て日本語で生成され、専門的なレポート形式で出力されます。
-                    """)
+                    save_original_spectrum_data_to_session(result, file_key)
             else:
                 st.info("AI解析結果がないため、レポートを生成できません。先にAI解析を実行してください。")
             
