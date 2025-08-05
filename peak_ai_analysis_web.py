@@ -1643,7 +1643,7 @@ def render_qa_section(file_key, analysis_context, llm_connector):
                 }
                 st.session_state[qa_history_key].append(new_qa)
                 
-                st.success("✅ 回答が完了しました！")
+                # st.success("✅ 回答が完了しました！")
                 
             except Exception as e:
                 st.error(f"質問処理中にエラーが発生しました: {str(e)}")
@@ -2410,6 +2410,148 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                     analysis_context=st.session_state[f"{file_key}_ai_analysis"]['analysis_context'],
                     llm_connector=llm_connector
                 )
+
+            # レポートダウンロードセクション（追加質問の下）
+    st.markdown("---")
+    st.subheader("📊 包括的レポートダウンロード")
+    
+    # 過去の解析結果があるかチェック
+    if f"{file_key}_ai_analysis" in st.session_state:
+        # 解析結果から必要なデータを取得
+        past_analysis = st.session_state[f"{file_key}_ai_analysis"]
+        saved_peak_data = past_analysis.get('peak_data', [])
+        saved_peak_summary_df = past_analysis.get('peak_summary_df', pd.DataFrame())
+        saved_relevant_docs = past_analysis.get('relevant_docs', [])
+        saved_user_hint = past_analysis.get('user_hint', '')
+        
+        # データベース情報を取得
+        database_info = None
+        database_files = []
+        if hasattr(st.session_state, 'rag_system') and st.session_state.rag_system:
+            database_info = st.session_state.rag_system.get_database_info()
+            if database_info.get('source_files'):
+                database_files = database_info['source_files']
+        
+        col1, col2 = st.columns(2)
+        
+        # テキストレポートダウンロード
+        with col1:
+            # テキストレポート生成
+            analysis_report = f"""ラマンスペクトル解析レポート
+ファイル名: {file_key}
+解析日時: {past_analysis['timestamp']}
+使用モデル: {past_analysis['model']}
+
+=== データベース情報 ===
+"""
+            if database_info:
+                analysis_report += f"""作成日時: {database_info.get('created_at', 'N/A')}
+作成者: {database_info.get('created_by', 'N/A')}
+総文献数: {database_info.get('n_docs', 0)}
+総チャンク数: {database_info.get('n_chunks', 0)}
+使用ファイル: {', '.join(database_files) if database_files else 'なし'}
+"""
+            else:
+                analysis_report += "データベースは使用されていません。\n"
+            
+            if saved_user_hint:
+                analysis_report += f"\n=== AIへの補足ヒント ===\n{saved_user_hint}\n"
+            
+            analysis_report += f"""
+=== 検出ピーク情報 ===
+{saved_peak_summary_df.to_string(index=False)}
+
+=== AI解析結果 ===
+{past_analysis['analysis']}
+
+=== 追加質問履歴 ===
+"""
+            for i, qa in enumerate(st.session_state[qa_history_key], 1):
+                analysis_report += f"質問{i}: {qa['question']}\n回答{i}: {qa['answer']}\n質問日時: {qa['timestamp']}\n\n"
+            
+            analysis_report += "=== 参照文献 ===\n"
+            for i, doc in enumerate(saved_relevant_docs, 1):
+                analysis_report += f"{i}. {doc['metadata']['filename']}（類似度: {doc['similarity_score']:.3f}）\n"
+            
+            st.download_button(
+                label="📄 テキストレポートをダウンロード",
+                data=analysis_report,
+                file_name=f"raman_analysis_report_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain",
+                key=f"download_text_report_{file_key}"
+            )
+        
+        # PDFレポートダウンロード
+        with col2:
+            if PDF_GENERATION_AVAILABLE:
+                if st.button(f"📊 包括的PDFレポートを生成", key=f"generate_comprehensive_pdf_{file_key}"):
+                    try:
+                        with st.spinner("包括的PDFレポートを生成中..."):
+                            # PDFレポートジェネレーターを初期化
+                            pdf_generator = RamanPDFReportGenerator()
+                            
+                            # 現在表示されているPlotlyグラフを取得
+                            plotly_figure = st.session_state.get(f"{file_key}_plotly_figure", None)
+                            
+                            # Q&A履歴を取得
+                            qa_history = st.session_state[qa_history_key]
+                            
+                            # PDFを生成
+                            pdf_bytes = pdf_generator.generate_comprehensive_pdf_report(
+                                file_key=file_key,
+                                peak_data=saved_peak_data,
+                                analysis_result=past_analysis['analysis'],
+                                peak_summary_df=saved_peak_summary_df,
+                                plotly_figure=plotly_figure,
+                                relevant_docs=saved_relevant_docs,
+                                user_hint=saved_user_hint,
+                                qa_history=qa_history,
+                                database_info=database_info,
+                                database_files=database_files
+                            )
+                            
+                            # 一時ファイルをクリーンアップ
+                            try:
+                                pdf_generator.cleanup_temp_files()
+                            except:
+                                pass
+                            
+                            # ダウンロードボタンを表示
+                            st.download_button(
+                                label="📊 包括的PDFレポートをダウンロード",
+                                data=pdf_bytes,
+                                file_name=f"raman_comprehensive_report_{file_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                                mime="application/pdf",
+                                key=f"download_comprehensive_pdf_report_{file_key}"
+                            )
+                            
+                            st.success("✅ 包括的PDFレポートが正常に生成されました！")
+                            
+                    except Exception as e:
+                        st.error(f"PDFレポート生成エラー: {str(e)}")
+                        st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow）がインストールされていることを確認してください。")
+            else:
+                st.info("PDFレポート機能は利用できません（必要ライブラリ未インストール）")
+        
+        # レポートに含まれる情報の説明
+        with st.expander("📋 PDFレポートに含まれる情報", expanded=False):
+            st.markdown("""
+            **包括的PDFレポートには以下の情報が含まれます：**
+            
+            1. **実行サマリー** - ピーク統計と解析結果要約
+            2. **論文データベース情報** - 使用した文献ファイル一覧
+            3. **AIへの補足ヒント** - ユーザーが入力したヒント情報
+            4. **スペクトルグラフ** - Plotlyで生成されたピーク検出結果
+            5. **検出ピーク詳細** - ピーク位置、強度、卓立度の詳細テーブル
+            6. **AI解析結果** - OpenAI GPTによる詳細解析
+            7. **質問応答履歴** - 追加質問とその回答の全履歴
+            8. **参考文献** - RAGで使用された関連文献
+            9. **付録** - システム情報とメタデータ
+            
+            全て日本語で生成され、専門的なレポート形式で出力されます。
+            """)
+    else:
+        st.info("AI解析結果がないため、レポートを生成できません。先にAI解析を実行してください。")
             
     else:
         st.info("確定されたピークがありません。ピーク検出を実行するか、手動でピークを追加してください。")
