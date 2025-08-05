@@ -972,6 +972,8 @@ class RamanPDFReportGenerator:
             font_paths = [
             # Windows - 日本語フォント
             "C:/Windows/Fonts/YuGothB.ttc",
+                
+            """
             "C:/Windows/Fonts/yumin.ttf",
             "C:/Windows/Fonts/msgothic.ttc",
             "C:/Windows/Fonts/meiryo.ttc", 
@@ -999,6 +1001,7 @@ class RamanPDFReportGenerator:
             # "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
             # "/usr/share/fonts/TTF/DejaVuSans.ttf",
             # "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
+            """
         ]
             
             for font_path in font_paths:
@@ -1011,7 +1014,7 @@ class RamanPDFReportGenerator:
                         break
                     except Exception as e:
                         continue
-            
+            """
             if not self.japanese_font_available:
                 # より汎用的なフォールバック
                 try:
@@ -1021,7 +1024,7 @@ class RamanPDFReportGenerator:
                 except:
                     self.japanese_font_name = 'Helvetica'
                     st.info("基本フォント（Helvetica）を使用します。日本語は文字化けする可能性があります。")
-                
+            """
         except Exception as e:
             self.japanese_font_name = 'Helvetica'
             st.info(f"フォント設定警告: {e}. 基本フォントを使用します。")
