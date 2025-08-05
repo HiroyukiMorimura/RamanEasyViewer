@@ -966,7 +966,8 @@ class RamanPDFReportGenerator:
     def setup_japanese_font(self):
         """日本語フォントの設定（フォールバック戦略強化）"""
         self.japanese_font_available = False
-        
+        self.japanese_font_name = 'Times-Roman'  # デフォルトを必ず定義
+
         try:
             # システムにある日本語フォントを探す
             font_paths = [
