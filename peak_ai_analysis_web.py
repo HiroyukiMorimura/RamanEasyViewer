@@ -1289,7 +1289,7 @@ class RamanPDFReportGenerator:
         plotly_figure: go.Figure = None,
         relevant_docs: List[Dict] = None,
         user_hint: str = None,
-        qa_history: List[Dict] = None
+        qa_history: List[Dict] = None,
         database_info: Dict = None,  # この行を追加
         database_files: List[str] = None  # この行を追加
     ) -> bytes:
