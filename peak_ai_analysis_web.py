@@ -94,6 +94,8 @@ try:
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.cidfonts import UnicodeCIDFont
     from PIL import Image as PILImage
     import plotly.io as pio
     PDF_GENERATION_AVAILABLE = True
