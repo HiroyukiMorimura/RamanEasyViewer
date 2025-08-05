@@ -1250,6 +1250,7 @@ class RamanPDFReportGenerator:
         qa_history: List[Dict] = None,
         database_info: Dict = None,  # この行を追加
         database_files: List[str] = None  # この行を追加
+        original_spectrum_data: Dict = None  # この行を追加
     ) -> bytes:
 
         """PDFレポートを生成"""
@@ -1282,8 +1283,6 @@ class RamanPDFReportGenerator:
             story.extend(self._create_executive_summary(peak_data, analysis_result))
             
             # 3. グラフセクション
-            # if plotly_figure:
-            #    story.extend(self._create_graph_section(plotly_figure, file_key))
             if original_spectrum_data:
                 story.extend(self._create_graph_section_from_original_data(original_spectrum_data, file_key))
         
