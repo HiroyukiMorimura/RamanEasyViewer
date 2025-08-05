@@ -971,7 +971,6 @@ class RamanPDFReportGenerator:
             # システムにある日本語フォントを探す
             font_paths = [
             # Windows - 日本語フォント
-            "C:\\Windows\\Fonts\\meiryo.ttc",
             "C:/Windows/Fonts/msgothic.ttc",
             "C:/Windows/Fonts/meiryo.ttc", 
             "C:/Windows/Fonts/meiryob.ttc",
@@ -995,9 +994,9 @@ class RamanPDFReportGenerator:
             "/usr/share/fonts/truetype/vlgothic/VL-PGothic-Regular.ttf",
             
             # 汎用フォント（最後の手段）
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-            "/usr/share/fonts/TTF/DejaVuSans.ttf",
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
+            # "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            # "/usr/share/fonts/TTF/DejaVuSans.ttf",
+            # "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
         ]
             
             for font_path in font_paths:
