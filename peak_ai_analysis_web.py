@@ -2405,6 +2405,7 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
         
         if st.button(f"AI解析を実行 - {file_key}", key=f"ai_analysis_{file_key}", disabled=ai_button_disabled):
             perform_ai_analysis(file_key, final_peak_data, user_hint, llm_connector, peak_summary_df)
+        
         """
         # 過去の解析結果表示
         if f"{file_key}_ai_analysis" in st.session_state:
@@ -2425,19 +2426,20 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
             saved_relevant_docs = past_analysis.get('relevant_docs', [])
             saved_user_hint = past_analysis.get('user_hint', '')
             """
+            
             # テキストレポート生成
-            analysis_report = f"""ラマンスペクトル解析レポート
-ファイル名: {file_key}
-解析日時: {past_analysis['timestamp']}
-使用モデル: {past_analysis['model']}
-
-=== 検出ピーク情報 ===
-{saved_peak_summary_df.to_string(index=False)}
-
-=== AI解析結果 ===
-{past_analysis['analysis']}
-
-=== 参照文献 ===
+#            analysis_report = f"""ラマンスペクトル解析レポート
+#ファイル名: {file_key}
+#解析日時: {past_analysis['timestamp']}
+#使用モデル: {past_analysis['model']}
+#
+#=== 検出ピーク情報 ===
+#{saved_peak_summary_df.to_string(index=False)}
+#
+#=== AI解析結果 ===
+#{past_analysis['analysis']}
+#
+#=== 参照文献 ===
 """
             """
             for i, doc in enumerate(saved_relevant_docs, 1):
