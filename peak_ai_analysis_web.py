@@ -165,6 +165,34 @@ def setup_ssl_context():
         st.error(f"SSL設定エラー: {e}")
         return None
 
+def save_original_spectrum_data_to_session(result, file_key):
+    """元のスペクトルデータをセッションに保存"""
+    try:
+        # 有効なピークを計算
+        filtered_peaks = [
+            i for i in result["detected_peaks"]
+            if i not in st.session_state.get(f"{file_key}_excluded_peaks", set())
+        ]
+        
+        # 元データを辞書形式で保存
+        original_data = {
+            'wavenum': result['wavenum'].tolist() if hasattr(result['wavenum'], 'tolist') else list(result['wavenum']),
+            'spectrum': result['spectrum'].tolist() if hasattr(result['spectrum'], 'tolist') else list(result['spectrum']),
+            'second_derivative': result['second_derivative'].tolist() if hasattr(result['second_derivative'], 'tolist') else list(result['second_derivative']),
+            'detected_peaks': list(result['detected_peaks']),
+            'detected_prominences': list(result['detected_prominences']),
+            'manual_peaks': st.session_state.get(f"{file_key}_manual_peaks", []),
+            'excluded_peaks': st.session_state.get(f"{file_key}_excluded_peaks", set()),
+            'all_peaks': list(result.get('all_peaks', [])),
+            'all_prominences': list(result.get('all_prominences', [])),
+            'filtered_peaks': filtered_peaks
+        }
+        
+        st.session_state[f"{file_key}_original_spectrum_data"] = original_data
+        st.success("✅ 元のスペクトルデータを保存しました")
+        
+    except Exception as e:
+        st.warning(f"元データ保存警告: {e}")
 class LLMConnector:
     """強化されたOpenAI LLM接続設定クラス"""
     def __init__(self):
@@ -1064,7 +1092,7 @@ class RamanPDFReportGenerator:
             spaceAfter=6,
             alignment=TA_JUSTIFY
         ))
-    
+        
     def plotly_to_image(self, fig, filename, width=800, height=600, format='png'):
         """PlotlyグラフをPNG画像に変換（改良版）"""
         try:
@@ -1522,34 +1550,7 @@ class RamanPDFReportGenerator:
             error_text = self._sanitize_text_for_pdf(f"スペクトル情報表示エラー: {e}")
             return Paragraph(error_text, self.styles['JapaneseNormal'])
     
-    def save_original_spectrum_data_to_session(result, file_key):
-        """元のスペクトルデータをセッションに保存"""
-        try:
-            # 有効なピークを計算
-            filtered_peaks = [
-                i for i in result["detected_peaks"]
-                if i not in st.session_state.get(f"{file_key}_excluded_peaks", set())
-            ]
-            
-            # 元データを辞書形式で保存
-            original_data = {
-                'wavenum': result['wavenum'].tolist() if hasattr(result['wavenum'], 'tolist') else list(result['wavenum']),
-                'spectrum': result['spectrum'].tolist() if hasattr(result['spectrum'], 'tolist') else list(result['spectrum']),
-                'second_derivative': result['second_derivative'].tolist() if hasattr(result['second_derivative'], 'tolist') else list(result['second_derivative']),
-                'detected_peaks': list(result['detected_peaks']),
-                'detected_prominences': list(result['detected_prominences']),
-                'manual_peaks': st.session_state.get(f"{file_key}_manual_peaks", []),
-                'excluded_peaks': st.session_state.get(f"{file_key}_excluded_peaks", set()),
-                'all_peaks': list(result.get('all_peaks', [])),
-                'all_prominences': list(result.get('all_prominences', [])),
-                'filtered_peaks': filtered_peaks
-            }
-            
-            st.session_state[f"{file_key}_original_spectrum_data"] = original_data
-            st.success("✅ 元のスペクトルデータを保存しました")
-            
-        except Exception as e:
-            st.warning(f"元データ保存警告: {e}")
+    
     def _create_title_page(self, file_key: str) -> List:
         """タイトルページを作成"""
         content = []
@@ -2481,6 +2482,14 @@ def render_interactive_plot(result, file_key, spectrum_type):
     # グラフ表示（peak_analysis_web.pyと同じ）
     st.plotly_chart(fig, use_container_width=True)
     
+    # PDFレポート用にPlotlyグラフを保存
+    st.session_state[f"{file_key}_plotly_figure"] = fig
+    
+    # 【追加】元のスペクトルデータを保存（PDFレポート用）
+    save_original_spectrum_data_to_session(result, file_key)
+    
+    # グラフ表示（peak_analysis_web.pyと同じ）
+    st.plotly_chart(fig, use_container_width=True)
 
 def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, user_hint, llm_ready):
     """AI解析セクションを描画"""
@@ -2663,8 +2672,12 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                                     plotly_figure = st.session_state.get(f"{file_key}_plotly_figure", None)
                                     
                                     # Q&A履歴を取得
+                                    qa_history_key = f"{file_key}_qa_history"
                                     qa_history = st.session_state[qa_history_key]
                                     
+                                    # 元のスペクトルデータを取得
+                                    original_spectrum_data = st.session_state.get(f"{file_key}_original_spectrum_data", None)
+
                                     # PDFを生成
                                     pdf_bytes = pdf_generator.generate_pdf_report(
                                         file_key=file_key,
@@ -2677,6 +2690,7 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                                         qa_history=qa_history,
                                         database_info=database_info,
                                         database_files=database_files
+                                        original_spectrum_data=original_spectrum_data  # 追加
                                     )
                                     
                                     # 一時ファイルをクリーンアップ
