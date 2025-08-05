@@ -2677,7 +2677,7 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                                     
                                     # 元のスペクトルデータを取得
                                     original_spectrum_data = st.session_state.get(f"{file_key}_original_spectrum_data", None)
-
+                                    
                                     # PDFを生成
                                     pdf_bytes = pdf_generator.generate_pdf_report(
                                         file_key=file_key,
@@ -2690,7 +2690,7 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                                         qa_history=qa_history,
                                         database_info=database_info,
                                         database_files=database_files
-                                        original_spectrum_data=original_spectrum_data  # 追加
+                                        original_spectrum_data=original_spectrum_data
                                     )
                                     
                                     # 一時ファイルをクリーンアップ
@@ -2715,7 +2715,6 @@ def render_ai_analysis_section(result, file_key, spectrum_type, llm_connector, u
                                 # st.info("PDFレポート生成に必要なライブラリ（reportlab, Pillow）がインストールされていることを確認してください。")
                     else:
                         st.info("PDFレポート機能は利用できません（必要ライブラリ未インストール）")
-                    save_original_spectrum_data_to_session(result, file_key)
             else:
                 st.info("AI解析結果がないため、レポートを生成できません。先にAI解析を実行してください。")
             
