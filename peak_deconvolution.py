@@ -557,7 +557,26 @@ class RamanDeconvolution:
         optimal_n_peaks = np.argmin(optimization_scores) + 1
         
         return optimal_n_peaks, optimization_scores
+    # 追加: 単一ピークの面積（解析解）
+    def lorentzian_area_analytic(self, amplitude, gamma):
+        """
+        ローレンツ関数 A*γ^2/((x-x0)^2+γ^2) の面積（-∞〜∞）は π*A*γ
+        """
+        return float(np.pi * amplitude * gamma)
 
+    # 追加: 指定範囲での数値積分（必要な場合だけ使用）
+    def lorentzian_area_numeric(self, x, amplitude, center, gamma, x_range=None):
+        """
+        x_range=(xmin, xmax) があればその範囲で数値積分、無ければ全xで数値積分
+        """
+        if x_range is not None:
+            mask = (x >= x_range[0]) & (x <= x_range[1])
+            x_use = x[mask]
+        else:
+            x_use = x
+        y_peak = self.lorentzian(x_use, amplitude, center, gamma)
+        return float(np.trapz(y_peak, x_use))
+        
 def create_peak_constraints_table(n_peaks):
     """ピーク制約テーブルの作成"""
     if f"peak_constraints_{n_peaks}" not in st.session_state:
@@ -657,7 +676,10 @@ def peak_deconvolution_mode():
                 range_min = st.sidebar.number_input("範囲最小値:", value=int(x.min()), min_value=int(x.min()), max_value=int(x.max()))
                 range_max = st.sidebar.number_input("範囲最大値:", value=int(x.max()), min_value=range_min, max_value=int(x.max()))
                 peak_range = [range_min, range_max]
-                
+                n_trials = st.sidebar.selectbox(
+                    "フィッティング試行回数:", [1, 3, 5, 10], index=2,
+                    help="回数が多いほど安定した結果が得られますが、時間がかかります"
+                )
                 # レイアウトを2列に分割
                 col1, col2 = st.columns([2, 1])
                 
@@ -760,37 +782,66 @@ def peak_deconvolution_mode():
                     # フィッティング実行
                     if st.button("フィッティング実行"):
                         with st.spinner("フィッティング中..."):
-                            # 試行回数の選択
-                            n_trials = st.sidebar.selectbox("フィッティング試行回数:", [1, 3, 5, 10], index=2, 
-                                                           help="回数が多いほど安定した結果が得られますが、時間がかかります")
-                            
+                            # 試行回数の選択                    
                             popt, pcov = deconv.fit_peaks_robust(x, y, n_peaks, peak_range, peak_constraints, n_trials)
-                            
+                    
                             if popt is not None:
                                 st.success("フィッティング完了!")
-                                
-                                # パラメータ表示
+                    
+                                # パラメータ表示（ここで表とexport用文字列を同時に作成）
                                 st.subheader("フィッティングパラメータ")
+                    
+                                rows = []
+                                param_info = []
+                                total_area = 0.0
+                    
+                                for i in range(n_peaks):
+                                    A = float(popt[3*i])
+                                    c = float(popt[3*i + 1])
+                                    g = float(popt[3*i + 2])
+                    
+                                    # 面積（解析解：π*A*γ）
+                                    area = deconv.lorentzian_area_analytic(A, g)
+                                    total_area += area
+                    
+                                    # 制約状態・備考（保険で長さチェック）
+                                    if i < len(peak_constraints):
+                                        constraint_center = peak_constraints[i]['center']
+                                        comment = peak_constraints[i]['comment']
+                                    else:
+                                        constraint_center = None
+                                        comment = ""
+                    
+                                    status = "固定" if constraint_center is not None else "最適化"
+                    
+                                    # 表用の行
+                                    rows.append([A, c, g, area, status, comment])
+                    
+                                    # export用 param_info 文字列
+                                    param_info.append(
+                                        f"ピーク{i+1}: 振幅={A:.4f}, 中心={c:.2f}, 半値幅={g:.4f}, 面積(解析)={area:.4f} ({status})"
+                                    )
+                    
+                                # DataFrame 化
                                 params_df = pd.DataFrame(
-                                    np.array(popt).reshape(-1, 3),
-                                    columns=['振幅', '中心', '半値幅'],
+                                    rows,
+                                    columns=['振幅', '中心', '半値幅', '面積', '波数状態', '備考'],
                                     index=[f'ピーク{i+1}' for i in range(n_peaks)]
                                 )
                                 
-                                # 制約状態の表示
-                                constraint_status = []
-                                for i, constraint in enumerate(peak_constraints):
-                                    if constraint['center'] is not None:
-                                        constraint_status.append("固定")
-                                    else:
-                                        constraint_status.append("最適化")
-                                
-                                params_df['波数状態'] = constraint_status
-                                params_df['備考'] = [c['comment'] for c in peak_constraints]
-                                
-                                st.dataframe(params_df)
-                                
-                                # フィッティング品質
+                                st.dataframe(
+                                    params_df.style.format({
+                                        '振幅': "{:.0f}",
+                                        '中心': "{:.0f}",
+                                        '半値幅': "{:.1f}",
+                                        '面積': "{:.0f}"
+                                    })
+                                )
+                    
+                                # 後段のエクスポート処理で使えるようにセッションに保存
+                                st.session_state['param_info'] = param_info
+                    
+                                # フィッティング品質評価
                                 if peak_range:
                                     mask = (x >= peak_range[0]) & (x <= peak_range[1])
                                     x_eval = x[mask]
@@ -798,10 +849,14 @@ def peak_deconvolution_mode():
                                 else:
                                     x_eval = x
                                     y_eval = y
-                                
+                    
                                 y_pred = deconv.multi_lorentzian(x_eval, *popt)
                                 r_squared = 1 - np.sum((y_eval - y_pred) ** 2) / np.sum((y_eval - np.mean(y_eval)) ** 2)
-                                st.metric("R²", f"{r_squared:.4f}")
+                    
+                                # メトリクス表示（R²と合計面積）
+                                m1, m2 = st.columns(2)
+                                m1.metric("R²", f"{r_squared:.4f}")
+                                m2.metric("合計面積(解析)", f"{total_area:.0f}")
                 
                 with col1:
                     st.subheader("データとフィッティング結果")
@@ -864,7 +919,15 @@ def peak_deconvolution_mode():
                         title='ラマンピーク分離',
                         xaxis_title='ラマンシフト (cm⁻¹)',
                         yaxis_title='強度',
-                        height=600
+                        height=600,
+                        showlegend=True,
+                        legend=dict(
+                            orientation='h',
+                            x=0.0, xanchor='left',
+                            y=1.02, yanchor='bottom',
+                            bgcolor="rgba(255,255,255,0.6)"
+                        ),
+                        margin=dict(t=80)  # 上に余白を追加
                     )
                     
                     st.plotly_chart(fig, use_container_width=True)
@@ -878,6 +941,7 @@ def peak_deconvolution_mode():
                             x=x, y=residuals,
                             mode='lines',
                             name='残差',
+                            showlegend=True,
                             line=dict(color='green', width=1)
                         ))
                         fig_residuals.add_hline(y=0, line_dash="dash", line_color="black")
@@ -885,7 +949,15 @@ def peak_deconvolution_mode():
                             title='残差',
                             xaxis_title='ラマンシフト (cm⁻¹)',
                             yaxis_title='残差',
-                            height=300
+                            showlegend=True,
+                            height=300,
+                            legend=dict(
+                                orientation='h',
+                                x=0.0, xanchor='left',
+                                y=1.02, yanchor='bottom',
+                                bgcolor="rgba(255,255,255,0.6)"
+                            ),
+                            margin=dict(t=80)
                         )
                         st.plotly_chart(fig_residuals, use_container_width=True)
                         
@@ -913,8 +985,8 @@ def peak_deconvolution_mode():
                                 center = deconv.fitted_params[3*i + 1]
                                 gamma = deconv.fitted_params[3*i + 2]
                                 constraint_status = "固定" if hasattr(deconv, 'peak_constraints') and deconv.peak_constraints and i < len(deconv.peak_constraints) and deconv.peak_constraints[i]['center'] is not None else "最適化"
-                                param_info.append(f"ピーク{i+1}: 振幅={amplitude:.4f}, 中心={center:.2f}, 半値幅={gamma:.2f} ({constraint_status})")
-                            
+                                f"ピーク{i+1}: 振幅={A:.4f}, 中心={c:.2f}, 半値幅={g:.2f}, 面積(解析)={area:.2f} ({constraint_status})"
+                                
                             # パラメータ情報をコメントとして追加
                             export_df.attrs['parameters'] = param_info
                         
