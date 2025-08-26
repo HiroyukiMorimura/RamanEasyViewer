@@ -167,12 +167,10 @@ def spectrum_analysis_mode():
             selected = st.sidebar.multiselect("処理するファイルを選択", names, default=names, key="selected_files_in_folder")
             for name in selected:
                 fpath = folder / name
-                try:
-                    # ★ここがポイント：ローカルファイルも process_spectrum_file へ
-                    with open(fpath, "rb") as fh:
-                        result = process_spectrum_file(
-                            fh, start_wavenum, end_wavenum, dssn_th, savgol_wsize
-                        )
+                try:）
+                    result = process_spectrum_file(
+                        str(fpath), start_wavenum, end_wavenum, dssn_th, savgol_wsize
+                    )
                     wv, sp, bs, mv, ftype, fname = result
                     if wv is None:
                         st.warning(f"{name}: 読み込み失敗")
@@ -196,9 +194,9 @@ def spectrum_analysis_mode():
     if uploaded:
         for uf in uploaded:
             try:
-                # UploadedFile はそのまま process_spectrum_file に渡す
+                
                 result = process_spectrum_file(
-                    uf, start_wavenum, end_wavenum, dssn_th, savgol_wsize
+                    str(fpath), start_wavenum, end_wavenum, dssn_th, savgol_wsize
                 )
                 wv, sp, bs, mv, ftype, fname = result
                 if wv is None:
